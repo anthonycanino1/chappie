@@ -11,6 +11,7 @@
 
 	<target name="clean" depends="init" description="Remove build files created this scripts">
 		<delete dir="${build.dir}" />
+		<delete file="chappie.jar" />
   </target>
 
 	<target name="compile" depends="init" description="Compile source">
