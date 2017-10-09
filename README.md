@@ -19,19 +19,26 @@ Both of these implementations store a set of Tuples containing a time stamp and 
 
 To use the classes implemented here, a singleton instance of the Chaperone is the best approach currently. However, a Chaperone could be implemented as a field of a class. For simplicity, the following is a sufficient example:
 
+```
 public class Utilities {
   public static Chaperone chaperone = new AsynchronousChaperone();
 }
+```
 
 To request a Chaperone, use the following:
 
+```
 Utilities.chaperone.assign();
 // Code that needs to be monitored
 Utilities.chaperone.dismiss();
+```
 
 To store the log to a file, use the following:
+
+```
 //Program execution
 Utilities.chaperone.retire();
+```
 
 ## Building
 
