@@ -5,8 +5,9 @@ An implementation of the **Chaperone** pattern design for monitoring thread acti
 ## Chaperone
 
 The **Chaperone** Pattern:
-*```Provide an agent that is given permission to access an entity for a span of time.
-```*
+```
+Provide an agent that is given permission to access an entity for a span of time.
+```
 
 The Chaperone pattern here is implemented to monitoring the number of threads in the "RUNNABLE" state during executing of a Java program.
 
