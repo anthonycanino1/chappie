@@ -30,7 +30,7 @@ public abstract class Chaperone {
   protected Map<Long, Set<String>> timeLine = new TreeMap<Long, Set<String>>();
 
   public abstract void assign();
-  public abstract double dismiss();
+  public abstract double[] dismiss();
 
   public void retire() {
 

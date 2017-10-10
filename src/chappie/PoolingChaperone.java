@@ -8,6 +8,8 @@ import java.util.Set;
 import java.util.Map;
 import java.util.HashMap;
 
+import jrapl.EnergyCheckUtils;
+
 public class PoolingChaperone extends Chaperone {
   private int count = 10;
 
@@ -17,6 +19,7 @@ public class PoolingChaperone extends Chaperone {
   private long[] starts = new long[10];
   private Queue<Integer> free = new LinkedList<Integer>();
   private Map<String, Integer> used = new HashMap<String, Integer>();
+  private double[][] readings = new double[10][];
 
   public PoolingChaperone() {
     start = System.currentTimeMillis();
@@ -38,10 +41,10 @@ public class PoolingChaperone extends Chaperone {
     threads[next].setName("Chaperone-" + next);
     threads[next].start();
     starts[next] = System.currentTimeMillis() - start;
-    // read
+    readings[next] = EnergyCheckUtils.getEnergyStats();
   }
 
-  public synchronized double dismiss() {
+  public synchronized double[] dismiss() {
     int current = used.get(Thread.currentThread().getName());
 
     threads[current].stop();
@@ -49,7 +52,7 @@ public class PoolingChaperone extends Chaperone {
       threads[current].join();
     } catch (InterruptedException e) { }
 
-    //read
+    double[] last_readings = EnergyCheckUtils.getEnergyStats();
     Map<Long, Set<String>> results = watchers[current].read();
 
     int count = 0;
@@ -58,26 +61,16 @@ public class PoolingChaperone extends Chaperone {
         if(thread == Thread.currentThread().getName())
           count++;
 
-    double usage = count * watchers[current].getPolling() / watchers[current].getDuration();
+    double usage = count / (double)results.size();
 
     for(long time : results.keySet())
       timeLine.put(time + starts[current], results.get(time));
 
     free.offer(current);
 
-    return usage;
+    for(int i = 0; i < last_readings.length; ++i)
+      last_readings[i] = usage * (last_readings[i] - readings[current][i]);
+
+    return last_readings;
   }
-
-  /*public void retire() {
-    for(Watcher watcher : watcher)
-      watcher.stop();
-
-    for(Thread thread : watcherThreads)
-      try {
-        thread.join();
-      } catch (InterruptedException e) { }
-
-    timeLine.putAll(watcher.read());
-    super.retire();
-  }*/
 }

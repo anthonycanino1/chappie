@@ -14,6 +14,11 @@
 		<delete file="chappie.jar" />
   </target>
 
+	<path id="project.class.path">
+		<pathelement path="${java.class.path}/"/>
+		<pathelement path="vendor/jrapl-port/classes"/>
+	</path>
+
 	<target name="compile" depends="init" description="Compile source">
 		<mkdir dir="${build.classes.dir}" />
 
@@ -21,13 +26,16 @@
       source="1.7" target="1.7"
       srcdir="${src.dir}"
       destdir="${build.classes.dir}"
-      debug="on">
+      debug="on"
+			classpathref="project.class.path">
     </javac>
 	</target>
 
   <target name="jar" depends="compile">
 		<jar jarfile="${runtime.jar}">
 			<fileset dir="build/classes" includes="chappie/**/*.class" />
+			<fileset dir="vendor/jrapl-port/classes" includes="jrapl/**/*.class" />
+			<fileset dir="vendor/jrapl-port/classes" includes="jrapl/**/*.so" />
 		</jar>
   </target>
 

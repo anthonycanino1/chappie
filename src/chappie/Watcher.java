@@ -8,7 +8,6 @@ import java.util.TreeMap;
 
 public class Watcher implements Runnable {
   private long polling = 10;
-  public long getPolling() { return polling; }
   public void setPolling(long time) { polling = time; }
 
   private boolean running = true;
@@ -17,9 +16,6 @@ public class Watcher implements Runnable {
   private boolean assigned = false;
   public void assign() { assigned = true; }
   public void dismiss() { assigned = false; }
-
-  private long duration = 0;
-  public long getDuration() { return duration; }
 
   private Map<Long, Set<String>> timeLine = new TreeMap<Long, Set<String>>();
 
@@ -30,7 +26,6 @@ public class Watcher implements Runnable {
         Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
 
         long time = System.currentTimeMillis() - start;
-        duration = time;
         if(threadSet.size() > 0)
           timeLine.put(time, new HashSet());
 
