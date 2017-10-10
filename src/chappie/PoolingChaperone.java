@@ -38,9 +38,10 @@ public class PoolingChaperone extends Chaperone {
     threads[next].setName("Chaperone-" + next);
     threads[next].start();
     starts[next] = System.currentTimeMillis() - start;
+    // read
   }
 
-  public synchronized void dismiss() {
+  public synchronized double dismiss() {
     int current = used.get(Thread.currentThread().getName());
 
     threads[current].stop();
@@ -48,11 +49,23 @@ public class PoolingChaperone extends Chaperone {
       threads[current].join();
     } catch (InterruptedException e) { }
 
+    //read
     Map<Long, Set<String>> results = watchers[current].read();
+
+    int count = 0;
+    for(Set<String> stamp: results.values())
+      for(String thread: stamp)
+        if(thread == Thread.currentThread().getName())
+          count++
+
+    double usage = count * watchers[current].getPolling() / watchers[current].getDuration();
+
     for(long time : results.keySet())
       timeLine.put(time + starts[current], results.get(time));
 
     free.offer(current);
+
+    return usage;
   }
 
   /*public void retire() {

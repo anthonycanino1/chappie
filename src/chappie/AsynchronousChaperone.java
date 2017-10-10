@@ -17,9 +17,11 @@ public class AsynchronousChaperone extends Chaperone {
     if(assigned++ == 0)
       watcher.assign();
   }
-  public synchronized void dismiss() {
+  public synchronized double dismiss() {
     if(--assigned == 0)
       watcher.dismiss();
+
+    return 0;
   }
 
   public void retire() {
