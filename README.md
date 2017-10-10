@@ -44,4 +44,4 @@ Utilities.chaperone.retire();
 
 ## Building
 
-**"$ ant jar"** will build a jar file containing both the Asynchronous and Pooling implementations of the Chaperone.
+**$ ant jar** will build a jar file containing both the Asynchronous and Pooling implementations of the Chaperone.
