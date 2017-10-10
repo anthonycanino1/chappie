@@ -56,7 +56,7 @@ public class PoolingChaperone extends Chaperone {
     for(Set<String> stamp: results.values())
       for(String thread: stamp)
         if(thread == Thread.currentThread().getName())
-          count++
+          count++;
 
     double usage = count * watchers[current].getPolling() / watchers[current].getDuration();
 
