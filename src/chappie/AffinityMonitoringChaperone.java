@@ -21,8 +21,6 @@ package chappie;
 
 import java.util.*;
 
-import jrapl.EnergyCheckUtils;
-
 import net.openhft.affinity.impl.*;
 
 public class AffinityMonitoringChaperone extends Chaperone implements Runnable {
@@ -41,14 +39,6 @@ public class AffinityMonitoringChaperone extends Chaperone implements Runnable {
       int stamp = (int)(System.currentTimeMillis() - start);
 
       Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
-
-      double[] current = EnergyCheckUtils.getEnergyStats();
-      List<Double> reading = new ArrayList<Double>();
-      for(int i = 0; i < current.length; ++i)
-        reading.add(current[i] - previous[i]);
-      readings.put(stamp, reading);
-
-      current = previous;
 
       timeLine.put(stamp, new HashSet());
 
