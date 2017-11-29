@@ -33,7 +33,6 @@ public class AffinityMonitoringChaperone extends Chaperone implements Runnable {
 
   public void run() {
     long start = System.currentTimeMillis();
-    double[] previous = EnergyCheckUtils.getEnergyStats();
 
     while(running) {
       int stamp = (int)(System.currentTimeMillis() - start);
