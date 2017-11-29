@@ -32,7 +32,7 @@ import java.io.*;
 public abstract class Chaperone {
   protected Map<Integer, Set<String>> timeLine = new TreeMap<Integer, Set<String>>();
   protected Map<String, Map<Integer, List<Double>>> threadReadings = new HashMap<String, Map<Integer, List<Double>>>();
-  protected Map<String, Map<Integer, Long>> threadAffinities = new HashMap<String, Map<Integer, Long>>();
+  protected Map<String, Map<Integer, BitSet>> threadAffinities = new HashMap<String, Map<Integer, BitSet>>();
   protected Map<Integer, List<Double>> readings = new TreeMap<Integer, List<Double>>();
   protected Map<Integer, List<Integer>> threadCount = new TreeMap<Integer, List<Integer>>();
 
@@ -148,7 +148,7 @@ public abstract class Chaperone {
 
     for (String name : threadAffinities.keySet()) {
       for (Integer time : threadAffinities.get(name).keySet()) {
-        String message = name + ", " + time + ": (" + threadAffinities.get(name).get(time) + ")";
+        String message = name + ", " + time + ": (" + threadAffinities.get(name).get(time).toString() + ")";
         log.write(message + "\n");
       }
     }
