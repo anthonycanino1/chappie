@@ -61,7 +61,7 @@ public class AsynchronousAffinityChaperone extends Chaperone {
       if (!threadAffinities.containsKey(name))
         threadAffinities.put(name, new TreeMap<Integer, Long>());
 
-      threadAffinities.get(name).put(stamp, PosixJNAAffinity.INSTANCE.getAffinity());
+      threadAffinities.get(name).put(stamp, LinuxJNAAffinity.INSTANCE.getAffinity());
 
       return stamp;
     } else
