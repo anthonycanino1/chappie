@@ -58,7 +58,7 @@ public class AffinityMonitoringChaperone extends Chaperone implements Runnable {
           timeLine.get(stamp).add(name);
 
           if (!threadAffinities.containsKey(name))
-            threadAffinities.put(name, new TreeMap<Integer, Long>());
+            threadAffinities.put(name, new TreeMap<Integer, BitSet>());
 
           threadAffinities.get(name).put(stamp, LinuxJNAAffinity.INSTANCE.getAffinity());
         }
