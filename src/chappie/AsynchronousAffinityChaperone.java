@@ -31,7 +31,7 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.TreeMap;
 
-import vanilla.java.affinity.impl.*;
+import net.openhft.affinity.impl.*;
 
 public class AsynchronousAffinityChaperone extends Chaperone {
 
