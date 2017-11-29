@@ -25,14 +25,15 @@ import java.util.List;
 import java.util.ArrayList;
 
 import java.util.Set;
+import java.util.BitSet;
 
 import java.util.Map;
 import java.util.HashMap;
 import java.util.TreeMap;
 
-import jrapl.EnergyCheckUtils;
+import vanilla.java.affinity.impl.*;
 
-public class AsynchronousChaperone extends Chaperone {
+public class AsynchronousAffinityChaperone extends Chaperone {
 
   private int assigned = 0;
 
@@ -41,7 +42,7 @@ public class AsynchronousChaperone extends Chaperone {
 
   private int mode;
 
-  public AsynchronousChaperone() {
+  public AsynchronousAffinityChaperone() {
     watcherThread = new Thread(watcher);
     watcherThread.setName("Chaperone");
     watcherThread.start();
@@ -56,20 +57,12 @@ public class AsynchronousChaperone extends Chaperone {
 
       String name = Thread.currentThread().getName();
       int stamp = watcher.getLast();
-      if (!threadReadings.containsKey(name))
-        threadReadings.put(name, new TreeMap<Integer, List<Double>>());
 
-      if (mode == 2) {
-        if(!readings.containsKey(stamp)) {
-          List<Double> reading = new ArrayList<Double>();
-          for (double value: EnergyCheckUtils.getEnergyStats())
-            reading.add(value);
+      if (!threadAffinities.containsKey(name))
+        threadAffinities.put(name, new TreeMap<Integer, Long>());
 
-          readings.put(stamp, reading);
-        }
+      threadAffinities.get(name).put(stamp, PosixJNAAffinity.INSTANCE.getAffinity());
 
-        threadReadings.get(name).put(stamp, readings.get(stamp));
-      }
       return stamp;
     } else
       return 0;
@@ -85,24 +78,7 @@ public class AsynchronousChaperone extends Chaperone {
       int stamp2 = watcher.getLast();
       double usage = watcher.readUsage(stamp1, stamp2, Thread.currentThread().getName());
 
-      if (mode == 2) {
-        if(!readings.containsKey(stamp2)) {
-          List<Double> reading = new ArrayList<Double>();
-          for (double value: EnergyCheckUtils.getEnergyStats())
-            reading.add(value);
-
-          readings.put(stamp2, reading);
-        }
-        List<Double> first = readings.get(stamp1);
-        List<Double> second = readings.get(stamp2);
-        List<Double> reading = new ArrayList<Double>();
-        for(int i = 0; i < first.size(); ++i)
-          reading.add(second.get(i) - first.get(i));
-        threadReadings.get(name).put(stamp1, reading);
-
-        return new double[] { reading.get(0) };
-      } else
-        return new double[] {usage};
+      return new double[] {usage};
     } else
       return new double[] {0};
   }

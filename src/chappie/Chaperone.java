@@ -1,5 +1,5 @@
 /* ************************************************************************************************
- * Copyright 2016 SUNY Binghamton
+ * Copyright 2017 SUNY Binghamton
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this
  * software and associated documentation files (the "Software"), to deal in the Software
  * without restriction, including without limitation the rights to use, copy, modify, merge,
@@ -19,41 +19,138 @@
 
 package chappie;
 
+import java.util.List;
+
 import java.util.Set;
 
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.HashMap;
 
 import java.io.*;
 
 public abstract class Chaperone {
-  protected Map<Long, Set<String>> timeLine = new TreeMap<Long, Set<String>>();
+  protected Map<Integer, Set<String>> timeLine = new TreeMap<Integer, Set<String>>();
+  protected Map<String, Map<Integer, List<Double>>> threadReadings = new HashMap<String, Map<Integer, List<Double>>>();
+  protected Map<String, Map<Integer, Long>> threadAffinities = new HashMap<String, Map<Integer, Long>>();
+  protected Map<Integer, List<Double>> readings = new TreeMap<Integer, List<Double>>();
+  protected Map<Integer, List<Integer>> threadCount = new TreeMap<Integer, List<Integer>>();
 
-  public abstract void assign();
-  public abstract double[] dismiss();
+  public abstract int assign();
+  public abstract double[] dismiss(int id);
 
   public void retire() {
+    String timelogname = System.getenv("CHAPPIE_TIME_LOG");
+    if (timelogname == null) {
+      timelogname = "chappie.time.log";
+    }
 
-    String logname = System.getenv("CHAPPIE_LOG");
-    if (logname == null) {
-      logname = "chappie.log";
+    String readinglogname = System.getenv("CHAPPIE_READING_LOG");
+    if (readinglogname == null) {
+      readinglogname = "chappie.reading.log";
+    }
+
+    String powerlogname = System.getenv("CHAPPIE_POWER_LOG");
+    if (powerlogname == null) {
+      powerlogname = "chappie.power.log";
+    }
+
+    String countlogname = System.getenv("CHAPPIE_COUNT_LOG");
+    if (countlogname == null) {
+      countlogname = "chappie.count.log";
+    }
+
+    String affinitylogname = System.getenv("CHAPPIE_AFFINITY_LOG");
+    if (affinitylogname == null) {
+      affinitylogname = "chappie.affinity.log";
     }
 
     PrintWriter log = null;
     try {
-      log = new PrintWriter(new BufferedWriter(new FileWriter(logname)));
+      log = new PrintWriter(new BufferedWriter(new FileWriter(timelogname)));
     } catch (IOException io) {
       System.err.println("Error: " + io.getMessage());
       throw new RuntimeException("uh oh");
     }
 
-    for(Long time : timeLine.keySet()) {
+    for (Integer time : timeLine.keySet()) {
       String message = time + ": (";
-      for(String name : timeLine.get(time)){
+      for (String name : timeLine.get(time))
         message += name + ", ";
-      }
+
       message = message.substring(0, message.length() - 2) + ")";
       log.write(message + "\n");
+    }
+
+    log.close();
+
+    try {
+      log = new PrintWriter(new BufferedWriter(new FileWriter(readinglogname)));
+    } catch (IOException io) {
+      System.err.println("Error: " + io.getMessage());
+      throw new RuntimeException("uh oh");
+    }
+
+    for (String name : threadReadings.keySet())
+      for (Integer time : threadReadings.get(name).keySet()) {
+        String message = name + ", " + time + ": (";
+        for (double reading : threadReadings.get(name).get(time))
+          message += reading + ", ";
+
+        message = message.substring(0, message.length() - 2) + ")";
+        log.write(message + "\n");
+      }
+
+    log.close();
+
+    try {
+      log = new PrintWriter(new BufferedWriter(new FileWriter(powerlogname)));
+    } catch (IOException io) {
+      System.err.println("Error: " + io.getMessage());
+      throw new RuntimeException("uh oh");
+    }
+
+    for (Integer time : readings.keySet()) {
+      String message = time + ": (";
+      for (double reading : readings.get(time))
+        message += reading + ", ";
+
+      message = message.substring(0, message.length() - 2) + ")";
+      log.write(message + "\n");
+    }
+
+    log.close();
+
+    try {
+      log = new PrintWriter(new BufferedWriter(new FileWriter(countlogname)));
+    } catch (IOException io) {
+      System.err.println("Error: " + io.getMessage());
+      throw new RuntimeException("uh oh");
+    }
+
+    for (Integer time : threadCount.keySet()) {
+      String message = time + ": (";
+      for (int count : threadCount.get(time))
+        message += count + ", ";
+
+      message = message.substring(0, message.length() - 2) + ")";
+      log.write(message + "\n");
+    }
+
+    log.close();
+
+    try {
+      log = new PrintWriter(new BufferedWriter(new FileWriter(affinitylogname)));
+    } catch (IOException io) {
+      System.err.println("Error: " + io.getMessage());
+      throw new RuntimeException("uh oh");
+    }
+
+    for (String name : threadAffinities.keySet()) {
+      for (Integer time : threadAffinities.get(name).keySet()) {
+        String message = name + ", " + time + ": (" + threadAffinities.get(name).get(time) + ")";
+        log.write(message + "\n");
+      }
     }
 
     log.close();
