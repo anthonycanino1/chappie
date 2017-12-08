@@ -89,41 +89,7 @@ public class GlobalChaperone extends Chaperone {
         if (!cores.containsKey(name))
           cores.put(name, new TreeMap<Integer, Integer>());
 
-        int tid = GLIBC.getThreadId();
-        int core = -1;
-        String path = "/proc/" + pid + "/task/" + tid + "/stat";
-
-        Runtime r = Runtime.getRuntime();
-
-        try {
-          Process p = r.exec("cat " + path);
-          InputStream in = p.getInputStream();
-          BufferedInputStream buf = new BufferedInputStream(in);
-          InputStreamReader inread = new InputStreamReader(buf);
-          BufferedReader bufferedreader = new BufferedReader(inread);
-
-          // get the core
-          String line;
-          while ((line = bufferedreader.readLine()) != null) {
-            core = Integer.parseInt(line.split(" ")[38]);
-          }
-          // Check for failure
-          try {
-            if (p.waitFor() != 0) {
-              System.err.println("exit value = " + p.exitValue());
-            }
-          } catch (InterruptedException e) {
-            System.err.println(e);
-          } finally {
-            // Close the InputStream
-            bufferedreader.close();
-            inread.close();
-            buf.close();
-            in.close();
-          }
-        } catch (IOException e) {
-          System.err.println(e.getMessage());
-        }
+        cores.get(name).put(curr, GLIBC.getCore(pid,GLIBC.getThreadId()));
       }
 
       int size = activity.get(curr).get(0).size();

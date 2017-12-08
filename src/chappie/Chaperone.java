@@ -57,7 +57,7 @@ public abstract class Chaperone implements Runnable {
     }
 
     PrintWriter log = null;
-    
+
     try {
       log = new PrintWriter(new BufferedWriter(new FileWriter(activityName)));
     } catch (IOException io) {

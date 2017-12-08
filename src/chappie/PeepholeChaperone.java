@@ -158,54 +158,13 @@ public class PeepholeChaperone extends Chaperone {
   }
 
   private Map<String, Integer> lastCore = new HashMap<String, Integer>();
-  private Map<String, Integer> ticks = new HashMap<String, Integer>();
 
   protected void archiveCore(String name) {
     if (!cores.containsKey(name)) {
       cores.put(name, new TreeMap<Integer, Integer>());
       lastCore.put(name, -1);
-      ticks.put(name, 0);
     }
 
-    if((ticks.get(name) % 20) == 0) {
-      int tid = GLIBC.getThreadId();
-      int core = -1;
-      String path = "/proc/" + pid + "/task/" + tid + "/stat";
-
-      Runtime r = Runtime.getRuntime();
-
-      try {
-        Process p = r.exec("cat " + path);
-        InputStream in = p.getInputStream();
-        BufferedInputStream buf = new BufferedInputStream(in);
-        InputStreamReader inread = new InputStreamReader(buf);
-        BufferedReader bufferedreader = new BufferedReader(inread);
-
-        // get the core
-        String line;
-        while ((line = bufferedreader.readLine()) != null) {
-          core = Integer.parseInt(line.split(" ")[38]);
-          lastCore.put(name, core);
-        }
-        // Check for failure
-        try {
-          if (p.waitFor() != 0) {
-            System.err.println("exit value = " + p.exitValue());
-          }
-        } catch (InterruptedException e) {
-          System.err.println(e);
-        } finally {
-          // Close the InputStream
-          bufferedreader.close();
-          inread.close();
-          buf.close();
-          in.close();
-        }
-      } catch (IOException e) {
-        System.err.println(e.getMessage());
-      }
-    }
-
-    ticks.put(name, ticks.get(name) + 1);
+    lastCore.put(name, GLIBC.getCore(pid, GLIBC.getThreadId()));
   }
 }
