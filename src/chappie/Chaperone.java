@@ -29,53 +29,48 @@ import java.util.HashMap;
 
 import java.io.*;
 
-public abstract class Chaperone {
-  protected Map<Integer, Set<String>> timeLine = new TreeMap<Integer, Set<String>>();
-  protected Map<String, Map<Integer, List<Double>>> threadReadings = new HashMap<String, Map<Integer, List<Double>>>();
-  protected Map<String, Map<Integer, BitSet>> threadAffinities = new HashMap<String, Map<Integer, BitSet>>();
-  protected Map<Integer, List<Double>> readings = new TreeMap<Integer, List<Double>>();
-  protected Map<Integer, List<Integer>> threadCount = new TreeMap<Integer, List<Integer>>();
+public abstract class Chaperone implements Runnable {
+  
+  protected Map<Integer, List<Set<String>>> activity = new TreeMap<Integer, List<Set<String>>>();
+  protected Map<String, Map<Integer, List<Double>>> power = new HashMap<String, Map<Integer, List<Double>>>();
+  protected Map<String, Map<Integer, Integer>> cores = new HashMap<String, Map<Integer, Integer>>();
+
+  public abstract void run();
 
   public abstract int assign();
-  public abstract double[] dismiss(int id);
+  public abstract List<Double> dismiss(int id);
 
   public void retire() {
-    String timelogname = System.getenv("CHAPPIE_TIME_LOG");
-    if (timelogname == null) {
-      timelogname = "chappie.time.log";
+    String activityName = System.getenv("CHAPPIE_ACTIVITY_LOG");
+    if (activityName == null) {
+      activityName = "chappie.activity.log";
     }
 
-    String readinglogname = System.getenv("CHAPPIE_READING_LOG");
-    if (readinglogname == null) {
-      readinglogname = "chappie.reading.log";
+    String powerName = System.getenv("CHAPPIE_POWER_LOG");
+    if (powerName == null) {
+      powerName = "chappie.power.log";
     }
 
-    String powerlogname = System.getenv("CHAPPIE_POWER_LOG");
-    if (powerlogname == null) {
-      powerlogname = "chappie.power.log";
-    }
-
-    String countlogname = System.getenv("CHAPPIE_COUNT_LOG");
-    if (countlogname == null) {
-      countlogname = "chappie.count.log";
-    }
-
-    String affinitylogname = System.getenv("CHAPPIE_AFFINITY_LOG");
-    if (affinitylogname == null) {
-      affinitylogname = "chappie.affinity.log";
+    String coreName = System.getenv("CHAPPIE_CORE_LOG");
+    if (coreName == null) {
+      coreName = "chappie.core.log";
     }
 
     PrintWriter log = null;
     try {
-      log = new PrintWriter(new BufferedWriter(new FileWriter(timelogname)));
+      log = new PrintWriter(new BufferedWriter(new FileWriter(activityName)));
     } catch (IOException io) {
       System.err.println("Error: " + io.getMessage());
       throw new RuntimeException("uh oh");
     }
 
-    for (Integer time : timeLine.keySet()) {
+    for (Integer time : activity.keySet()) {
       String message = time + ": (";
-      for (String name : timeLine.get(time))
+      for (String name : activity.get(time).get(0))
+        message += name + ", ";
+
+      message = message.substring(0, message.length() - 2) + "), (";
+      for (String name : activity.get(time).get(1))
         message += name + ", ";
 
       message = message.substring(0, message.length() - 2) + ")";
@@ -85,16 +80,16 @@ public abstract class Chaperone {
     log.close();
 
     try {
-      log = new PrintWriter(new BufferedWriter(new FileWriter(readinglogname)));
+      log = new PrintWriter(new BufferedWriter(new FileWriter(powerName)));
     } catch (IOException io) {
       System.err.println("Error: " + io.getMessage());
       throw new RuntimeException("uh oh");
     }
 
-    for (String name : threadReadings.keySet())
-      for (Integer time : threadReadings.get(name).keySet()) {
+    for (String name : power.keySet())
+      for (Integer time : power.get(name).keySet()) {
         String message = name + ", " + time + ": (";
-        for (double reading : threadReadings.get(name).get(time))
+        for (double reading : power.get(name).get(time))
           message += reading + ", ";
 
         message = message.substring(0, message.length() - 2) + ")";
@@ -104,53 +99,17 @@ public abstract class Chaperone {
     log.close();
 
     try {
-      log = new PrintWriter(new BufferedWriter(new FileWriter(powerlogname)));
+      log = new PrintWriter(new BufferedWriter(new FileWriter(coreName)));
     } catch (IOException io) {
       System.err.println("Error: " + io.getMessage());
       throw new RuntimeException("uh oh");
     }
 
-    for (Integer time : readings.keySet()) {
-      String message = time + ": (";
-      for (double reading : readings.get(time))
-        message += reading + ", ";
+    for (String name : cores.keySet())
+      for (Integer time : cores.get(name).keySet()) {
+        String message = name + ", " + time + ": (" + cores.get(name).get(time) + ")";
 
-      message = message.substring(0, message.length() - 2) + ")";
-      log.write(message + "\n");
-    }
-
-    log.close();
-
-    try {
-      log = new PrintWriter(new BufferedWriter(new FileWriter(countlogname)));
-    } catch (IOException io) {
-      System.err.println("Error: " + io.getMessage());
-      throw new RuntimeException("uh oh");
-    }
-
-    for (Integer time : threadCount.keySet()) {
-      String message = time + ": (";
-      for (int count : threadCount.get(time))
-        message += count + ", ";
-
-      message = message.substring(0, message.length() - 2) + ")";
-      log.write(message + "\n");
-    }
-
-    log.close();
-
-    try {
-      log = new PrintWriter(new BufferedWriter(new FileWriter(affinitylogname)));
-    } catch (IOException io) {
-      System.err.println("Error: " + io.getMessage());
-      throw new RuntimeException("uh oh");
-    }
-
-    for (String name : threadAffinities.keySet()) {
-      for (Integer time : threadAffinities.get(name).keySet()) {
-        String message = name + ", " + time + ": (" + threadAffinities.get(name).get(time).toString() + ")";
         log.write(message + "\n");
-      }
     }
 
     log.close();

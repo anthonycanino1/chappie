@@ -17,16 +17,15 @@
 	<path id="project.class.path">
 		<pathelement path="${java.class.path}/"/>
 		<pathelement path="vendor/jrapl-port/classes"/>
-		<pathelement path="vendor/affinity-3.1.2-SNAPSHOT.jar"/>
-		<pathelement path="vendor/affinity-3.1.2-SNAPSHOT-javadoc.jar"/>
-		<pathelement path="vendor/affinity-3.1.2-SNAPSHOT-sources.jar"/>
+		<pathelement path="vendor/jna-4.5.0.jar"/>
+		<pathelement path="vendor/jna-platform-4.5.0.jar"/>
 	</path>
 
 	<target name="compile" depends="init" description="Compile source">
 		<mkdir dir="${build.classes.dir}" />
 
     <javac
-      source="1.7" target="1.7"
+      source="1.8" target="1.8"
       srcdir="${src.dir}"
       destdir="${build.classes.dir}"
       debug="on"
@@ -39,7 +38,7 @@
 			<fileset dir="build/classes" includes="chappie/**/*.class" />
 			<fileset dir="vendor/jrapl-port/classes" includes="jrapl/**/*.class" />
 			<fileset dir="vendor/jrapl-port/classes" includes="jrapl/**/*.so" />
-			<zipgroupfileset dir="vendor" includes="affinity-3.1.2-SNAPSHOT*.jar"/>
+			<zipgroupfileset dir="vendor" includes="*.jar"/>
 		</jar>
   </target>
 
