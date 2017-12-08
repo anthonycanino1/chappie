@@ -1,25 +1,25 @@
 # chappie
 
-An implementation of the **Chaperone** pattern design for monitoring thread activity during program run time.
+An implementation of a **Chaperone** monitor for multi-threaded Java systems.
 
 ## Chaperone
 
-The **Chaperone** Pattern:
+The **Chaperone**:
 ```
-Provide an agent that is given permission to access an entity for a span of time.
+Provide an agent that is given privileged access to an entity.
 ```
 
-The Chaperone pattern here is implemented to monitoring the number of threads in the "RUNNABLE" state during executing of a Java program.
+The Chaperone monitor is implemented to characterize threads state during executing of a Java program.
 
 There are two provided implementations:
 
-1) AsynchronousChaperone - A single thread runs in the background and is active as long as at least one request has been made to it. When no one is any longer requesting to be chaperoned, it does not log threads.
+1) GlobalChaperone - A single thread that collects all desired data.
 
-2) PoolingChaperone - A single thread acts as a pool and assigns threads to monitor thread activity until the requesting entity dismisses them.
+2) PeepholeChaperone - A single thread that collects data as long as at least one request has been made to it. When no one is any longer requesting to be chaperoned, it does not measure anything.
 
-Both of these implementations store a set of Tuples containing a time stamp and a set of threads that were active during that time stamp that is stored to "chappie.log" at the end of execution.
+These implementations archive time indexed tuples for: the sets of active and inactive threads; the power readings of each thread; and the core a thread is operating on.
 
-To use the classes implemented here, a singleton instance of the Chaperone is the best approach currently. However, a Chaperone could be implemented as a field of a class. For simplicity, the following is a sufficient example:
+To use the classes implemented here, a single instance of the Chaperone is the best approach. However, a Chaperone could be implemented as a field of a class. For simplicity, the following is a sufficient example:
 
 ```
 public class Utilities {
@@ -35,7 +35,7 @@ Utilities.chaperone.assign();
 Utilities.chaperone.dismiss();
 ```
 
-To store the log to a file, use the following:
+To archive the results, use the following:
 
 ```
 //Program execution
@@ -44,4 +44,4 @@ Utilities.chaperone.retire();
 
 ## Building
 
-**$ ant jar** will build a jar file containing both the Asynchronous and Pooling implementations of the Chaperone.
+**$ ant jar** will build a jar file containing both the Global and Peephole implementations of the Chaperone.
