@@ -63,7 +63,6 @@ public class PeepholeChaperone extends Chaperone {
           int stamp = (int)(System.currentTimeMillis() - start);
           current = stamp - (int)(stamp % polling);
 
-          //current = 5 * activity.size();
           activity.put(current, new ArrayList<Set<String>>());
           activity.get(current).add(new HashSet<String>());
           activity.get(current).add(new HashSet<String>());
@@ -126,8 +125,6 @@ public class PeepholeChaperone extends Chaperone {
     try {
       thread.join();
     } catch (InterruptedException e) { }
-
-
 
     super.retire();
   }

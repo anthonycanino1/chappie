@@ -30,7 +30,7 @@ import java.util.HashMap;
 import java.io.*;
 
 public abstract class Chaperone implements Runnable {
-  
+
   protected Map<Integer, List<Set<String>>> activity = new TreeMap<Integer, List<Set<String>>>();
   protected Map<String, Map<Integer, List<Double>>> power = new HashMap<String, Map<Integer, List<Double>>>();
   protected Map<String, Map<Integer, Integer>> cores = new HashMap<String, Map<Integer, Integer>>();
@@ -57,6 +57,7 @@ public abstract class Chaperone implements Runnable {
     }
 
     PrintWriter log = null;
+    
     try {
       log = new PrintWriter(new BufferedWriter(new FileWriter(activityName)));
     } catch (IOException io) {

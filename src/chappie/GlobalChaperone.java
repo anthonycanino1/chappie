@@ -50,7 +50,7 @@ public class GlobalChaperone extends Chaperone {
   private int curr = 0;
 
   private long polling = 5;
-  private boolean running = true;
+  private boolean running = false;
 
   public int assign() { running = true; return 0; }
   public List<Double> dismiss(int stamp) { running = false; return null; }
@@ -61,6 +61,8 @@ public class GlobalChaperone extends Chaperone {
     List<Double> previous = new ArrayList<Double>();
     for (double value: EnergyCheckUtils.getEnergyStats())
       previous.add(value);
+
+    while(!running) {}
 
     while(running) {
       Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
@@ -141,5 +143,14 @@ public class GlobalChaperone extends Chaperone {
     }
 
     return;
+  }
+
+  public void retire() {
+    running = false;
+    try {
+      thread.join();
+    } catch (InterruptedException e) { }
+
+    super.retire();
   }
 }
