@@ -23,7 +23,7 @@ To use the classes implemented here, a single instance of the Chaperone is the b
 
 ```
 public class Utilities {
-  public static Chaperone chaperone = new AsynchronousChaperone();
+  public static Chaperone chaperone = new PeepholeChaperone();
 }
 ```
 
