@@ -40,7 +40,18 @@ public class PeepholeChaperone extends Chaperone {
   private int pid = -1;
   private Thread thread;
 
+  private long polling = 5;
+  private boolean running = true;
+
   public PeepholeChaperone() {
+    pid = GLIBC.getProcessId();
+
+    thread = new Thread(this, "Chaperone");
+    thread.start();
+  }
+
+  public PeepholeChaperone(int polling) {
+    this.polling = polling;
     pid = GLIBC.getProcessId();
 
     thread = new Thread(this, "Chaperone");
@@ -50,34 +61,30 @@ public class PeepholeChaperone extends Chaperone {
   private int assigned = 0;
   private int current = 0;
 
-  private long polling = 5;
-  private boolean running = true;
-
   public void run() {
     long start = System.currentTimeMillis();
     while(running) {
-      if(assigned > 0)
-        synchronized(activity) {
-          Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
+      if(assigned > 0) {
+        Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
 
-          int stamp = (int)(System.currentTimeMillis() - start);
-          current = stamp - (int)(stamp % polling);
+        int stamp = (int)(System.currentTimeMillis() - start);
+        current = stamp - (int)(stamp % polling);
 
-          activity.put(current, new ArrayList<Set<String>>());
-          activity.get(current).add(new HashSet<String>());
-          activity.get(current).add(new HashSet<String>());
+        activity.put(current, new ArrayList<Set<String>>());
+        activity.get(current).add(new HashSet<String>());
+        activity.get(current).add(new HashSet<String>());
 
-          for(Thread thread : threadSet) {
-            if (thread.getState() == Thread.State.RUNNABLE)
-              activity.get(current).get(0).add(thread.getName());
-            else
-              activity.get(current).get(1).add(thread.getName());
-          }
+        for(Thread thread : threadSet) {
+          if (thread.getState() == Thread.State.RUNNABLE)
+            activity.get(current).get(0).add(thread.getName());
+          else
+            activity.get(current).get(1).add(thread.getName());
         }
+      }
 
       try {
         Thread.sleep(polling);
-      } catch (InterruptedException e) { Thread.currentThread().interrupt();}
+      } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
     }
 
     return;
@@ -99,7 +106,7 @@ public class PeepholeChaperone extends Chaperone {
 
     String name = Thread.currentThread().getName();
 
-    //archivePower(name);
+    archivePower(name);
 
     archiveCore(name);
     cores.get(name).put(current, lastCore.get(name));
@@ -107,17 +114,16 @@ public class PeepholeChaperone extends Chaperone {
     return current;
   }
 
-  public synchronized List<Double> dismiss(int stamp) {
+  public synchronized List<Double> dismiss(int previous) {
     assigned--;
 
     String name = Thread.currentThread().getName();
 
-    /*archivePower(name);
-    List<Double> measure = attributePower(name, stamp, current);
-    power.get(name).put(stamp, measure);
+    archivePower(name);
+    List<Double> measure = attributePower(name, previous, current);
+    power.get(name).put(previous, measure);
 
-    return measure;*/
-    return new ArrayList<Double>();
+    return measure;
   }
 
   public void retire() {
@@ -152,7 +158,7 @@ public class PeepholeChaperone extends Chaperone {
 
     List<Double> reading = new ArrayList<Double>();
     for(int i = 0; i < m1.size(); ++i)
-    reading.add(usage * (m2.get(i) - m1.get(i)));
+      reading.add(usage * (m2.get(i) - m1.get(i)));
 
     return reading;
   }
