@@ -19,6 +19,8 @@
 
 package chappie.util;
 
+import java.nio.charset.StandardCharsets;
+
 import com.sun.jna.Library;
 import com.sun.jna.Native;
 
@@ -32,5 +34,18 @@ public interface GLIBC extends Library {
 
   public static int getThreadId() {
     return GLIBC.glibc.syscall(186);
+  }
+
+  public static int getCore(int pid, int tid) {
+    String path = "/proc/" + pid + "/task/" + tid + "/stat";
+    int fd = GLIBC.glibc.syscall(2, path, 0);
+
+    byte[] bytes = new byte[512];
+    GLIBC.glibc.syscall(0, fd, bytes, 512);
+
+    GLIBC.glibc.syscall(4, fd);
+
+    String message = new String(bytes, StandardCharsets.UTF_8);
+    return Integer.parseInt(message.split(" ")[38]);
   }
 }
