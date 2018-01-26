@@ -33,7 +33,7 @@ import java.util.TreeMap;
 
 import java.io.*;
 
-import jrapl.EnergyCheckUtils;
+//import jrapl.EnergyCheckUtils;
 
 public class GlobalChaperone extends Chaperone {
 
@@ -59,8 +59,8 @@ public class GlobalChaperone extends Chaperone {
     int pid = GLIBC.getProcessId();
     long start = System.currentTimeMillis();
     List<Double> previous = new ArrayList<Double>();
-    for (double value: EnergyCheckUtils.getEnergyStats())
-      previous.add(value);
+    //for (double value: EnergyCheckUtils.getEnergyStats())
+      //previous.add(value);
 
     while(!running) {}
 
@@ -76,8 +76,8 @@ public class GlobalChaperone extends Chaperone {
 
       int i = 0;
       List<Double> current = new ArrayList<Double>();
-      for (double value: EnergyCheckUtils.getEnergyStats())
-        current.add(value - previous.get(i++));
+      /*for (double value: EnergyCheckUtils.getEnergyStats())
+        current.add(value - previous.get(i++));*/
 
       for(Thread thread : threadSet) {
         String name = thread.getName();
@@ -95,8 +95,8 @@ public class GlobalChaperone extends Chaperone {
       int size = activity.get(curr).get(0).size();
       for(String name: activity.get(curr).get(0)) {
         List<Double> reading = new ArrayList<Double>();
-        for (double value: EnergyCheckUtils.getEnergyStats())
-          reading.add(current.get(i++) / size);
+        /*for (double value: EnergyCheckUtils.getEnergyStats())
+          reading.add(current.get(i++) / size);*/
 
         if(!power.containsKey(name))
           power.put(name, new TreeMap<Integer, List<Double>>());

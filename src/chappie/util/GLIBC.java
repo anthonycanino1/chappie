@@ -48,4 +48,17 @@ public interface GLIBC extends Library {
     String message = new String(bytes, StandardCharsets.UTF_8);
     return Integer.parseInt(message.split(" ")[38]);
   }
+
+  public static String getState(int pid, int tid) {
+    String path = "/proc/" + pid + "/task/" + tid + "/stat";
+    int fd = GLIBC.glibc.syscall(2, path, 0);
+
+    byte[] bytes = new byte[512];
+    GLIBC.glibc.syscall(0, fd, bytes, 512);
+
+    GLIBC.glibc.syscall(4, fd);
+
+    String message = new String(bytes, StandardCharsets.UTF_8);
+    return message.split(" ")[2];
+  }
 }

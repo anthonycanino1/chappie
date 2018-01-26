@@ -16,7 +16,7 @@
 
 	<path id="project.class.path">
 		<pathelement path="${java.class.path}/"/>
-		<pathelement path="vendor/jrapl-port/classes"/>
+		<pathelement path="vendor/jrapl-port/classes/"/>
 		<pathelement path="vendor/jna-4.5.0.jar"/>
 		<pathelement path="vendor/jna-platform-4.5.0.jar"/>
 	</path>
@@ -36,8 +36,8 @@
   <target name="jar" depends="compile">
 		<jar jarfile="${runtime.jar}">
 			<fileset dir="build/classes" includes="chappie/**/*.class" />
-			<fileset dir="vendor/jrapl-port/classes" includes="jrapl/**/*.class" />
 			<fileset dir="vendor/jrapl-port/classes" includes="jrapl/**/*.so" />
+			<fileset dir="vendor/jrapl-port/classes" includes="jrapl/**/*.java" />
 			<zipgroupfileset dir="vendor" includes="*.jar"/>
 		</jar>
   </target>

@@ -33,7 +33,11 @@ import java.util.TreeMap;
 
 import java.io.*;
 
-import jrapl.EnergyCheckUtils;
+
+import java.lang.management.*;
+import com.sun.management.*;
+
+import EnergyCheckUtils.*;
 
 public class PeepholeChaperone extends Chaperone {
 
@@ -43,8 +47,11 @@ public class PeepholeChaperone extends Chaperone {
   private long polling = 5;
   private boolean running = true;
 
+  private com.sun.management.ThreadMXBean bean;
+
   public PeepholeChaperone() {
     pid = GLIBC.getProcessId();
+    bean = (com.sun.management.ThreadMXBean)ManagementFactory.getThreadMXBean();
 
     thread = new Thread(this, "Chaperone");
     thread.start();
@@ -60,6 +67,8 @@ public class PeepholeChaperone extends Chaperone {
 
   private int assigned = 0;
   private int current = 0;
+
+  private Map<String, Integer> tids = new HashMap<String, Integer>();
 
   public void run() {
     long start = System.currentTimeMillis();
@@ -79,6 +88,11 @@ public class PeepholeChaperone extends Chaperone {
             activity.get(current).get(0).add(thread.getName());
           else
             activity.get(current).get(1).add(thread.getName());
+
+          if (GLIBC.getState(pid, tids.get(thread.getName())) == "R")
+            activity.get(current).get(0).add(thread.getName());
+          else
+            activity.get(current).get(1).add(thread.getName());
         }
       }
 
@@ -92,13 +106,17 @@ public class PeepholeChaperone extends Chaperone {
 
   private double getUsage(String name, int start, int end) {
     int count = 0;
+    int total = 0;
     synchronized(activity) {
-      for(int i = start; i <= end; i += polling)
+      for(int i = start; i <= end; i += polling) {
         if(activity.get(i).get(0).contains(name))
           count++;
+
+        total += activity.get(i).get(0).size();
+      }
     }
 
-    return count / (double)(end - start + 1);
+    return count / (double)(end - start + 1) / total;
   }
 
   public synchronized int assign() {
@@ -106,9 +124,10 @@ public class PeepholeChaperone extends Chaperone {
 
     String name = Thread.currentThread().getName();
 
+    archiveTID(name);
     archivePower(name);
-
     archiveCore(name);
+
     cores.get(name).put(current, lastCore.get(name));
 
     return current;
@@ -133,6 +152,11 @@ public class PeepholeChaperone extends Chaperone {
     } catch (InterruptedException e) { }
 
     super.retire();
+  }
+
+  protected void archiveTID(String name) {
+    if (!tids.containsKey(name))
+      tids.put(name, GLIBC.getThreadId());
   }
 
   private Map<Integer, List<Double>> readings = new HashMap<Integer, List<Double>>();
@@ -172,5 +196,15 @@ public class PeepholeChaperone extends Chaperone {
     }
 
     lastCore.put(name, GLIBC.getCore(pid, GLIBC.getThreadId()));
+  }
+
+  private Map<String, Map<Integer, Long>> memory = new HashMap<String, Map<Integer, Long>>();
+
+  protected void archiveMemory(String name) {
+    if (!memory.containsKey(name))
+      power.put(name, new TreeMap<Integer, List<Double>>());
+
+    if(!memory.get(name).containsKey(current))
+      memory.get(name).put(current, bean.getThreadAllocatedBytes(Thread.currentThread().getId()));
   }
 }
