@@ -22,6 +22,7 @@ package chappie;
 import chappie.util.GLIBC;
 
 import java.util.List;
+import java.util.Arrays;
 import java.util.ArrayList;
 
 import java.util.Set;
@@ -33,15 +34,29 @@ import java.util.TreeMap;
 
 import java.io.*;
 
-//import jrapl.EnergyCheckUtils;
+import java.lang.management.*;
+import com.sun.management.*;
+
+import jrapl.EnergyCheckUtils.*;
 
 public class GlobalChaperone extends Chaperone {
 
   private int pid = -1;
   private Thread thread;
+  private com.sun.management.ThreadMXBean bean;
 
   public GlobalChaperone() {
     pid = GLIBC.getProcessId();
+    bean = (com.sun.management.ThreadMXBean)ManagementFactory.getThreadMXBean();
+
+    thread = new Thread(this, "Chaperone");
+    thread.start();
+  }
+
+  public GlobalChaperone(int polling) {
+    this.polling = polling;
+    pid = GLIBC.getProcessId();
+    bean = (com.sun.management.ThreadMXBean)ManagementFactory.getThreadMXBean();
 
     thread = new Thread(this, "Chaperone");
     thread.start();
@@ -55,20 +70,22 @@ public class GlobalChaperone extends Chaperone {
   public int assign() { running = true; return 0; }
   public List<Double> dismiss(int stamp) { running = false; return null; }
 
+  private Map<String, Long> lastMemory = new HashMap<String, Long>();
+
   public void run() {
     int pid = GLIBC.getProcessId();
     long start = System.currentTimeMillis();
     List<Double> previous = new ArrayList<Double>();
-    //for (double value: EnergyCheckUtils.getEnergyStats())
-      //previous.add(value);
+    for (double value: jrapl.EnergyCheckUtils.getEnergyStats())
+      previous.add(value);
 
     while(!running) {}
 
     while(running) {
       Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
 
-      int stamp = (int)(System.currentTimeMillis() - start);
-      curr = stamp - (int)(stamp % polling);
+      /*int stamp = (int)(System.currentTimeMillis() - start);
+      curr = stamp - (int)(stamp % polling);*/
 
       activity.put(curr, new ArrayList<Set<String>>());
       activity.get(curr).add(new HashSet<String>());
@@ -76,8 +93,8 @@ public class GlobalChaperone extends Chaperone {
 
       int i = 0;
       List<Double> current = new ArrayList<Double>();
-      /*for (double value: EnergyCheckUtils.getEnergyStats())
-        current.add(value - previous.get(i++));*/
+      for (double value: jrapl.EnergyCheckUtils.getEnergyStats())
+        current.add(value - previous.get(i++));
 
       for(Thread thread : threadSet) {
         String name = thread.getName();
@@ -86,22 +103,41 @@ public class GlobalChaperone extends Chaperone {
         else
           activity.get(curr).get(1).add(name);
 
-        if (!cores.containsKey(name))
+        /*if (!cores.containsKey(name))
           cores.put(name, new TreeMap<Integer, Integer>());
 
-        cores.get(name).put(curr, GLIBC.getCore(pid,GLIBC.getThreadId()));
+        cores.get(name).put(curr, GLIBC.getCore(pid,GLIBC.getThreadId()));*/
+
+        if (!memory.containsKey(name)) {
+          memory.put(name, new TreeMap<Integer, Long>());
+          lastMemory.put(name, (long)0);
+        }
+
+        if(!memory.get(name).containsKey(curr)) {
+          long used = bean.getThreadAllocatedBytes(Thread.currentThread().getId());
+          memory.get(name).put(curr, bean.getThreadAllocatedBytes(Thread.currentThread().getId()) - lastMemory.get(name));
+          lastMemory.put(name, used);
+        }
       }
 
       int size = activity.get(curr).get(0).size();
-      for(String name: activity.get(curr).get(0)) {
-        List<Double> reading = new ArrayList<Double>();
-        /*for (double value: EnergyCheckUtils.getEnergyStats())
-          reading.add(current.get(i++) / size);*/
+      List<Double> reading = new ArrayList<Double>();
+      for (double value: current)
+        reading.add(value / size);
 
+      for(String name: activity.get(curr).get(0)) {
         if(!power.containsKey(name))
           power.put(name, new TreeMap<Integer, List<Double>>());
         power.get(name).put(curr, reading);
       }
+
+      for(String name: activity.get(curr).get(1)) {
+        if(!power.containsKey(name))
+          power.put(name, new TreeMap<Integer, List<Double>>());
+        power.get(name).put(curr, Arrays.asList(0.0,0.0,0.0));
+      }
+
+      curr += polling;
 
       try {
         Thread.sleep(polling);

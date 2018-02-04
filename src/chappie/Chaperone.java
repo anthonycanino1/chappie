@@ -34,6 +34,7 @@ public abstract class Chaperone implements Runnable {
   protected Map<Integer, List<Set<String>>> activity = new TreeMap<Integer, List<Set<String>>>();
   protected Map<String, Map<Integer, List<Double>>> power = new HashMap<String, Map<Integer, List<Double>>>();
   protected Map<String, Map<Integer, Integer>> cores = new HashMap<String, Map<Integer, Integer>>();
+  protected Map<String, Map<Integer, Long>> memory = new HashMap<String, Map<Integer, Long>>();
 
   public abstract void run();
 
@@ -54,6 +55,11 @@ public abstract class Chaperone implements Runnable {
     String coreName = System.getenv("CHAPPIE_CORE_LOG");
     if (coreName == null) {
       coreName = "chappie.core.log";
+    }
+
+    String memoryName = System.getenv("CHAPPIE_MEMORY_LOG");
+    if (memoryName == null) {
+      memoryName = "chappie.memory.log";
     }
 
     PrintWriter log = null;
@@ -109,6 +115,22 @@ public abstract class Chaperone implements Runnable {
     for (String name : cores.keySet())
       for (Integer time : cores.get(name).keySet()) {
         String message = name + ", " + time + ": (" + cores.get(name).get(time) + ")";
+
+        log.write(message + "\n");
+    }
+
+    log.close();
+
+    try {
+      log = new PrintWriter(new BufferedWriter(new FileWriter(memoryName)));
+    } catch (IOException io) {
+      System.err.println("Error: " + io.getMessage());
+      throw new RuntimeException("uh oh");
+    }
+
+    for (String name : memory.keySet())
+      for (Integer time : memory.get(name).keySet()) {
+        String message = name + ", " + time + ": (" + memory.get(name).get(time) + ")";
 
         log.write(message + "\n");
     }

@@ -1,6 +1,9 @@
+package jrapl;
+
 import java.lang.reflect.Field;
+
 public class PerfCheckUtils {
-	
+
 	public native static void perfInit(int numEvents, int isSet);
 	public native static void singlePerfEventCheck(String eventNames);
 	public native static void groupPerfEventsCheck(String eventNames);
@@ -10,7 +13,7 @@ public class PerfCheckUtils {
 	public native static void perfMultRead(long[] buffer);
 	public native static long processSingleValue(long[] buffer);
 	public native static long[] processMultiValue(long[] buffer);
-	
+
 	public static int eventNum = 0;
 	//For testing, Make the variable not be optimized as static
 	static int[] test = new int[100000000];
@@ -25,37 +28,37 @@ public class PerfCheckUtils {
 
 		System.loadLibrary("perfCheck");
 	}
-	
+
 	/**
 	 * Initialize perf check utilities
-	 * 
+	 *
 	 * @eventNames String names of hardware counters to be checked
-	 * @isGrouped Do you want get @eventNames counters as single read? 
+	 * @isGrouped Do you want get @eventNames counters as single read?
 	 */
 	public static void perfEventInit(String eventNames, boolean isGrouped) {
 		int setGroup;
 		String[] eventName = eventNames.split(",");
 		eventNum = eventName.length;
-		
+
 		setGroup = isGrouped ? 1 : 0;
 		perfInit(eventNum, setGroup);
-		
+
 		if(isGrouped) {
 			groupPerfEventsCheck(eventNames);
 		} else {
 			singlePerfEventCheck(eventNames);
 		}
-		
+
 		perfEnable();
 	}
-	
+
 	/**
 	 * Get multiple perf counter values with single read
 	 */
 	public static long[] getMultiPerfCounter() {
 		long[] buffer = new long[3 + 2 * eventNum];
 		long[] results = new long[eventNum];
-		
+
 		if(eventNum > 0) {
 			perfMultRead(buffer);
 			results = processMultiValue(buffer);
@@ -63,17 +66,17 @@ public class PerfCheckUtils {
 			System.err.println("event number is 0, should call perfEventInit first!");
 			System.exit(-1);
 		}
-		
+
 		return results;
 	}
-	
+
 	/**
 	 * Get one perf counter value a time
 	 */
 	public static long[] getSinglePerfCounter() {
 		long[] buffer = new long[3];
 		long[] results = new long[eventNum];
-		
+
 		if(eventNum > 0) {
 			for(int i = 0; i < results.length; i++) {
 				perfSingleRead(i, buffer);
@@ -85,12 +88,12 @@ public class PerfCheckUtils {
 		}
 		return results;
 	}
-	
+
 	public static void main(String[] args) {
-		long[] preamble; 
+		long[] preamble;
 		long[] epilogue;
 		String counters = "cache-misses,cache-references";
-		
+
 //		perfEventInit(counters, false);
 		perfEventInit(counters, true);
 
@@ -108,11 +111,10 @@ public class PerfCheckUtils {
 //		}
 //		epilogue = getSinglePerfCounter();
 		epilogue = getMultiPerfCounter();
-		
+
 		System.out.println("cache misses is: " + (epilogue[0] - preamble[0]));
 		System.out.println("cache references is: " + (epilogue[1] - preamble[1]));
 
 		perfDisable();
 	}
 }
-
