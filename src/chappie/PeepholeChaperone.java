@@ -133,9 +133,6 @@ public class PeepholeChaperone extends Chaperone {
 
     archiveTID(name);
     archivePower(name, curr);
-    archiveCore(name);
-
-    cores.get(name).put(curr, lastCore.get(name));
 
     return curr;
   }
@@ -149,7 +146,9 @@ public class PeepholeChaperone extends Chaperone {
     List<Double> measure = attributePower(name, previous, curr);
     power.get(name).put(previous, measure);
 
-    archiveMemory(name, curr);
+    archiveCore(name);
+    archiveMemory(name, previous);
+    cores.get(name).put(previous, lastCore.get(name));
 
     return measure;
   }
