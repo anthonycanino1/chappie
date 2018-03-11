@@ -64,7 +64,7 @@ public class GlobalChaperone extends Chaperone {
 
   private int curr = 0;
 
-  private long polling = 5;
+  private long polling = 5000;
   private boolean running = false;
 
   public int assign() { running = true; return 0; }
@@ -73,28 +73,22 @@ public class GlobalChaperone extends Chaperone {
   private Map<String, Long> lastMemory = new HashMap<String, Long>();
 
   public void run() {
-    int pid = GLIBC.getProcessId();
-    long start = System.currentTimeMillis();
-    List<Double> previous = new ArrayList<Double>();
-    for (double value: jrapl.EnergyCheckUtils.getEnergyStats())
-      previous.add(value);
-
+    int counter = 0;
     while(!running) {}
+
+    double[] previous = jrapl.EnergyCheckUtils.getEnergyStats();
 
     while(running) {
       Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
-
-      /*int stamp = (int)(System.currentTimeMillis() - start);
-      curr = stamp - (int)(stamp % polling);*/
 
       activity.put(curr, new ArrayList<Set<String>>());
       activity.get(curr).add(new HashSet<String>());
       activity.get(curr).add(new HashSet<String>());
 
       int i = 0;
-      List<Double> current = new ArrayList<Double>();
+      /*List<Double> current = new ArrayList<Double>();
       for (double value: jrapl.EnergyCheckUtils.getEnergyStats())
-        current.add(value - previous.get(i++));
+        current.add(value - previous.get(i++));*/
 
       for(Thread thread : threadSet) {
         String name = thread.getName();
@@ -106,38 +100,52 @@ public class GlobalChaperone extends Chaperone {
         /*if (!cores.containsKey(name))
           cores.put(name, new TreeMap<Integer, Integer>());
 
-        cores.get(name).put(curr, GLIBC.getCore(pid,GLIBC.getThreadId()));*/
+        cores.get(name).put(curr, GLIBC.getCore(pid, Thread.tidMap.get(name)));*/
 
         if (!memory.containsKey(name)) {
           memory.put(name, new TreeMap<Integer, Long>());
-          lastMemory.put(name, (long)0);
         }
 
-        if(!memory.get(name).containsKey(curr)) {
-          long used = bean.getThreadAllocatedBytes(Thread.currentThread().getId());
-          memory.get(name).put(curr, bean.getThreadAllocatedBytes(Thread.currentThread().getId()) - lastMemory.get(name));
-          lastMemory.put(name, used);
+        long used = bean.getThreadAllocatedBytes(Thread.currentThread().getId());
+        memory.get(name).put(curr, used);
+
+        if(!power.containsKey(name)) {
+          power.put(name, new TreeMap<Integer, List<Double>>());
+          power.get(name).put(curr - (int)polling, Arrays.asList(0.0,0.0,0.0));
         }
       }
 
+      double[] next = jrapl.EnergyCheckUtils.getEnergyStats();
+      double[] current = new double[next.length];
       int size = activity.get(curr).get(0).size();
-      List<Double> reading = new ArrayList<Double>();
-      for (double value: current)
-        reading.add(value / size);
+      for (int n = 0; n < current.length; ++n)
+        current[n] = (next[n] - previous[n]) / size;
+      previous = next;
+
+      int stump = curr - (int)polling;
 
       for(String name: activity.get(curr).get(0)) {
-        if(!power.containsKey(name))
-          power.put(name, new TreeMap<Integer, List<Double>>());
+        List<Double> reading = new ArrayList<Double>();
+        List<Double> last = power.get(name).get(stump);
+        for(int n = 0; n < current.length; ++n)
+          reading.add(current[n] + last.get(n));
+
         power.get(name).put(curr, reading);
       }
 
       for(String name: activity.get(curr).get(1)) {
-        if(!power.containsKey(name))
-          power.put(name, new TreeMap<Integer, List<Double>>());
-        power.get(name).put(curr, Arrays.asList(0.0,0.0,0.0));
+        if(curr == 0)
+          power.get(name).put(curr, Arrays.asList(0.0,0.0,0.0));
+        else
+          power.get(name).put(curr, power.get(name).get(stump));
       }
 
+      //counter++;
+
       curr += polling;
+
+      // long waitUntil = System.nanoTime() + polling * 1000;
+      // while(waitUntil > System.nanoTime());
 
       try {
         Thread.sleep(polling);
