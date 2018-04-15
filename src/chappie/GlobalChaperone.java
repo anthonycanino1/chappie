@@ -53,7 +53,7 @@ public class GlobalChaperone extends Chaperone {
     thread.start();
   }
 
-  private long polling = 5000;
+  private long polling = 5;
   public GlobalChaperone(int polling) {
     this.polling = polling;
     pid = GLIBC.getProcessId();
@@ -97,7 +97,7 @@ public class GlobalChaperone extends Chaperone {
           try {
             cores.get(name).put(curr, GLIBC.getCore(pid, Chaperone.threadMap.get(name)));
           } catch(Exception e) {
-            cores.get(name).put(curr, cores.get(name).get(curr - polling));
+            cores.get(name).put(curr, cores.get(name).get(curr - (int)polling));
           }
         else
           cores.get(name).put(curr, -1);
@@ -136,8 +136,6 @@ public class GlobalChaperone extends Chaperone {
 
       //counter++;
       curr += polling;
-
-
 
       // long waitUntil = System.nanoTime() + polling * 1000;
       // while(waitUntil > System.nanoTime());
