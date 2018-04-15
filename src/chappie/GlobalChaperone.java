@@ -53,6 +53,7 @@ public class GlobalChaperone extends Chaperone {
     thread.start();
   }
 
+  private long polling = 5000;
   public GlobalChaperone(int polling) {
     this.polling = polling;
     pid = GLIBC.getProcessId();
@@ -62,18 +63,14 @@ public class GlobalChaperone extends Chaperone {
     thread.start();
   }
 
-  private int curr = 0;
 
-  private long polling = 5000;
   private boolean running = false;
 
   public int assign() { running = true; return 0; }
   public List<Double> dismiss(int stamp) { running = false; return null; }
 
-  private Map<String, Long> lastMemory = new HashMap<String, Long>();
-
   public void run() {
-    int counter = 0;
+    int curr = 0;
     while(!running) {}
 
     double[] previous = jrapl.EnergyCheckUtils.getEnergyStats();
@@ -94,62 +91,52 @@ public class GlobalChaperone extends Chaperone {
         else
           activity.get(curr).get(1).add(name);
 
-        // if (!cores.containsKey(name))
-        //   cores.put(name, new TreeMap<Integer, Integer>());
-        // if(Chaperone.threadMap.containsKey(name))
-        //   try{
-        //     cores.get(name).put(curr, GLIBC.getCore(pid, Chaperone.threadMap.get(name)));
-        //   } catch(ArrayIndexOutOfBoundsException e) { }
-
-        if (!memory.containsKey(name)) {
-          memory.put(name, new TreeMap<Integer, Long>());
-        }
+        if (!cores.containsKey(name))
+          cores.put(name, new TreeMap<Integer, Integer>());
+        if(Chaperone.threadMap.containsKey(name))
+          cores.get(name).put(curr, GLIBC.getCore(pid, Chaperone.threadMap.get(name)));
+        else
+          cores.get(name).put(curr, -1);
 
         long used = bean.getThreadAllocatedBytes(Thread.currentThread().getId());
-        memory.get(name).put(curr, used);
+        if (!bytes.containsKey(name)) {
+          bytes.put(name, new TreeMap<Integer, Long>());
+        }
+        bytes.get(name).put(curr, used);
+      }
 
-        if(!power.containsKey(name)) {
+      double[] next = jrapl.EnergyCheckUtils.getEnergyStats();
+      double[] current = new double[next.length];
+      int size = activity.get(curr).get(0).size();
+      for (int n = 0; n < current.length; ++n)
+        current[n] = (next[n] - previous[n]) / size;
+      previous = next;
+
+      for(String name: activity.get(curr).get(0)) {
+        List<Double> reading = new ArrayList<Double>();
+        for(int n = 0; n < current.length; ++n)
+          reading.add(current[n]);
+
+        if(!power.containsKey(name))
           power.put(name, new TreeMap<Integer, List<Double>>());
-          power.get(name).put(curr - (int)polling, Arrays.asList(0.0,0.0,0.0));
-        }
+
+        power.get(name).put(curr, reading);
       }
 
-      try {
-        double[] next = jrapl.EnergyCheckUtils.getEnergyStats();
-        double[] current = new double[next.length];
-        int size = activity.get(curr).get(0).size();
-        for (int n = 0; n < current.length; ++n)
-          current[n] = (next[n] - previous[n]) / size;
-        previous = next;
+      for(String name: activity.get(curr).get(1)) {
+        if(!power.containsKey(name))
+          power.put(name, new TreeMap<Integer, List<Double>>());
 
-        int stump = curr - (int)polling;
-
-        for(String name: activity.get(curr).get(0)) {
-          List<Double> reading = new ArrayList<Double>();
-          List<Double> last = power.get(name).get(stump);
-          for(int n = 0; n < current.length; ++n)
-            reading.add(current[n] + last.get(n));
-
-          power.get(name).put(curr, reading);
-        }
-
-        for(String name: activity.get(curr).get(1)) {
-          if(curr == 0)
-            power.get(name).put(curr, Arrays.asList(0.0,0.0,0.0));
-          else
-            power.get(name).put(curr, power.get(name).get(stump));
-        }
-      } catch(Exception e) {
-        System.out.println("whoops");
+        power.get(name).put(curr, Arrays.asList(0.0,0.0,0.0));
       }
-
-      curr += polling;
 
       //counter++;
+      curr += polling;
+
+
 
       // long waitUntil = System.nanoTime() + polling * 1000;
       // while(waitUntil > System.nanoTime());
-
       try {
         Thread.sleep(polling);
       } catch (InterruptedException e) { Thread.currentThread().interrupt();}

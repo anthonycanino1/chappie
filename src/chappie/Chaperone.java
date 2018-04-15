@@ -35,7 +35,7 @@ public abstract class Chaperone implements Runnable {
   protected Map<Integer, List<Set<String>>> activity = new TreeMap<Integer, List<Set<String>>>();
   protected Map<String, Map<Integer, List<Double>>> power = new HashMap<String, Map<Integer, List<Double>>>();
   protected Map<String, Map<Integer, Integer>> cores = new HashMap<String, Map<Integer, Integer>>();
-  protected Map<String, Map<Integer, Long>> memory = new HashMap<String, Map<Integer, Long>>();
+  protected Map<String, Map<Integer, Long>> bytes = new HashMap<String, Map<Integer, Long>>();
 
   public abstract void run();
 
@@ -43,99 +43,48 @@ public abstract class Chaperone implements Runnable {
   public abstract List<Double> dismiss(int id);
 
   public void retire() {
-    String activityName = System.getenv("CHAPPIE_ACTIVITY_LOG");
-    if (activityName == null) {
-      activityName = "chappie.activity.log";
-    }
-
-    String powerName = System.getenv("CHAPPIE_POWER_LOG");
-    if (powerName == null) {
-      powerName = "chappie.power.log";
-    }
-
-    String coreName = System.getenv("CHAPPIE_CORE_LOG");
-    if (coreName == null) {
-      coreName = "chappie.core.log";
-    }
-
-    String memoryName = System.getenv("CHAPPIE_MEMORY_LOG");
-    if (memoryName == null) {
-      memoryName = "chappie.memory.log";
-    }
-
     PrintWriter log = null;
 
+    String path = System.getenv("CHAPPIE_TRACE_LOG");
+    if (path == null)
+      path = "chappie.trace.csv";
+
     try {
-      log = new PrintWriter(new BufferedWriter(new FileWriter(activityName)));
+      log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
     } catch (IOException io) {
       System.err.println("Error: " + io.getMessage());
       throw new RuntimeException("uh oh");
     }
 
+    String message = "time,count,state\n";
     for (Integer time : activity.keySet()) {
-      String message = time + ": (";
-      for (String name : activity.get(time).get(0))
-        message += name + ", ";
-
-      message = message.substring(0, message.length() - 2) + "), (";
-      for (String name : activity.get(time).get(1))
-        message += name + ", ";
-
-      message = message.substring(0, message.length() - 2) + ")";
-      log.write(message + "\n");
+      message += time + "," + activity.get(time).get(0).size() + "," + "active\n";
+      message += time + "," + activity.get(time).get(1).size() + "," + "inactive\n";
     }
 
+    log.write(message);
     log.close();
 
+    path = System.getenv("CHAPPIE_THREAD_LOG");
+    if (path == null)
+      path = "chappie.thread.csv";
+
     try {
-      log = new PrintWriter(new BufferedWriter(new FileWriter(powerName)));
+      log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
     } catch (IOException io) {
       System.err.println("Error: " + io.getMessage());
       throw new RuntimeException("uh oh");
     }
 
+    message = "time,thread,core,package,dram,bytes\n";
     for (String name : power.keySet())
       for (Integer time : power.get(name).keySet()) {
-        String message = name + ", " + time + ": (";
-        for (double reading : power.get(name).get(time))
-          message += reading + ", ";
-
-        message = message.substring(0, message.length() - 2) + ")";
-        log.write(message + "\n");
+        message += time + "," + name + "," + cores.get(name).get(time);
+        message += "," + power.get(name).get(time).get(2) + "," + power.get(name).get(time).get(0);
+        message += "," + bytes.get(name).get(time) + "\n";
       }
 
-    log.close();
-
-    try {
-      log = new PrintWriter(new BufferedWriter(new FileWriter(coreName)));
-    } catch (IOException io) {
-      System.err.println("Error: " + io.getMessage());
-      throw new RuntimeException("uh oh");
-    }
-
-    for (String name : cores.keySet())
-      for (Integer time : cores.get(name).keySet()) {
-        String message = name + ", " + time + ": (" + cores.get(name).get(time) + ")";
-
-        log.write(message + "\n");
-    }
-
-    log.close();
-
-    try {
-      log = new PrintWriter(new BufferedWriter(new FileWriter(memoryName)));
-    } catch (IOException io) {
-      System.err.println("Error: " + io.getMessage());
-      throw new RuntimeException("uh oh");
-    }
-
-    for (String name : memory.keySet())
-      for (Integer time : memory.get(name).keySet()) {
-        String message = name + ", " + time + ": (" + memory.get(name).get(time) + ")";
-
-        log.write(message + "\n");
-    }
-
+    log.write(message);
     log.close();
   }
 }
