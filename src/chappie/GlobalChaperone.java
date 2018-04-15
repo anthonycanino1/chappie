@@ -94,7 +94,11 @@ public class GlobalChaperone extends Chaperone {
         if (!cores.containsKey(name))
           cores.put(name, new TreeMap<Integer, Integer>());
         if(Chaperone.threadMap.containsKey(name))
-          cores.get(name).put(curr, GLIBC.getCore(pid, Chaperone.threadMap.get(name)));
+          try {
+            cores.get(name).put(curr, GLIBC.getCore(pid, Chaperone.threadMap.get(name)));
+          } catch(Exception e) {
+            cores.get(name).put(curr, cores.get(name).get(curr - polling));
+          }
         else
           cores.get(name).put(curr, -1);
 
