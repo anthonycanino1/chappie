@@ -86,9 +86,6 @@ public class GlobalChaperone extends Chaperone {
       activity.get(curr).add(new HashSet<String>());
 
       int i = 0;
-      /*List<Double> current = new ArrayList<Double>();
-      for (double value: jrapl.EnergyCheckUtils.getEnergyStats())
-        current.add(value - previous.get(i++));*/
 
       for(Thread thread : threadSet) {
         String name = thread.getName();
@@ -97,10 +94,12 @@ public class GlobalChaperone extends Chaperone {
         else
           activity.get(curr).get(1).add(name);
 
-        /*if (!cores.containsKey(name))
-          cores.put(name, new TreeMap<Integer, Integer>());
-
-        cores.get(name).put(curr, GLIBC.getCore(pid, Thread.tidMap.get(name)));*/
+        // if (!cores.containsKey(name))
+        //   cores.put(name, new TreeMap<Integer, Integer>());
+        // if(Chaperone.threadMap.containsKey(name))
+        //   try{
+        //     cores.get(name).put(curr, GLIBC.getCore(pid, Chaperone.threadMap.get(name)));
+        //   } catch(ArrayIndexOutOfBoundsException e) { }
 
         if (!memory.containsKey(name)) {
           memory.put(name, new TreeMap<Integer, Long>());
@@ -115,34 +114,38 @@ public class GlobalChaperone extends Chaperone {
         }
       }
 
-      double[] next = jrapl.EnergyCheckUtils.getEnergyStats();
-      double[] current = new double[next.length];
-      int size = activity.get(curr).get(0).size();
-      for (int n = 0; n < current.length; ++n)
-        current[n] = (next[n] - previous[n]) / size;
-      previous = next;
+      try {
+        double[] next = jrapl.EnergyCheckUtils.getEnergyStats();
+        double[] current = new double[next.length];
+        int size = activity.get(curr).get(0).size();
+        for (int n = 0; n < current.length; ++n)
+          current[n] = (next[n] - previous[n]) / size;
+        previous = next;
 
-      int stump = curr - (int)polling;
+        int stump = curr - (int)polling;
 
-      for(String name: activity.get(curr).get(0)) {
-        List<Double> reading = new ArrayList<Double>();
-        List<Double> last = power.get(name).get(stump);
-        for(int n = 0; n < current.length; ++n)
-          reading.add(current[n] + last.get(n));
+        for(String name: activity.get(curr).get(0)) {
+          List<Double> reading = new ArrayList<Double>();
+          List<Double> last = power.get(name).get(stump);
+          for(int n = 0; n < current.length; ++n)
+            reading.add(current[n] + last.get(n));
 
-        power.get(name).put(curr, reading);
+          power.get(name).put(curr, reading);
+        }
+
+        for(String name: activity.get(curr).get(1)) {
+          if(curr == 0)
+            power.get(name).put(curr, Arrays.asList(0.0,0.0,0.0));
+          else
+            power.get(name).put(curr, power.get(name).get(stump));
+        }
+      } catch(Exception e) {
+        System.out.println("whoops");
       }
-
-      for(String name: activity.get(curr).get(1)) {
-        if(curr == 0)
-          power.get(name).put(curr, Arrays.asList(0.0,0.0,0.0));
-        else
-          power.get(name).put(curr, power.get(name).get(stump));
-      }
-
-      //counter++;
 
       curr += polling;
+
+      //counter++;
 
       // long waitUntil = System.nanoTime() + polling * 1000;
       // while(waitUntil > System.nanoTime());
