@@ -86,6 +86,7 @@ public class GlobalChaperone extends Chaperone {
 
       for(Thread thread : threadSet) {
         String name = thread.getName();
+
         if (thread.getState() == Thread.State.RUNNABLE)
           activity.get(curr).get(0).add(name);
         else
@@ -93,9 +94,9 @@ public class GlobalChaperone extends Chaperone {
 
         if (!cores.containsKey(name))
           cores.put(name, new TreeMap<Integer, Integer>());
-        if(Chaperone.threadMap.containsKey(name))
+        if(Thread.tidMap.containsKey(name))
           try {
-            cores.get(name).put(curr, GLIBC.getCore(pid, Chaperone.threadMap.get(name)));
+            cores.get(name).put(curr, GLIBC.getCore(pid, Thread.tidMap.get(name)));
           } catch(Exception e) {
             cores.get(name).put(curr, cores.get(name).get(curr - (int)polling));
           }
