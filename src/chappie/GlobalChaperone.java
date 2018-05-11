@@ -145,6 +145,8 @@ public class GlobalChaperone extends Chaperone {
       } catch (InterruptedException e) { Thread.currentThread().interrupt();}
     }
 
+    retire();
+
     return;
   }
 
