@@ -92,16 +92,16 @@ public class GlobalChaperone extends Chaperone {
         else
           activity.get(curr).get(1).add(name);
 
-        if (!cores.containsKey(name))
-          cores.put(name, new TreeMap<Integer, Integer>());
-        if(Thread.tidMap.containsKey(name))
-          try {
-            cores.get(name).put(curr, GLIBC.getCore(pid, Thread.tidMap.get(name)));
-          } catch(Exception e) {
-            cores.get(name).put(curr, cores.get(name).get(curr - (int)polling));
-          }
-        else
-          cores.get(name).put(curr, -1);
+        // if (!cores.containsKey(name))
+        //   cores.put(name, new TreeMap<Integer, Integer>());
+        // if(Thread.tidMap.containsKey(name))
+        //   try {
+        //     cores.get(name).put(curr, GLIBC.getCore(pid, Thread.tidMap.get(name)));
+        //   } catch(Exception e) {
+        //     cores.get(name).put(curr, cores.get(name).get(curr - (int)polling));
+        //   }
+        // else
+        //   cores.get(name).put(curr, -1);
 
         long used = bean.getThreadAllocatedBytes(Thread.currentThread().getId());
         if (!bytes.containsKey(name)) {
