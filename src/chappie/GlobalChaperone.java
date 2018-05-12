@@ -66,8 +66,8 @@ public class GlobalChaperone extends Chaperone {
 
   private boolean running = false;
 
-  public int assign() { running = true; return 0; }
-  public List<Double> dismiss(int stamp) { running = false; return null; }
+  public void assign() { running = true; }
+  public void dismiss() { running = false;}
 
   public void run() {
     int curr = 0;
@@ -92,8 +92,8 @@ public class GlobalChaperone extends Chaperone {
         else
           activity.get(curr).get(1).add(name);
 
-        // if (!cores.containsKey(name))
-        //   cores.put(name, new TreeMap<Integer, Integer>());
+        if (!cores.containsKey(name))
+          cores.put(name, new TreeMap<Integer, Integer>());
         // if(Thread.tidMap.containsKey(name))
         //   try {
         //     cores.get(name).put(curr, GLIBC.getCore(pid, Thread.tidMap.get(name)));
@@ -101,7 +101,7 @@ public class GlobalChaperone extends Chaperone {
         //     cores.get(name).put(curr, cores.get(name).get(curr - (int)polling));
         //   }
         // else
-        //   cores.get(name).put(curr, -1);
+        cores.get(name).put(curr, -1);
 
         long used = bean.getThreadAllocatedBytes(Thread.currentThread().getId());
         if (!bytes.containsKey(name)) {
@@ -148,14 +148,5 @@ public class GlobalChaperone extends Chaperone {
     retire();
 
     return;
-  }
-
-  public void retire() {
-    running = false;
-    try {
-      thread.join();
-    } catch (InterruptedException e) { }
-
-    super.retire();
   }
 }

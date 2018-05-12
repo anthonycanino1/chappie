@@ -39,10 +39,10 @@ public abstract class Chaperone implements Runnable {
 
   public abstract void run();
 
-  public abstract int assign();
-  public abstract List<Double> dismiss(int id);
+  public abstract void assign();
+  public abstract void dismiss();
 
-  public void retire() {
+  protected void retire() {
     PrintWriter log = null;
 
     String path = System.getenv("CHAPPIE_TRACE_LOG");
