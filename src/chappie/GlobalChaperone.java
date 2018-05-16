@@ -54,7 +54,7 @@ public class GlobalChaperone extends Chaperone {
   }
 
   private long polling = 5;
-  public GlobalChaperone(int polling) {
+  public GlobalChaperone(Integer polling) {
     this.polling = polling;
     pid = GLIBC.getProcessId();
     bean = (com.sun.management.ThreadMXBean)ManagementFactory.getThreadMXBean();
@@ -63,11 +63,17 @@ public class GlobalChaperone extends Chaperone {
     thread.start();
   }
 
-
   private boolean running = false;
 
   public void assign() { running = true; }
-  public void dismiss() { running = false;}
+
+  public void dismiss() {
+    thread.interrupt();
+    
+    try {
+      thread.join();
+    } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+  }
 
   public void run() {
     int curr = 0;
@@ -75,7 +81,7 @@ public class GlobalChaperone extends Chaperone {
 
     double[] previous = jrapl.EnergyCheckUtils.getEnergyStats();
 
-    while(running) {
+    while(!thread.isInterrupted()) {
       Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
 
       activity.put(curr, new ArrayList<Set<String>>());
@@ -94,14 +100,14 @@ public class GlobalChaperone extends Chaperone {
 
         if (!cores.containsKey(name))
           cores.put(name, new TreeMap<Integer, Integer>());
-        // if(Thread.tidMap.containsKey(name))
-        //   try {
-        //     cores.get(name).put(curr, GLIBC.getCore(pid, Thread.tidMap.get(name)));
-        //   } catch(Exception e) {
-        //     cores.get(name).put(curr, cores.get(name).get(curr - (int)polling));
-        //   }
-        // else
-        cores.get(name).put(curr, -1);
+        if(Thread.tidMap.containsKey(name))
+          try {
+            cores.get(name).put(curr, GLIBC.getCore(pid, Thread.tidMap.get(name)));
+          } catch(Exception e) {
+            cores.get(name).put(curr, cores.get(name).get(curr - (int)polling));
+          }
+        else
+          cores.get(name).put(curr, -1);
 
         long used = bean.getThreadAllocatedBytes(Thread.currentThread().getId());
         if (!bytes.containsKey(name)) {
@@ -142,7 +148,7 @@ public class GlobalChaperone extends Chaperone {
       // while(waitUntil > System.nanoTime());
       try {
         Thread.sleep(polling);
-      } catch (InterruptedException e) { Thread.currentThread().interrupt();}
+      } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
     }
 
     retire();
