@@ -30,7 +30,7 @@ import java.util.HashMap;
 import java.io.*;
 
 public abstract class Chaperone implements Runnable {
-  public static Chaperone chaperone = null;
+  public static Chaperone chaperone;
 
   protected Map<Integer, List<Set<String>>> activity = new TreeMap<Integer, List<Set<String>>>();
   protected Map<String, Map<Integer, List<Double>>> power = new HashMap<String, Map<Integer, List<Double>>>();
@@ -57,12 +57,12 @@ public abstract class Chaperone implements Runnable {
     }
 
     String message = "time,count,state\n";
-    for (Integer time : activity.keySet()) {
-      message += time + "," + activity.get(time).get(0).size() + "," + "active\n";
-      message += time + "," + activity.get(time).get(1).size() + "," + "inactive\n";
-    }
-
     log.write(message);
+    for (Integer time : activity.keySet()) {
+      message = time + "," + activity.get(time).get(0).size() + "," + "active\n";
+      message += time + "," + activity.get(time).get(1).size() + "," + "inactive\n";
+      log.write(message);
+    }
     log.close();
 
     path = System.getenv("CHAPPIE_THREAD_LOG");
@@ -77,14 +77,15 @@ public abstract class Chaperone implements Runnable {
     }
 
     message = "time,thread,core,package,dram,bytes\n";
+    log.write(message);
     for (String name : power.keySet())
       for (Integer time : power.get(name).keySet()) {
-        message += time + "," + name + "," + cores.get(name).get(time);
+        message = time + "," + name + "," + cores.get(name).get(time);
         message += "," + power.get(name).get(time).get(2) + "," + power.get(name).get(time).get(0);
         message += "," + bytes.get(name).get(time) + "\n";
+        log.write(message);
       }
 
-    log.write(message);
     log.close();
   }
 }
