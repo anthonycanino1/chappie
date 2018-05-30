@@ -15,7 +15,7 @@
   </target>
 
 	<path id="project.class.path">
-		<pathelement path="vendor/jrapl-port/jrapl.jar"/>
+		<pathelement path="vendor/jrapl-port/classes"/>
 		<pathelement path="vendor/jna-4.5.0.jar"/>
 		<pathelement path="vendor/jna-platform-4.5.0.jar"/>
 	</path>
