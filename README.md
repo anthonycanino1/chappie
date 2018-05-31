@@ -28,6 +28,11 @@ chappie will observe and characterize the threads during the program execution b
 
 #### Building ####
 
-chappie makes energy measurements using jRAPL (<http://kliu20.github.io/jRAPL>). This needs to be built before building chappie.jar. `$ make` in `vendor/jrapl-port` will build jRAPL for the target system.
+The current **chaperone** uses a modified jdk that instantiates the chaperone during start up. For execution on our system at Binghamton University, you will have to add the following to your bash shell before doing anything else:
 
-`$ ant jar` will build a jar file containing the GlobalChaperone for thread characterization.
+`export JAVA_HOME=/home/timur/Research/jdk9/build/linux-x86_64-normal-server-release/jdk
+export PATH=$JAVA_HOME/bin:$PATH`
+
+chappie makes energy measurements using [jRAPL](http://kliu20.github.io/jRAPL). This needs to be built before building chappie.jar. `$ make` in `vendor/jrapl-port` will build jRAPL for the target system.
+
+`$ ant jar` at the top level will build a jar file containing the GlobalChaperone for thread characterization.
