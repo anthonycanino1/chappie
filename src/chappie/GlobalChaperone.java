@@ -53,7 +53,7 @@ public class GlobalChaperone extends Chaperone {
     thread.start();
   }
 
-  private long polling = 5;
+  private int polling = 2;
   public GlobalChaperone(Integer polling) {
     this.polling = polling;
     pid = GLIBC.getProcessId();
@@ -69,7 +69,7 @@ public class GlobalChaperone extends Chaperone {
 
   public void dismiss() {
     thread.interrupt();
-    
+
     try {
       thread.join();
     } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
@@ -100,19 +100,20 @@ public class GlobalChaperone extends Chaperone {
 
         if (!cores.containsKey(name))
           cores.put(name, new TreeMap<Integer, Integer>());
-        if(Thread.tidMap.containsKey(name))
-          try {
+        if(curr % (polling * 10) == 0) {
+          if (Thread.tidMap.containsKey(name)) {
             cores.get(name).put(curr, GLIBC.getCore(pid, Thread.tidMap.get(name)));
-          } catch(Exception e) {
-            cores.get(name).put(curr, cores.get(name).get(curr - (int)polling));
+          } else {
+            cores.get(name).put(curr, -1);
           }
-        else
-          cores.get(name).put(curr, -1);
+        } else {
+          cores.get(name).put(curr, cores.get(name).get(curr - polling));
+        }
 
         long used = bean.getThreadAllocatedBytes(Thread.currentThread().getId());
-        if (!bytes.containsKey(name)) {
+        if (!bytes.containsKey(name))
           bytes.put(name, new TreeMap<Integer, Long>());
-        }
+
         bytes.get(name).put(curr, used);
       }
 
@@ -141,18 +142,14 @@ public class GlobalChaperone extends Chaperone {
         power.get(name).put(curr, Arrays.asList(0.0,0.0,0.0));
       }
 
-      //counter++;
       curr += polling;
 
-      // long waitUntil = System.nanoTime() + polling * 1000;
-      // while(waitUntil > System.nanoTime());
       try {
         Thread.sleep(polling);
       } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
     }
 
     retire();
-
     return;
   }
 }

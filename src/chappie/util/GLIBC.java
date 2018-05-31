@@ -19,7 +19,7 @@
 
 package chappie.util;
 
-import java.nio.charset.StandardCharsets;
+import java.io.*;
 
 import com.sun.jna.Library;
 import com.sun.jna.Native;
@@ -38,27 +38,13 @@ public interface GLIBC extends Library {
 
   public static int getCore(int pid, int tid) {
     String path = "/proc/" + pid + "/task/" + tid + "/stat";
-    int fd = GLIBC.glibc.syscall(2, path, 0);
+    try {
+      BufferedReader reader = new BufferedReader(new FileReader(path));
+      String message = reader.readLine();
+      reader.close();
+      return Integer.parseInt(message.split(" ")[38]);
+    } catch(Exception e) { }
 
-    byte[] bytes = new byte[512];
-    GLIBC.glibc.syscall(0, fd, bytes, 512);
-
-    GLIBC.glibc.syscall(4, fd);
-
-    String message = new String(bytes, StandardCharsets.UTF_8);
-    return Integer.parseInt(message.split(" ")[38]);
-  }
-
-  public static String getState(int pid, int tid) {
-    String path = "/proc/" + pid + "/task/" + tid + "/stat";
-    int fd = GLIBC.glibc.syscall(2, path, 0);
-
-    byte[] bytes = new byte[512];
-    GLIBC.glibc.syscall(0, fd, bytes, 512);
-
-    GLIBC.glibc.syscall(4, fd);
-
-    String message = new String(bytes, StandardCharsets.UTF_8);
-    return message.split(" ")[2];
+    return -1;
   }
 }
