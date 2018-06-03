@@ -39,9 +39,6 @@ public abstract class Chaperone implements Runnable {
 
   public abstract void run();
 
-  public abstract void assign();
-  public abstract void dismiss();
-
   protected void retire() {
     PrintWriter log = null;
 

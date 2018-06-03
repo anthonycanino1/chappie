@@ -41,17 +41,11 @@ import jrapl.EnergyCheckUtils.*;
 
 public class GlobalChaperone extends Chaperone {
 
+  private Set<String> systemThreads = new HashSet<String>();
+
   private int pid = -1;
   private Thread thread;
   private com.sun.management.ThreadMXBean bean;
-
-  public GlobalChaperone() {
-    pid = GLIBC.getProcessId();
-    bean = (com.sun.management.ThreadMXBean)ManagementFactory.getThreadMXBean();
-
-    thread = new Thread(this, "Chaperone");
-    thread.start();
-  }
 
   private int polling = 2;
   public GlobalChaperone(Integer polling) {
@@ -59,39 +53,34 @@ public class GlobalChaperone extends Chaperone {
     pid = GLIBC.getProcessId();
     bean = (com.sun.management.ThreadMXBean)ManagementFactory.getThreadMXBean();
 
+    systemThreads.add("main");
+    systemThreads.add("Common-Cleaner");
+    systemThreads.add("Finalizer");
+    systemThreads.add("Reference Handler");
+    systemThreads.add("Signal Dispatcher");
+    systemThreads.add("process reaper");
+    systemThreads.add("Chaperone");
+    systemThreads.add("DestroyJavaVM");
+
     thread = new Thread(this, "Chaperone");
     thread.start();
   }
 
-  private boolean running = false;
-
-  public void assign() { running = true; }
-
-  public void dismiss() {
-    thread.interrupt();
-
-    try {
-      thread.join();
-    } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
-  }
-
   public void run() {
     int curr = 0;
-    while(!running) {}
-
     double[] previous = jrapl.EnergyCheckUtils.getEnergyStats();
 
     while(!thread.isInterrupted()) {
+      Set<String> threadNames = new HashSet<String>();
       Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
 
       activity.put(curr, new ArrayList<Set<String>>());
       activity.get(curr).add(new HashSet<String>());
       activity.get(curr).add(new HashSet<String>());
 
-      int i = 0;
-
       for(Thread thread : threadSet) {
         String name = thread.getName();
+        threadNames.add(name);
 
         if (thread.getState() == Thread.State.RUNNABLE)
           activity.get(curr).get(0).add(name);
@@ -140,6 +129,11 @@ public class GlobalChaperone extends Chaperone {
           power.put(name, new TreeMap<Integer, List<Double>>());
 
         power.get(name).put(curr, Arrays.asList(0.0,0.0,0.0));
+      }
+
+      threadNames.removeAll(systemThreads);
+      if(threadNames.size() == 0){
+        Thread.currentThread().interrupt();
       }
 
       curr += polling;
