@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="chappie_test" default="compile">
+	<target name="init">
+		<property name="package.dir" value="chappie_test"/>
+		<property name="src.dir" value="src" />
+		<property name="build.dir" value="build" />
+		<property name="build.classes.dir" value="${build.dir}/classes" />
+		<property name="chappie_test.libs" value="" />
+		<property name="runtime.jar" location="chappie_test.jar"/>
+	</target>
+
+	<target name="clean" depends="init" description="Remove build files created this scripts">
+		<delete dir="${build.dir}" />
+		<delete file="chappie_test.jar" />
+	</target>
+
+	<path id="project.class.path">
+		<pathelement path="../chappie.jar"/>
+	</path>
+
+	<target name="compile" depends="init" description="Compile source">
+		<mkdir dir="${build.classes.dir}" />
+
+		<javac
+			source="1.8" target="1.8"
+			srcdir="${src.dir}"
+			destdir="${build.classes.dir}"
+			debug="on"
+			classpathref="project.class.path">
+		</javac>
+	</target>
+
+	<target name="jar" depends="compile">
+		<jar jarfile="${runtime.jar}">
+			<fileset dir="build/classes" includes="chappie_test/*.class" />
+		</jar>
+  </target>
+
+</project>
