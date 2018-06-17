@@ -18,6 +18,7 @@
 		<pathelement path="vendor/jrapl-port/classes"/>
 		<pathelement path="vendor/jna-4.5.0.jar"/>
 		<pathelement path="vendor/jna-platform-4.5.0.jar"/>
+		<pathelement path="vendor/javassist.jar"/>
 	</path>
 
 	<target name="compile" depends="init" description="Compile source">
@@ -33,7 +34,7 @@
 	</target>
 
   <target name="jar" depends="compile">
-		<jar jarfile="${runtime.jar}">
+		<jar jarfile="${runtime.jar}" manifest="Manifest.txt">
 			<fileset dir="build/classes" includes="chappie/**/*.class" />
 			<fileset dir="build/classes" includes="*.class" />
 			<fileset dir="vendor/jrapl-port/classes" includes="jrapl/**/*.class" />
