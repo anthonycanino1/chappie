@@ -17,44 +17,43 @@
 * DEALINGS IN THE SOFTWARE.
 * ***********************************************************************************************/
 
-package chappie.util;
+package chappie_test;
+
+import java.util.List;
+import java.util.Arrays;
+
+import chappie.*;
 
 import java.io.*;
 
-import java.util.Map;
-import java.util.HashMap;
+public class MatrixMultiplication extends Benchmark {
 
-import com.sun.jna.Library;
-import com.sun.jna.Native;
+  private int size;
+  private int iterations;
 
-public interface GLIBC extends Library {
-  static GLIBC glibc = (GLIBC)Native.loadLibrary("c", GLIBC.class);
-  int syscall(int number, Object... args);
+  private int[][] matrix;
 
-  public static int getProcessId() {
-    return GLIBC.glibc.syscall(39);
+  public MatrixMultiplication(int size, int iterations) {
+    this.size = size;
+    this.iterations = iterations;
+
+    matrix = new int[this.size][this.size];
+    for(int i = 0; i < this.size; ++i)
+      for(int j = 0; j < this.size; ++j)
+        matrix[i][j] = 0;
   }
 
-  public static int getThreadId() {
-    return GLIBC.glibc.syscall(186);
-  }
+  public void work() {
+    for(int n = 0; n < this.iterations; ++n) {
+      int[][] resultMatrix = new int[size][size];
+      for(int i = 0; i < this.size; ++i)
+        for(int j = 0; j < this.size; ++j) {
+          resultMatrix[i][j] = 0;
+          for(int k = 0; k < size; ++k)
+            resultMatrix[i][j] += matrix[i][k] * matrix[k][j];
+        }
 
-  public static int getCore(int pid, String name) {
-    String path = "/proc/" + pid + "/task/" + tidMap.get(name) + "/stat";
-
-    try {
-      BufferedReader reader = new BufferedReader(new FileReader(path));
-      String message = reader.readLine();
-      reader.close();
-      return Integer.parseInt(message.split(" ")[38]);
-    } catch(Exception e) {
-      return -1;
+      matrix = resultMatrix;
     }
-  }
-
-  public static Map<String, Integer> tidMap = new HashMap<String, Integer>();
-
-  public static void mapTid() {
-    tidMap.put(Thread.currentThread().getName(), getThreadId());
   }
 }
