@@ -29,18 +29,27 @@ import com.sun.jna.Native;
 
 public interface GLIBC extends Library {
   static GLIBC glibc = (GLIBC)Native.loadLibrary("c", GLIBC.class);
+
   int syscall(int number, Object... args);
 
-  public static int getProcessId() {
-    return GLIBC.glibc.syscall(39);
-  }
+  static int getpid() { return GLIBC.glibc.syscall(39); }
 
+  static Integer pid = getpid();
+  public static int getProcessId() { return pid; }
+
+  static int gettid() { return GLIBC.glibc.syscall(186); }
+
+  static Map<String, Integer> tids = new HashMap<String, Integer>();
   public static int getThreadId() {
-    return GLIBC.glibc.syscall(186);
+    String name = Thread.currentThread().getName();
+    if (!tids.containsKey(name))
+      tids.put(name, gettid());
+
+    return tids.get(name);
   }
 
-  public static int getCore(int pid, String name) {
-    String path = "/proc/" + pid + "/task/" + tidMap.get(name) + "/stat";
+  public static int getCore(String name) {
+    String path = "/proc/" + pid + "/task/" + tids.get(name) + "/stat";
 
     try {
       BufferedReader reader = new BufferedReader(new FileReader(path));
@@ -50,11 +59,5 @@ public interface GLIBC extends Library {
     } catch(Exception e) {
       return -1;
     }
-  }
-
-  public static Map<String, Integer> tidMap = new HashMap<String, Integer>();
-
-  public static void mapTid() {
-    tidMap.put(Thread.currentThread().getName(), getThreadId());
   }
 }

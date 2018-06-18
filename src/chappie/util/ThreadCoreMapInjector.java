@@ -71,7 +71,7 @@ public class ThreadCoreMapInjector implements ClassFileTransformer {
 
 			if(isRunnable(ctClass)) {
 				CtMethod runMethod = ctClass.getMethod("run", Descriptor.ofMethod(CtClass.voidType, new CtClass[0]));
-				runMethod.insertBefore("chappie.util.GLIBC.mapTid();");
+				runMethod.insertBefore("chappie.util.GLIBC.getThreadId();");
 			} else {
 				return classfileBuffer;
 			}

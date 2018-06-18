@@ -47,9 +47,8 @@ import java.net.URLClassLoader;
 
 public class Chaperone implements Runnable {
 
-  private Set<String> systemThreads = new HashSet<String>();
+  // private Set<String> systemThreads = new HashSet<String>();
 
-  private int pid = -1;
   private Thread thread;
   private com.sun.management.ThreadMXBean bean;
 
@@ -64,17 +63,18 @@ public class Chaperone implements Runnable {
   }
 
   private void setup() {
-    pid = GLIBC.getProcessId();
+    GLIBC.getProcessId();
+    // pid = GLIBC.getProcessId();
     bean = (com.sun.management.ThreadMXBean)ManagementFactory.getThreadMXBean();
-
-    systemThreads.add("main");
-    systemThreads.add("Common-Cleaner");
-    systemThreads.add("Finalizer");
-    systemThreads.add("Reference Handler");
-    systemThreads.add("Signal Dispatcher");
-    systemThreads.add("process reaper");
-    systemThreads.add("Chaperone");
-    systemThreads.add("DestroyJavaVM");
+    //
+    // systemThreads.add("main");
+    // systemThreads.add("Common-Cleaner");
+    // systemThreads.add("Finalizer");
+    // systemThreads.add("Reference Handler");
+    // systemThreads.add("Signal Dispatcher");
+    // systemThreads.add("process reaper");
+    // systemThreads.add("Chaperone");
+    // systemThreads.add("DestroyJavaVM");
 
     thread = new Thread(this, "Chaperone");
     thread.start();
@@ -92,18 +92,18 @@ public class Chaperone implements Runnable {
 
     while(!thread.isInterrupted()) {
 
-      Set<String> threadNames = new HashSet<String>();
-      Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
+      // Set<String> threadNames = new HashSet<String>();
+      Set<Thread> threads = Thread.getAllStackTraces().keySet();
 
       activity.put(curr, new ArrayList<Set<String>>());
       activity.get(curr).add(new HashSet<String>());
       activity.get(curr).add(new HashSet<String>());
 
 
-      for(Thread thread : threadSet) {
+      for(Thread thread: threads) {
 
         String name = thread.getName();
-        threadNames.add(name);
+        // threadNames.add(name);
 
         if (thread.getState() == Thread.State.RUNNABLE)
           activity.get(curr).get(0).add(name);
@@ -113,12 +113,9 @@ public class Chaperone implements Runnable {
         if (!cores.containsKey(name))
           cores.put(name, new TreeMap<Integer, Integer>());
         if(curr % (polling * 10) == 0) {
-          if (GLIBC.tidMap.containsKey(name)) {
+          // if (GLIBC.tidMap.containsKey(name)) {
             // cores.get(name).put(curr, GLIBC.getCore(pid, Thread.tidMap.get(name)));
-            cores.get(name).put(curr, GLIBC.getCore(pid, name));
-          } else {
-            cores.get(name).put(curr, -1);
-          }
+          cores.get(name).put(curr, GLIBC.getCore(name));
         } else {
           cores.get(name).put(curr, cores.get(name).get(curr - polling));
         }
@@ -177,7 +174,7 @@ public class Chaperone implements Runnable {
 
   public void dismiss() { thread.interrupt(); }
 
-  protected void retire() {
+  private void retire() {
     PrintWriter log = null;
 
     String path = System.getenv("CHAPPIE_TRACE_LOG");
@@ -231,21 +228,29 @@ public class Chaperone implements Runnable {
       loader = new URLClassLoader(new URL[] {new URL(args[0])});
       Method main = loader.loadClass(args[1]).getMethod("main", String[].class);
 
+      System.setSecurityManager(new ExitStopper());
+
       Chaperone chaperone = null;
-
-      SecurityManager secManager = new ExitManager();
-      System.setSecurityManager(secManager);
-
       try {
-        String[] params = null;
-        if (args.length > 2)
-          params = Arrays.copyOfRange(args, 2, args.length);
+        List<String> params = new ArrayList<String>();
+        for (int i = 2; i < args.length; ++i) {
+          String[] temp_params = args[i].split(" ", 100);
+          for (int k = 0; k < temp_params.length; ++k)
+            params.add(temp_params[k]);
+        }
 
-        System.out.println("Starting up " + args[1] + "'s main method");
+        System.out.println("Running " + args[1] + ".main");
+        System.out.println("==================================================");
+
         chaperone = new Chaperone();
-        main.invoke(null, (Object)params);
+        main.invoke(null, (Object)params.toArray(new String[params.size()]));
+
+        System.out.println("==================================================");
+        System.out.println("Dismissing the chaperone");
         chaperone.dismiss();
       } catch(Exception e) {
+        System.out.println("==================================================");
+        System.out.println("Dismissing the chaperone");
         chaperone.dismiss();
       }
     } catch(Exception e) {
