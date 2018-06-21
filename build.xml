@@ -34,7 +34,7 @@
 	</target>
 
   <target name="jar" depends="compile">
-		<jar jarfile="${runtime.jar}" manifest="Manifest.txt">
+		<jar jarfile="${runtime.jar}" manifest="manifest.txt">
 			<fileset dir="build/classes" includes="chappie/**/*.class" />
 			<fileset dir="build/classes" includes="*.class" />
 			<fileset dir="vendor/jrapl-port/classes" includes="jrapl/**/*.class" />
@@ -42,6 +42,4 @@
 			<zipgroupfileset dir="vendor" includes="*.jar"/>
 		</jar>
   </target>
-
-
 </project>
