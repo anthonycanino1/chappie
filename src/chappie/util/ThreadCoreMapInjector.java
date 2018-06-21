@@ -79,7 +79,7 @@ public class ThreadCoreMapInjector implements ClassFileTransformer {
 			byteCode = ctClass.toBytecode();
 			ctClass.detach();
 		} catch (Throwable ex) {
-			ex.printStackTrace();
+			System.out.println("Couldn't modify " + className);
 		}
 
 		return byteCode;

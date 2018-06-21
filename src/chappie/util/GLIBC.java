@@ -27,17 +27,19 @@ import java.util.HashMap;
 import com.sun.jna.Library;
 import com.sun.jna.Native;
 
-public interface GLIBC extends Library {
-  static GLIBC glibc = (GLIBC)Native.loadLibrary("c", GLIBC.class);
+interface GLIBCLibrary extends Library {
+  static GLIBCLibrary glibc = (GLIBCLibrary)Native.loadLibrary("c", GLIBCLibrary.class);
 
   int syscall(int number, Object... args);
+}
 
-  static int getpid() { return GLIBC.glibc.syscall(39); }
+public abstract class GLIBC {
+  static int getpid() { return GLIBCLibrary.glibc.syscall(39); }
 
   static Integer pid = getpid();
   public static int getProcessId() { return pid; }
 
-  static int gettid() { return GLIBC.glibc.syscall(186); }
+  static int gettid() { return GLIBCLibrary.glibc.syscall(186); }
 
   static Map<String, Integer> tids = new HashMap<String, Integer>();
   public static int getThreadId() {
