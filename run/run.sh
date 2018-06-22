@@ -1,5 +1,7 @@
 #/bin/bash
 
+dir=`dirname "$0"`
+
 jar_path=$1
 jar_path=$(echo "$(cd "$(dirname "$jar_path")" && pwd)/$(basename "$jar_path")")
 
@@ -19,7 +21,7 @@ export JARS="$JARS:$extra_jars"
 java -cp $JARS -javaagent:$CHAPPIE_PATH chappie.Chaperone $jar_url $3 $4
 
 echo 'Parsing data'
-./parse.py
+$dir/parse.py
 
 echo 'Moving data to chappie.'${jar_name}
 mkdir chappie.$jar_name
