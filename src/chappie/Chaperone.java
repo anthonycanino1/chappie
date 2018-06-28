@@ -47,8 +47,6 @@ import java.net.URLClassLoader;
 
 public class Chaperone implements Runnable {
 
-  // private Set<String> systemThreads = new HashSet<String>();
-
   private Thread thread;
   private com.sun.management.ThreadMXBean bean;
 
@@ -64,21 +62,13 @@ public class Chaperone implements Runnable {
 
   private void setup() {
     GLIBC.getProcessId();
-    // pid = GLIBC.getProcessId();
     bean = (com.sun.management.ThreadMXBean)ManagementFactory.getThreadMXBean();
-    //
-    // systemThreads.add("main");
-    // systemThreads.add("Common-Cleaner");
-    // systemThreads.add("Finalizer");
-    // systemThreads.add("Reference Handler");
-    // systemThreads.add("Signal Dispatcher");
-    // systemThreads.add("process reaper");
-    // systemThreads.add("Chaperone");
-    // systemThreads.add("DestroyJavaVM");
 
     thread = new Thread(this, "Chaperone");
     thread.start();
   }
+
+  protected Map<String, Map<Integer, ThreadState>> state = new HashMap<String, Map<Integer, ThreadState>>();
 
   protected Map<Integer, List<Set<String>>> activity = new TreeMap<Integer, List<Set<String>>>();
   protected Map<String, Map<Integer, List<Double>>> power = new HashMap<String, Map<Integer, List<Double>>>();
@@ -86,38 +76,40 @@ public class Chaperone implements Runnable {
   protected Map<String, Map<Integer, Long>> bytes = new HashMap<String, Map<Integer, Long>>();
 
   public void run() {
-
     int curr = 0;
     double[] previous = jrapl.EnergyCheckUtils.getEnergyStats();
+    double[] start = previous;
+    int sockets = previous.length / 3;
 
     while(!thread.isInterrupted()) {
-
-      // Set<String> threadNames = new HashSet<String>();
       Set<Thread> threads = Thread.getAllStackTraces().keySet();
 
       activity.put(curr, new ArrayList<Set<String>>());
-      activity.get(curr).add(new HashSet<String>());
-      activity.get(curr).add(new HashSet<String>());
-
+      for (int i = 0; i < sockets + 2; ++i)
+        activity.get(curr).add(new HashSet<String>());
 
       for(Thread thread: threads) {
-
         String name = thread.getName();
-        // threadNames.add(name);
 
-        if (thread.getState() == Thread.State.RUNNABLE)
-          activity.get(curr).get(0).add(name);
-        else
-          activity.get(curr).get(1).add(name);
-
-        if (!cores.containsKey(name))
+        if (!cores.containsKey(name)) {
           cores.put(name, new TreeMap<Integer, Integer>());
-        if(curr % (polling * 10) == 0) {
-          // if (GLIBC.tidMap.containsKey(name)) {
-            // cores.get(name).put(curr, GLIBC.getCore(pid, Thread.tidMap.get(name)));
+          cores.get(name).put(curr - polling, -1);
+        }
+        if(curr % (polling * 10) == 0)
           cores.get(name).put(curr, GLIBC.getCore(name));
-        } else {
+        else
           cores.get(name).put(curr, cores.get(name).get(curr - polling));
+
+        try {
+          if (thread.getState() != Thread.State.RUNNABLE)
+            activity.get(curr).get(0).add(name);
+          else if (cores.get(name).get(curr) == -1)
+            activity.get(curr).get(1).add(name);
+          else if (cores.get(name).get(curr) < 20)
+            activity.get(curr).get(2).add(name);
+          else if (cores.get(name).get(curr) < 40)
+            activity.get(curr).get(3).add(name);
+        } catch(Exception e) {
         }
 
         long used = bean.getThreadAllocatedBytes(Thread.currentThread().getId());
@@ -127,21 +119,40 @@ public class Chaperone implements Runnable {
           bytes.get(name).put(curr - polling, 0L);
         }
 
-        long last = bytes.get(name).get(curr - polling);
-        bytes.get(name).put(curr, used - last);
+        try {
+          long last = bytes.get(name).get(curr - polling);
+          bytes.get(name).put(curr, used - last);
+        } catch(Exception e) {
+        }
       }
 
       double[] next = jrapl.EnergyCheckUtils.getEnergyStats();
       double[] current = new double[next.length];
-      int size = activity.get(curr).get(0).size();
-      for (int n = 0; n < current.length; ++n)
-        current[n] = (next[n] - previous[n]) / size;
-      previous = next;
 
-      for(String name: activity.get(curr).get(0)) {
-        List<Double> reading = new ArrayList<Double>();
-        for(int n = 0; n < current.length; ++n)
+      // Threads with core readings
+      for (int i = 0; i < sockets; ++i) {
+        double size = activity.get(curr).get(i + 2).size() + (double)(activity.get(curr).get(1).size()) / 2.0;
+
+        for (int n = 3 * i; n < 3 * i + 3; ++n)
+          current[n] = (next[n] - previous[n]) / size;
+
+        for(String name: activity.get(curr).get(i + 2)) {
+          List<Double> reading = new ArrayList<Double>();
+          for (int n = 3 * i; n < 3 * i + 3; ++n)
           reading.add(current[n]);
+
+          if(!power.containsKey(name))
+            power.put(name, new TreeMap<Integer, List<Double>>());
+
+          power.get(name).put(curr, reading);
+        }
+      }
+
+      // Threads with no core reading
+      for(String name: activity.get(curr).get(1)) {
+        List<Double> reading = new ArrayList<Double>();
+        for (int n = 0; n < 3; ++n)
+          reading.add((current[n] + current[n + 3]) / 2.0);
 
         if(!power.containsKey(name))
           power.put(name, new TreeMap<Integer, List<Double>>());
@@ -149,6 +160,7 @@ public class Chaperone implements Runnable {
         power.get(name).put(curr, reading);
       }
 
+      // Inactive Threads
       for(String name: activity.get(curr).get(1)) {
         if(!power.containsKey(name))
           power.put(name, new TreeMap<Integer, List<Double>>());
@@ -156,10 +168,7 @@ public class Chaperone implements Runnable {
         power.get(name).put(curr, Arrays.asList(0.0,0.0,0.0));
       }
 
-      // threadNames.removeAll(systemThreads);
-      // if(threadNames.size() == 0){
-      //   Thread.currentThread().interrupt();
-      // }
+      previous = next;
 
       curr += polling;
 
@@ -172,7 +181,12 @@ public class Chaperone implements Runnable {
     return;
   }
 
-  public void dismiss() { thread.interrupt(); }
+  public void dismiss() {
+    thread.interrupt();
+    try {
+      thread.join();
+    } catch (Exception e) { }
+  }
 
   private void retire() {
     PrintWriter log = null;
@@ -183,16 +197,17 @@ public class Chaperone implements Runnable {
 
     try {
       log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
-    } catch (IOException io) {
+    } catch (Exception io) {
       System.err.println("Error: " + io.getMessage());
-      throw new RuntimeException("uh oh");
     }
 
     String message = "time,count,state\n";
     log.write(message);
     for (Integer time : activity.keySet()) {
-      message = time + "," + activity.get(time).get(0).size() + "," + "active\n";
-      message += time + "," + activity.get(time).get(1).size() + "," + "inactive\n";
+      message = time + "," + activity.get(time).get(0).size() + "," + "inactive\n";
+      message += time + "," + activity.get(time).get(1).size() + "," + "no socket\n";
+      for (int i = 2; i < activity.get(time).size(); ++i)
+        message += time + "," + activity.get(time).get(i).size() + "," + "socket " + (i - 1) + "\n";
       log.write(message);
     }
     log.close();
@@ -222,15 +237,13 @@ public class Chaperone implements Runnable {
   }
 
   public static void main(String[] args) throws IOException {
+    Thread hook;
     URLClassLoader loader;
     try {
       System.out.println("Loading " + args[0]);
       loader = new URLClassLoader(new URL[] {new URL(args[0])});
       Method main = loader.loadClass(args[1]).getMethod("main", String[].class);
 
-      System.setSecurityManager(new ExitStopper());
-
-      Chaperone chaperone = null;
       try {
         List<String> params = new ArrayList<String>();
         for (int i = 2; i < args.length; ++i) {
@@ -240,21 +253,26 @@ public class Chaperone implements Runnable {
         }
 
         System.out.println("Running " + args[1] + ".main");
+        System.out.println("Arguments: " + params.toString());
         System.out.println("==================================================");
 
-        chaperone = new Chaperone();
+        final Chaperone chaperone = new Chaperone();
+        hook = new Thread() {
+                        public void run() {
+                          System.out.println("==================================================");
+                          System.out.println("Dismissing the chaperone");
+                          chaperone.dismiss();
+                        }
+                      };
+        Runtime.getRuntime().addShutdownHook(hook);
         main.invoke(null, (Object)params.toArray(new String[params.size()]));
-
-        System.out.println("==================================================");
-        System.out.println("Dismissing the chaperone");
-        chaperone.dismiss();
       } catch(Exception e) {
-        System.out.println("==================================================");
-        System.out.println("Dismissing the chaperone");
-        chaperone.dismiss();
+        System.out.println("Unable to bootstrap " + args[1]);
       }
     } catch(Exception e) {
       System.out.println("Unable to load " + args[0]);
     }
+
+    System.exit(0);
   }
 }

@@ -30,17 +30,15 @@ import java.io.*;
 
 public abstract class Benchmark implements Runnable {
 
-  public void run() {
-    work();
-
-    return;
-  }
+  public void run() { work(); }
 
   public abstract void work();
 
   public static void main(String[] args) throws IOException {
-    System.out.println("Making " + args[0] + " threads");
-    Thread[] threads = new Thread[Integer.parseInt(args[0])];
+    int count = Integer.parseInt(args[0]);
+    System.out.println("Making " + count + " thread" + (count != 1 ? "s" : ""));
+
+    Thread[] threads = new Thread[count];
     for(int i = 0; i < threads.length; ++i)
       threads[i] = new Thread(new MatrixMultiplication(250, 250));
 

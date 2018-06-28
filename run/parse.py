@@ -26,22 +26,29 @@ agg_df = df.groupby(['time', 'thread']).agg({'core': 'sum',     \
                                             'package': 'mean',  \
                                             'dram': 'mean',     \
                                             'bytes': 'mean'})
-agg_df.to_csv('chappie.thread.data.csv')
+agg_df[['core', 'package', 'dram', 'bytes']].to_csv('chappie.thread.data.csv')
 
-agg_df = df.groupby(['thread']).agg({'time': 'max',         \
+agg_df = df.groupby(['thread']).agg({'time': 'min',         \
                                         'core': 'sum',      \
                                         'package': 'sum',   \
                                         'dram': 'sum',      \
                                         'bytes': 'sum'})
 
-agg_df = agg_df[['time', 'core', 'package', 'dram', 'bytes']].rename(columns = {'time': 'Total Time (ms)',      \
-                                                                                'package': 'Total Package (J)', \
-                                                                                'dram': 'Total DRAM (J)',       \
-                                                                                'bytes': 'Total Bytes',         \
-                                                                                'core': 'Core Hops'})
 
+agg_df['time_2'] = df.fillna(-1).groupby(['thread'])['time'].max()
+
+total = agg_df.agg({'time': 'min', 'time_2': 'max', 'core': 'sum', 'package': 'sum', 'dram': 'sum', 'bytes': 'sum'})
+total.name = 'Total'
+agg_df = agg_df.append(total)
+agg_df = agg_df[['time', 'time_2', 'core', 'package', 'dram', 'bytes']].rename(columns = {'time': 'Start Time (ms)',        \
+                                                                                            'time_2': 'End Time (ms)',      \
+                                                                                            'package': 'Total Package (J)', \
+                                                                                            'dram': 'Total DRAM (J)',       \
+                                                                                            'bytes': 'Total Bytes',         \
+                                                                                            'core': 'Core Hops'})
+agg_df.agg({}).sum()
 agg_df.index.name = 'Thread'
-print('Thread Activity Summary')
+print()
 table = tabulate(agg_df, headers = 'keys', tablefmt = 'psql')
 with open('chappie.thread.stats.csv', 'w+') as f:
     f.write(table)
