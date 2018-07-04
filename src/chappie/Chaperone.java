@@ -34,6 +34,9 @@ import java.util.TreeMap;
 
 import java.io.*;
 
+import java.nio.file.Paths;
+import java.nio.file.Files;
+
 import java.lang.management.*;
 import com.sun.management.*;
 
@@ -252,20 +255,29 @@ public class Chaperone implements Runnable {
             params.add(temp_params[k]);
         }
 
-        System.out.println("Running " + args[1] + ".main");
-        System.out.println("Arguments: " + params.toString());
-        System.out.println("==================================================");
+        for(int i = 0; i < 10; ++i) {
+          System.out.println("Iteration " + (i + 1));
+          System.out.println("Running " + args[1] + ".main");
+          System.out.println("Arguments: " + params.toString());
+          System.out.println("==================================================");
 
-        final Chaperone chaperone = new Chaperone();
-        hook = new Thread() {
-                        public void run() {
-                          System.out.println("==================================================");
-                          System.out.println("Dismissing the chaperone");
-                          chaperone.dismiss();
-                        }
-                      };
-        Runtime.getRuntime().addShutdownHook(hook);
-        main.invoke(null, (Object)params.toArray(new String[params.size()]));
+          Chaperone chaperone = new Chaperone();
+          // final Chaperone chaperone = new Chaperone();
+          // hook = new Thread() {
+          //                 public void run() {
+          //                   System.out.println("==================================================");
+          //                   System.out.println("Dismissing the chaperone");
+          //                   chaperone.dismiss();
+          //                 }
+          //               };
+          // Runtime.getRuntime().addShutdownHook(hook);
+          main.invoke(null, (Object)params.toArray(new String[params.size()]));
+          System.out.println("==================================================");
+          System.out.println("Dismissing the chaperone");
+          chaperone.dismiss();
+          Files.move(Paths.get("chappie.trace.csv"), Paths.get("chappie.trace." + i + ".csv"));
+          Files.move(Paths.get("chappie.thread.csv"), Paths.get("chappie.thread." + i + ".csv"));
+        }
       } catch(Exception e) {
         System.out.println("Unable to bootstrap " + args[1]);
       }

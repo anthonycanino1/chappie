@@ -21,16 +21,45 @@ package chappie_test;
 
 import chappie_test.*;
 
-import chappie.Chaperone;
-
 import java.util.List;
 import java.util.Arrays;
 
 import java.io.*;
 
+import net.openhft.affinity.Affinity;
+
+import java.util.BitSet;
+
 public abstract class Benchmark implements Runnable {
 
-  public void run() { work(); }
+  static Boolean socketOne = true;
+
+  static BitSet socket_1 = new BitSet(40);
+  static BitSet socket_2 = new BitSet(40);
+  static {
+    socket_1.set(0, 20);
+    socket_2.set(20, 40);
+  }
+
+  private Boolean socket;
+
+  protected Benchmark() {
+    this.socket = socketOne;
+    socketOne = !socketOne;
+  }
+
+  public void run() {
+    // synchronized(socket) {
+    // if (this.socket == true)
+    Affinity.setAffinity(socket_1);
+    // else
+      // Affinity.setAffinity(socket_2);
+
+      // socket = !socket;
+    // }
+
+    work();
+  }
 
   public abstract void work();
 
@@ -39,17 +68,39 @@ public abstract class Benchmark implements Runnable {
     System.out.println("Making " + count + " thread" + (count != 1 ? "s" : ""));
 
     Thread[] threads = new Thread[count];
-    for(int i = 0; i < threads.length; ++i)
+    for(int i = 0; i < threads.length; ++i) {
+      // if (i % 2 == 0)
       threads[i] = new Thread(new MatrixMultiplication(250, 250));
+      //   // threads[i] = new Thread(new BusyWaiting());
+      // else
+        // threads[i] = new Thread(new MatrixMultiplication(125, 125));
+        // threads[i] = new Thread(new BusyWaiting());
+    }
 
-    for(int i = 0; i < threads.length; ++i)
+    for(int i = 0; i < threads.length; ++i) {
       threads[i].start();
+      // try {
+      //   Thread.sleep(10);
+      // } catch(Exception e) { }
+    }
 
-    for(int i = 0; i < threads.length; ++i)
+    // try {
+    // Thread.sleep(5000);
+    // } catch(Exception e) { }
+
+    for(int i = 0; i < threads.length; i++)
       try {
+        threads[i].interrupt();
         threads[i].join();
         System.out.println(threads[i].getName() + " finished");
       } catch (InterruptedException e) { }
+
+    // for(int i = 1; i < threads.length; i+=2)
+    //   try {
+    //     threads[i].interrupt();
+    //     threads[i].join();
+    //     System.out.println(threads[i].getName() + " finished");
+    //   } catch (InterruptedException e) { }
 
 
     // List<Thread> threads = new ArrayList<Thread>();

@@ -2,54 +2,44 @@
 
 import os
 import pandas as pd
+from tabulate import tabulate
 
 df = pd.concat([pd.read_csv(file) for file in os.listdir('.') if 'trace' in file and ('data' not in file and 'stats' not in file)], ignore_index = True)
 df.to_csv('chappie.trace.data.csv')
 
-from tabulate import tabulate
 print()
 print('Thread Activity Summary')
-agg_df = df.groupby(['state'])['count'].agg(['mean', 'std']).rename(columns = {'mean': 'Average', 'std': 'Deviation'})
-agg_df.index.name = 'State'
-table = tabulate(agg_df, headers = 'keys', tablefmt = 'psql')
-with open('chappie.trace.stats.csv', 'w+') as f:
-    f.write(table)
-print(table)
+df = df.groupby(['state'])['count'].agg(['mean', 'std']).rename(columns = {'mean': 'Average', 'std': 'Deviation'})
+df.index = df.index.str.title()
+df.index.name = 'State'
 
-chappie_time = df['time'].max()
+table = tabulate(df, headers = 'keys', tablefmt = 'psql')
+print(table)
+with open('chappie.trace.stats.csv', 'w+') as f:
+    f.write(table + '\n')
 
 df = pd.concat([pd.read_csv(file) for file in os.listdir('.') if 'thread' in file and ('data' not in file and 'stats' not in file)], ignore_index = True)
-df['core'] = df['core'].fillna(-1)
-df['core'] = (df['core'] != df['core'].shift(1)).map(lambda x: 1 if x else 0)
+df['socket'] = df['core'].fillna(-1).map(lambda x: -1 if x < 0 else 0 if x < 20 else 1)
+df.to_csv('chappie.thread.data.csv')
 
-agg_df = df.groupby(['time', 'thread']).agg({'core': 'sum',     \
-                                            'package': 'mean',  \
-                                            'dram': 'mean',     \
-                                            'bytes': 'mean'})
-agg_df[['core', 'package', 'dram', 'bytes']].to_csv('chappie.thread.data.csv')
+df = df.groupby('thread').agg({'time': 'mean', 'socket': 'mean', 'package': 'sum', 'dram': 'sum', 'bytes': 'sum'})
+df = df[~df.index.isin(['Signal Dispatcher', 'main', 'Finalizer', 'Reference Handler'])]
+df['socket'] = round(df['socket'])
 
-agg_df = df.groupby(['thread']).agg({'time': 'min',         \
-                                        'core': 'sum',      \
-                                        'package': 'sum',   \
-                                        'dram': 'sum',      \
-                                        'bytes': 'sum'})
+socket = df.groupby('socket').agg({'time': 'mean', 'package': 'mean', 'dram': 'mean', 'bytes': 'mean'})
+socket.index = ['Unmapped', 'Socket 1', 'Socket 2'][3 - len(socket.index):]
+# socket.loc[socket.index == 'Socket 2', ['package', 'dram', 'bytes']] /= 10
 
-
-agg_df['time_2'] = df.fillna(-1).groupby(['thread'])['time'].max()
-
-total = agg_df.agg({'time': 'min', 'time_2': 'max', 'core': 'sum', 'package': 'sum', 'dram': 'sum', 'bytes': 'sum'})
+total = df.agg({'time': 'mean', 'package': 'mean', 'dram': 'mean', 'bytes': 'mean'})
 total.name = 'Total'
-agg_df = agg_df.append(total)
-agg_df = agg_df[['time', 'time_2', 'core', 'package', 'dram', 'bytes']].rename(columns = {'time': 'Start Time (ms)',        \
-                                                                                            'time_2': 'End Time (ms)',      \
-                                                                                            'package': 'Total Package (J)', \
-                                                                                            'dram': 'Total DRAM (J)',       \
-                                                                                            'bytes': 'Total Bytes',         \
-                                                                                            'core': 'Core Hops'})
-agg_df.agg({}).sum()
-agg_df.index.name = 'Thread'
+
+df = socket.append(total)
+
+df = df[['time', 'package', 'dram', 'bytes']].rename(columns = {'time': 'Average Duration (ms)', 'package': 'Average Package (J)', 'dram': 'Average DRAM (J)', 'bytes': 'Average Bytes'})
+df.index.name = 'Socket'
+
 print()
-table = tabulate(agg_df, headers = 'keys', tablefmt = 'psql')
+table = tabulate(df, headers = 'keys', tablefmt = 'psql')
+print(table)
 with open('chappie.thread.stats.csv', 'w+') as f:
     f.write(table)
-print(table)

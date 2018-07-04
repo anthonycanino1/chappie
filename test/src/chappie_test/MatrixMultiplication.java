@@ -19,13 +19,6 @@
 
 package chappie_test;
 
-import java.util.List;
-import java.util.Arrays;
-
-import chappie.*;
-
-import java.io.*;
-
 public class MatrixMultiplication extends Benchmark {
 
   private int size;
@@ -34,6 +27,8 @@ public class MatrixMultiplication extends Benchmark {
   private int[][] matrix;
 
   public MatrixMultiplication(int size, int iterations) {
+    super();
+    
     this.size = size;
     this.iterations = iterations;
 
@@ -41,6 +36,7 @@ public class MatrixMultiplication extends Benchmark {
     for(int i = 0; i < this.size; ++i)
       for(int j = 0; j < this.size; ++j)
         matrix[i][j] = 0;
+
   }
 
   public void work() {

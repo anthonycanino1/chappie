@@ -17,49 +17,21 @@
 * DEALINGS IN THE SOFTWARE.
 * ***********************************************************************************************/
 
-package chappie.util;
+package chappie_test;
 
-import java.io.*;
+import java.util.Set;
+import java.util.HashSet;
 
-import java.util.Map;
-import java.util.HashMap;
+import java.util.Arrays;
 
-import com.sun.jna.Library;
-import com.sun.jna.Native;
+public class BusyWaiting extends Benchmark {
 
-interface GLIBCLibrary extends Library {
-  static GLIBCLibrary glibc = (GLIBCLibrary)Native.loadLibrary("c", GLIBCLibrary.class);
+  static Set<String> systemThreads = new HashSet(Arrays.asList("Chaperone", "Signal Dispatcher", "main", "Finalizer", "Reference Handler"));
 
-  int syscall(int number, Object... args);
-}
+  public BusyWaiting() { super(); }
 
-public abstract class GLIBC {
-  static int getpid() { return GLIBCLibrary.glibc.syscall(39); }
-
-  static Integer pid = getpid();
-  public static int getProcessId() { return pid; }
-
-  static int gettid() { return GLIBCLibrary.glibc.syscall(186); }
-
-  static Map<String, Integer> tids = new HashMap<String, Integer>();
-  public static int getThreadId() {
-    String name = Thread.currentThread().getName();
-    if (!tids.containsKey(name) || name == "Chaperone")
-      tids.put(name, gettid());
-
-    return tids.get(name);
-  }
-
-  public static int getCore(String name) {
-    String path = "/proc/" + pid + "/task/" + tids.get(name) + "/stat";
-
-    try {
-      BufferedReader reader = new BufferedReader(new FileReader(path));
-      String message = reader.readLine();
-      reader.close();
-      return Integer.parseInt(message.split(" ")[38]);
-    } catch(Exception e) {
-      return -1;
+  public void work() {
+    while(!Thread.currentThread().isInterrupted()) {
     }
   }
 }
