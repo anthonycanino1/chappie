@@ -1,5 +1,7 @@
 #!/bin/bash
 
+export ITERS=1
+
 if [ "$#" -eq  "0" ]
   then
     ./run.sh ../test/chappie_test.jar "" chappie_test.Benchmark 5

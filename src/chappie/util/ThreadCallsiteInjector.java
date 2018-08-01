@@ -22,13 +22,13 @@ import javassist.bytecode.MethodInfo;
 import javassist.bytecode.Descriptor;
 import javassist.bytecode.Bytecode;
 
-public class ExitStopper implements ClassFileTransformer {
+public class ThreadCallsiteInjector implements ClassFileTransformer {
 
 	ClassLoader class_loader = null;
 	public static boolean sysexit_done=false;
 	public static Object sysexit_lock=null;
 
-	public ExitStopper() {
+	public ThreadCallsiteInjector() {
 		try {
 			File dir = new File(System.getProperty("java.class.path"));
 			URL url = dir.toURL();
@@ -41,22 +41,22 @@ public class ExitStopper implements ClassFileTransformer {
 			Class classBeingRedefined, ProtectionDomain protectionDomain,
 			byte[] classfileBuffer) throws IllegalClassFormatException {
 
-        byte[] byteCode = classfileBuffer;
-    		if(className == null) return byteCode;
-    		if(!className.equals("java/lang/System")) return byteCode;
+		byte[] byteCode = classfileBuffer;
+		if(className == null) return byteCode;
+		if(!className.equals("java/lang/Thread")) return byteCode;
 
-    		try {
-    			ClassPool classPool = ClassPool.getDefault();
-    		    	CtClass ctClass = classPool.makeClass(new ByteArrayInputStream(classfileBuffer));
-    			if(sysexit_done) return byteCode;
-    			sysexit_done=true;
-    			CtMethod ctMethod = ctClass.getMethod("exit", Descriptor.ofMethod(CtClass.voidType, new CtClass[] {CtClass.intType}));
-    			ctMethod.insertBefore("if(true) return;");
-    			byteCode = ctClass.toBytecode();
-    		  ctClass.detach();
-    			return byteCode;
-    		} catch (Throwable ex) { }
+		try {
+			ClassPool classPool = ClassPool.getDefault();
+		    	CtClass ctClass = classPool.makeClass(new ByteArrayInputStream(classfileBuffer));
+			if(sysexit_done) return byteCode;
+			sysexit_done=true;
+			CtMethod ctMethod = ctClass.getMethod("start", Descriptor.ofMethod(CtClass.voidType, new CtClass[] {}));
+			ctMethod.insertBefore("chappie.util.GLIBC.getCallSite();");
+			byteCode = ctClass.toBytecode();
+		        ctClass.detach();
+			return byteCode;
+		} catch (Throwable ex) { }
 
-    		return byteCode;
-    	}
+		return byteCode;
+	}
 }

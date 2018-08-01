@@ -32,26 +32,26 @@ import java.util.BitSet;
 
 public abstract class Benchmark implements Runnable {
 
-  static Boolean socketOne = true;
+  // static Boolean socketOne = true;
+  //
+  // static BitSet socket_1 = new BitSet(40);
+  // static BitSet socket_2 = new BitSet(40);
+  // static {
+  //   socket_1.set(0, 20);
+  //   socket_2.set(20, 40);
+  // }
 
-  static BitSet socket_1 = new BitSet(40);
-  static BitSet socket_2 = new BitSet(40);
-  static {
-    socket_1.set(0, 20);
-    socket_2.set(20, 40);
-  }
-
-  private Boolean socket;
+  // private Boolean socket;
 
   protected Benchmark() {
-    this.socket = socketOne;
-    socketOne = !socketOne;
+    // this.socket = socketOne;
+    // socketOne = !socketOne;
   }
 
   public void run() {
     // synchronized(socket) {
     // if (this.socket == true)
-    Affinity.setAffinity(socket_1);
+    // Affinity.setAffinity(socket_1);
     // else
       // Affinity.setAffinity(socket_2);
 
@@ -69,8 +69,8 @@ public abstract class Benchmark implements Runnable {
 
     Thread[] threads = new Thread[count];
     for(int i = 0; i < threads.length; ++i) {
-      // if (i % 2 == 0)
       threads[i] = new Thread(new MatrixMultiplication(250, 250));
+      // if (i % 2 == 0)
       //   // threads[i] = new Thread(new BusyWaiting());
       // else
         // threads[i] = new Thread(new MatrixMultiplication(125, 125));
