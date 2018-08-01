@@ -15,7 +15,9 @@
 	</target>
 
 	<path id="project.class.path">
-		<pathelement path="../chappie.jar"/>
+		<pathelement path="vendor/affinity-3.1.8-SNAPSHOT.jar"/>
+		<pathelement path="vendor/affinity-3.1.8-SNAPSHOT-javadoc.jar"/>
+		<pathelement path="vendor/affinity-3.1.8-SNAPSHOT-sources.jar"/>
 	</path>
 
 	<target name="compile" depends="init" description="Compile source">
@@ -33,6 +35,7 @@
 	<target name="jar" depends="compile">
 		<jar jarfile="${runtime.jar}">
 			<fileset dir="build/classes" includes="chappie_test/*.class" />
+			<zipgroupfileset dir="vendor" includes="*.jar"/>
 		</jar>
   </target>
 

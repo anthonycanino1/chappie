@@ -27,6 +27,10 @@ import java.util.HashMap;
 import com.sun.jna.Library;
 import com.sun.jna.Native;
 
+import java.util.List;
+import java.util.Arrays;
+import java.util.ArrayList;
+
 interface GLIBCLibrary extends Library {
   static GLIBCLibrary glibc = (GLIBCLibrary)Native.loadLibrary("c", GLIBCLibrary.class);
 
@@ -44,7 +48,7 @@ public abstract class GLIBC {
   static Map<String, Integer> tids = new HashMap<String, Integer>();
   public static int getThreadId() {
     String name = Thread.currentThread().getName();
-    if (!tids.containsKey(name))
+    if (!tids.containsKey(name) || name == "Chaperone")
       tids.put(name, gettid());
 
     return tids.get(name);
@@ -61,5 +65,12 @@ public abstract class GLIBC {
     } catch(Exception e) {
       return -1;
     }
+  }
+
+  static List<List<StackTraceElement>> callsites = new ArrayList<List<StackTraceElement>>();
+
+  public static void getCallSite() {
+    callsites.add(Arrays.asList(Thread.currentThread().getStackTrace()));
+
   }
 }

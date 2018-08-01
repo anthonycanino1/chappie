@@ -1,4 +1,4 @@
-package chappie.instrumentation;
+package chappie.util;
 
 import java.io.ByteArrayInputStream;
 import java.lang.instrument.ClassFileTransformer;
@@ -27,7 +27,6 @@ public class ThreadCoreMapInjector implements ClassFileTransformer {
 
   public static boolean isRunnable(CtClass cls) {
 		CtClass klass = cls;
-
 		while (klass != null) {
 			try {
         CtClass[] interfaces = klass.getInterfaces();
@@ -36,10 +35,8 @@ public class ThreadCoreMapInjector implements ClassFileTransformer {
             return true;
 
       } catch(Exception exception) { }
-
 			klass = getSuperClass(klass);
 		}
-
 		return false;
 	}
 
@@ -63,25 +60,22 @@ public class ThreadCoreMapInjector implements ClassFileTransformer {
 			   className.startsWith("org/jikesrvm") || className.startsWith("javassist"))
 			return classfileBuffer;
 
-		byte[] byteCode = classfileBuffer;
-
 		try {
 			ClassPool classPool = ClassPool.getDefault();
 			CtClass ctClass = classPool.makeClass(new ByteArrayInputStream(classfileBuffer));
 
-			if(isRunnable(ctClass)) {
-				CtMethod runMethod = ctClass.getMethod("run", Descriptor.ofMethod(CtClass.voidType, new CtClass[0]));
-				runMethod.insertBefore("chappie.util.GLIBC.getThreadId();");
-			} else {
-				return classfileBuffer;
-			}
+      if(!isRunnable(ctClass))
+        return classfileBuffer;
+			CtMethod runMethod = ctClass.getMethod("run", Descriptor.ofMethod(CtClass.voidType, new CtClass[0]));
+			runMethod.insertBefore("chappie.util.GLIBC.getThreadId();");
 
-			byteCode = ctClass.toBytecode();
+      byte[] byteCode = ctClass.toBytecode();
 			ctClass.detach();
+      return byteCode;
 		} catch (Throwable ex) {
 			System.out.println("Couldn't modify " + className);
 		}
 
-		return byteCode;
+    return classfileBuffer;
 	}
 }

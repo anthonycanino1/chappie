@@ -19,37 +19,19 @@
 
 package chappie_test;
 
-public class MatrixMultiplication extends Benchmark {
+import java.util.Set;
+import java.util.HashSet;
 
-  private int size;
-  private int iterations;
+import java.util.Arrays;
 
-  private int[][] matrix;
+public class BusyWaiting extends Benchmark {
 
-  public MatrixMultiplication(int size, int iterations) {
-    super();
-    
-    this.size = size;
-    this.iterations = iterations;
+  static Set<String> systemThreads = new HashSet(Arrays.asList("Chaperone", "Signal Dispatcher", "main", "Finalizer", "Reference Handler"));
 
-    matrix = new int[this.size][this.size];
-    for(int i = 0; i < this.size; ++i)
-      for(int j = 0; j < this.size; ++j)
-        matrix[i][j] = 0;
-
-  }
+  public BusyWaiting() { super(); }
 
   public void work() {
-    for(int n = 0; n < this.iterations; ++n) {
-      int[][] resultMatrix = new int[size][size];
-      for(int i = 0; i < this.size; ++i)
-        for(int j = 0; j < this.size; ++j) {
-          resultMatrix[i][j] = 0;
-          for(int k = 0; k < size; ++k)
-            resultMatrix[i][j] += matrix[i][k] * matrix[k][j];
-        }
-
-      matrix = resultMatrix;
+    while(!Thread.currentThread().isInterrupted()) {
     }
   }
 }
