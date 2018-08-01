@@ -283,7 +283,7 @@ public class Chaperone implements Runnable {
 
     path = System.getenv("CHAPPIE_STACK_LOG");
     if (path == null)
-      path = "chappie.stack.csv";
+      path = "chappie.stack.txt";
 
     try {
       log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
