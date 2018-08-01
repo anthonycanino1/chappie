@@ -281,6 +281,25 @@ public class Chaperone implements Runnable {
     }
     log.close();
 
+    path = System.getenv("CHAPPIE_STACK_LOG");
+    if (path == null)
+      path = "chappie.stack.csv";
+
+    try {
+      log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
+    } catch (Exception io) {
+      System.err.println("Error: " + io.getMessage());
+    }
+
+    for (List<StackTraceElement> frame : GLIBC.callsites) {
+      message = "";
+      for (StackTraceElement e: frame)
+        message += e.toString() + ",";
+      message += "\n";
+      log.write(message);
+    }
+    log.close();
+
     // String message = "time,count,state\n";
     // log.write(message);
     // for (Integer time : activity.keySet()) {

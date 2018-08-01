@@ -67,7 +67,7 @@ public abstract class GLIBC {
     }
   }
 
-  static List<List<StackTraceElement>> callsites = new ArrayList<List<StackTraceElement>>();
+  public static List<List<StackTraceElement>> callsites = new ArrayList<List<StackTraceElement>>();
 
   public static void getCallSite() {
     callsites.add(Arrays.asList(Thread.currentThread().getStackTrace()));
