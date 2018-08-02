@@ -116,9 +116,14 @@ public class Chaperone implements Runnable {
         else
           measure.add(false);
 
-        measure.add(GLIBC.getCore(name));
+        int[] osValues = GLIBC.getOSStats(name);
+        measure.add(osValues[0]);
+        // measure.add(GLIBC.getCore(name));
 
         measure.add(bean.getThreadAllocatedBytes(Thread.currentThread().getId()));
+
+        measure.add(osValues[1]);
+        measure.add(osValues[2]);
 
         threads.add(measure);
         // if (!cores.containsKey(name)) {
@@ -165,6 +170,9 @@ public class Chaperone implements Runnable {
         measure.add(i + 1);
         measure.add(reading[3 * i + 2]);
         measure.add(reading[3 * i]);
+        int[] jiffies = GLIBC.getJiffies();
+        measure.add(jiffies[0]);
+        measure.add(jiffies[1]);
         energy.add(measure);
       }
       // double[] current = new double[next.length];
@@ -249,7 +257,7 @@ public class Chaperone implements Runnable {
       System.err.println("Error: " + io.getMessage());
     }
 
-    String message = "time,socket,package,dram,\n";
+    String message = "time,socket,package,dram,u_jiffies,k_jiffies,\n";
     log.write(message);
     for (List<Object> frame : energy) {
       message = "";
@@ -270,7 +278,7 @@ public class Chaperone implements Runnable {
       System.err.println("Error: " + io.getMessage());
     }
 
-    message = "time,thread,state,core,bytes,\n";
+    message = "time,thread,state,core,bytes,u_jiffies,k_jiffies,\n";
     log.write(message);
     for (List<Object> frame : threads) {
       message = "";
