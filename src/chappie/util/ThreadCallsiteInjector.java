@@ -51,7 +51,7 @@ public class ThreadCallsiteInjector implements ClassFileTransformer {
 			if(sysexit_done) return byteCode;
 			sysexit_done=true;
 			CtMethod ctMethod = ctClass.getMethod("start", Descriptor.ofMethod(CtClass.voidType, new CtClass[] {}));
-			ctMethod.insertBefore("chappie.util.GLIBC.getCallSite();");
+			ctMethod.insertBefore("chappie.util.GLIBC.getCallSite(getName());");
 			byteCode = ctClass.toBytecode();
 		        ctClass.detach();
 			return byteCode;

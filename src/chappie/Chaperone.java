@@ -291,10 +291,10 @@ public class Chaperone implements Runnable {
       System.err.println("Error: " + io.getMessage());
     }
 
-    for (List<StackTraceElement> frame : GLIBC.callsites) {
-      message = "";
-      for (StackTraceElement e: frame)
-        message += e.toString() + ",";
+    for (String thread : GLIBC.callsites.keySet()) {
+      message = thread;
+      for (StackTraceElement e: GLIBC.callsites.get(thread))
+        message += "," + e.toString();
       message += "\n";
       log.write(message);
     }
@@ -368,6 +368,7 @@ public class Chaperone implements Runnable {
           chaperone.dismiss();
           Files.move(Paths.get("chappie.trace.csv"), Paths.get("chappie.trace." + i + ".csv"));
           Files.move(Paths.get("chappie.thread.csv"), Paths.get("chappie.thread." + i + ".csv"));
+          Files.move(Paths.get("chappie.stack.txt"), Paths.get("chappie.stack." + i + ".txt"));
         }
       } catch(Exception e) {
         System.out.println("Unable to bootstrap " + args[1]);

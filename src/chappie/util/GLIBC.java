@@ -67,10 +67,10 @@ public abstract class GLIBC {
     }
   }
 
-  public static List<List<StackTraceElement>> callsites = new ArrayList<List<StackTraceElement>>();
+  public static Map<String, List<StackTraceElement>> callsites = new HashMap<String, List<StackTraceElement>>();
 
-  public static void getCallSite() {
-    callsites.add(Arrays.asList(Thread.currentThread().getStackTrace()));
+  public static void getCallSite(String name) {
+    callsites.put(name, Arrays.asList(Thread.currentThread().getStackTrace()));
 
   }
 }
