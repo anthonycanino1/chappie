@@ -3,6 +3,7 @@
 rm -rf chappie.dacapo
 mkdir chappie.dacapo
 
+export MODE=0
 export ITERS=1
 
 benchmarks="avrora batik eclipse h2 jython luindex lusearch pmd sunflow tomcat tradebeans tradesoap xalan"

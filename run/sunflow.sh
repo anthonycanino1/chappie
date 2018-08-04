@@ -1,5 +1,8 @@
 #!/bin/bash
 
+export MODE=0
+export ITERS=1
+
 export TIMES=1
 export STEPS=1
 

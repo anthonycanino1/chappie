@@ -63,13 +63,15 @@ public class Chaperone implements Runnable {
     setup();
   }
 
-  private int mode;
+  private int mode = 2;
 
   private void setup() {
     GLIBC.getProcessId();
     bean = (com.sun.management.ThreadMXBean)ManagementFactory.getThreadMXBean();
 
-    mode = Integer.parseInt(System.getenv("MODE"));
+    try {
+      mode = Integer.parseInt(System.getenv("MODE"));
+    } catch(Exception e) { }
 
     thread = new Thread(this, "Chaperone");
     thread.start();
@@ -170,25 +172,37 @@ public class Chaperone implements Runnable {
         // }
       }
 
+      long nextNano = 0;
+
       if (mode != 1) {
-        measure = new ArrayList<Object>();
 
-        long nextNano = System.nanoTime();
-        measure.add(curr);
-        measure.add((double)(nextNano - lastNano) / 1000000000.0);
+        nextNano = System.nanoTime();
 
-        lastNano = nextNano;
+        if (mode == 0) {
+          measure = new ArrayList<Object>();
+          measure.add(curr);
+          measure.add((double)(nextNano - lastNano) / 1000000000.0);
 
-        energy.add(measure);
+          lastNano = nextNano;
+
+          energy.add(measure);
+        }
       }
 
       if (mode != 0) {
         double[] reading = jrapl.EnergyCheckUtils.getEnergyStats();
 
+        if (mode != 1)
+          nextNano = System.nanoTime();
+
         for (int i = 0; i < reading.length / 3; ++i) {
           measure = new ArrayList<Object>();
 
           measure.add(curr);
+
+          if (mode != 1)
+            measure.add((double)(nextNano - lastNano) / 1000000000.0);
+
           measure.add(i + 1);
           measure.add(reading[3 * i + 2]);
           measure.add(reading[3 * i]);
@@ -199,6 +213,9 @@ public class Chaperone implements Runnable {
 
           energy.add(measure);
         }
+
+        if (mode != 1)
+          lastNano = nextNano;
       }
       // double[] current = new double[next.length];
       //
@@ -419,10 +436,10 @@ public class Chaperone implements Runnable {
           Files.move(Paths.get("chappie.stack.txt"), Paths.get("chappie.stack." + i + ".txt"));
         }
       } catch(Exception e) {
-        System.out.println("Unable to bootstrap " + args[1]);
+        System.out.println("Unable to bootstrap " + args[1] + ": " + e);
       }
     } catch(Exception e) {
-      System.out.println("Unable to load " + args[0]);
+      System.out.println("Unable to load " + args[0] + ": " + e);
     }
   }
 }

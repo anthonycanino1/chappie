@@ -1,5 +1,6 @@
 #!/bin/bash
 
+export MODE=0
 export ITERS=1
 
 if [ "$#" -eq  "0" ]
