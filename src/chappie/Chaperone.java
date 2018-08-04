@@ -51,8 +51,8 @@ import java.net.URLClassLoader;
 public class Chaperone implements Runnable {
 
   private Thread thread;
-  private com.sun.management.ThreadMXBean bean;
 
+  private com.sun.management.ThreadMXBean bean;
   private int polling = 2;
   public Chaperone() {
     setup();
@@ -63,9 +63,13 @@ public class Chaperone implements Runnable {
     setup();
   }
 
+  private int mode;
+
   private void setup() {
     GLIBC.getProcessId();
     bean = (com.sun.management.ThreadMXBean)ManagementFactory.getThreadMXBean();
+
+    mode = Integer.parseInt(System.getenv("MODE"));
 
     thread = new Thread(this, "Chaperone");
     thread.start();
@@ -84,7 +88,7 @@ public class Chaperone implements Runnable {
   // protected Map<String, Map<Integer, Long>> bytes = new HashMap<String, Map<Integer, Long>>();
 
   public void run() {
-    int curr = 0;
+    int curr = 0; long lastNano = System.nanoTime();
     List<Object> measure;
 
     // double[] current = jrapl.EnergyCheckUtils.getEnergyStats();
@@ -111,21 +115,25 @@ public class Chaperone implements Runnable {
         String name = thread.getName();
         measure.add(name);
 
-        if (thread.getState() == Thread.State.RUNNABLE)
-          measure.add(true);
-        else
-          measure.add(false);
+        if (mode != 1) {
+          if (thread.getState() == Thread.State.RUNNABLE)
+            measure.add(true);
+          else
+            measure.add(false);
 
-        int[] osValues = GLIBC.getOSStats(name);
-        measure.add(osValues[0]);
-        // measure.add(GLIBC.getCore(name));
+          measure.add(bean.getThreadAllocatedBytes(Thread.currentThread().getId()));
+        }
 
-        measure.add(bean.getThreadAllocatedBytes(Thread.currentThread().getId()));
-
-        measure.add(osValues[1]);
-        measure.add(osValues[2]);
+        else if (mode != 0) {
+          int[] osValues = GLIBC.getOSStats(name);
+          // measure.add(GLIBC.getCore(name));
+          measure.add(osValues[0]);
+          measure.add(osValues[1]);
+          measure.add(osValues[2]);
+        }
 
         threads.add(measure);
+
         // if (!cores.containsKey(name)) {
         //   cores.put(name, new HashMap<Integer, Integer>());
         //   cores.get(name).put(curr - polling, -1);
@@ -162,18 +170,35 @@ public class Chaperone implements Runnable {
         // }
       }
 
-      double[] reading = jrapl.EnergyCheckUtils.getEnergyStats();
-
-      for (int i = 0; i < reading.length / 3; ++i) {
+      if (mode != 1) {
         measure = new ArrayList<Object>();
+
+        long nextNano = System.nanoTime();
         measure.add(curr);
-        measure.add(i + 1);
-        measure.add(reading[3 * i + 2]);
-        measure.add(reading[3 * i]);
-        int[] jiffies = GLIBC.getJiffies();
-        measure.add(jiffies[0]);
-        measure.add(jiffies[1]);
+        measure.add((double)(nextNano - lastNano) / 1000000000.0);
+
+        lastNano = nextNano;
+
         energy.add(measure);
+      }
+
+      if (mode != 0) {
+        double[] reading = jrapl.EnergyCheckUtils.getEnergyStats();
+
+        for (int i = 0; i < reading.length / 3; ++i) {
+          measure = new ArrayList<Object>();
+
+          measure.add(curr);
+          measure.add(i + 1);
+          measure.add(reading[3 * i + 2]);
+          measure.add(reading[3 * i]);
+
+          int[] jiffies = GLIBC.getJiffies();
+          measure.add(jiffies[0]);
+          measure.add(jiffies[1]);
+
+          energy.add(measure);
+        }
       }
       // double[] current = new double[next.length];
       //
@@ -257,7 +282,16 @@ public class Chaperone implements Runnable {
       System.err.println("Error: " + io.getMessage());
     }
 
-    String message = "time,socket,package,dram,u_jiffies,k_jiffies,\n";
+    String message = "";
+
+    // String message = "time,socket,package,dram,u_jiffies,k_jiffies,\n";
+    if (mode == 0)
+      message = "time,nano_time,\n";
+    else if (mode == 1)
+      message = "time,socket,package,dram,u_jiffies,k_jiffies,\n";
+    else
+      message = "time,nano_time,socket,package,dram,u_jiffies,k_jiffies,\n";
+
     log.write(message);
     for (List<Object> frame : energy) {
       message = "";
@@ -278,7 +312,13 @@ public class Chaperone implements Runnable {
       System.err.println("Error: " + io.getMessage());
     }
 
-    message = "time,thread,state,core,bytes,u_jiffies,k_jiffies,\n";
+    if (mode == 0)
+      message = "time,thread,state,bytes\n";
+    else if (mode == 1)
+      message = "time,thread,core,u_jiffies,k_jiffies,\n";
+    else
+      message = "time,thread,state,bytes,core,u_jiffies,k_jiffies,\n";
+
     log.write(message);
     for (List<Object> frame : threads) {
       message = "";

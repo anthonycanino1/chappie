@@ -1,7 +1,5 @@
 #/bin/bash
 
-dir=`dirname "$0"`
-
 jar_path=$1
 jar_path=$(echo "$(cd "$(dirname "$jar_path")" && pwd)/$(basename "$jar_path")")
 
@@ -22,8 +20,4 @@ java -Xbootclasspath/p:$CHAPPIE_PATH -cp $JARS -javaagent:$CHAPPIE_PATH chappie.
 
 echo 'Moving data to chappie.'${jar_name}
 mkdir chappie.$jar_name
-mv *.csv chappie.$jar_name
-
-echo 'Moving data to chappie.'${jar_name}
-mkdir chappie.$jar_name
-mv *.csv chappie.$jar_name
+mv chappie.*.*.* chappie.$jar_name
