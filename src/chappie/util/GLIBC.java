@@ -54,23 +54,31 @@ public abstract class GLIBC {
     return tids.get(name);
   }
 
+  private static String lastName = "";
+  private static int[] lastOSStats;
+
   public static int[] getOSStats(String name) {
-    String path = "/proc/" + pid + "/task/" + tids.get(name) + "/stat";
+    if (lastName == name) {
+      return lastOSStats;
+    } else {
+      String path = "/proc/" + pid + "/task/" + tids.get(name) + "/stat";
 
-    try {
-      BufferedReader reader = new BufferedReader(new FileReader(path));
-      String message = reader.readLine();
-      reader.close();
+      try {
+        BufferedReader reader = new BufferedReader(new FileReader(path));
+        String message = reader.readLine();
+        reader.close();
 
-      String[] messages = message.split(" ");
-      int[] values = new int[3];
-      values[0] = Integer.parseInt(messages[38]);
-      values[1] = Integer.parseInt(messages[14]);
-      values[2] = Integer.parseInt(messages[15]);
+        String[] messages = message.split(" ");
+        int[] values = new int[3];
+        values[0] = Integer.parseInt(messages[38]);
+        values[1] = Integer.parseInt(messages[14]);
+        values[2] = Integer.parseInt(messages[15]);
 
-      return values;
-    } catch(Exception e) {
-      return new int[] {-1, 0, 0};
+        lastOSStats = values;
+        return values;
+      } catch(Exception e) {
+        return new int[] {-1, 0, 0};
+      }
     }
   }
 
