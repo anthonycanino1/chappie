@@ -90,10 +90,10 @@ public class Chaperone implements Runnable {
           String name = thread.getName();
           measure.add(name);
 
-           if ((curr % coreRate) == 0) {
+          if ((curr % coreRate) == 0) {
             measure.add(GLIBC.getOSStats(name)[0]);
           } else {
-            measure.add(-1);
+            measure.add("");
           }
 
           if (mode == 2) {
@@ -170,13 +170,14 @@ public class Chaperone implements Runnable {
 
       String message = "";
 
-      message = "time,socket,package,dram,u_jiffies,k_jiffies,\n";
+      message = "time,socket,package,dram,u_jiffies,k_jiffies\n";
 
       log.write(message);
       for (List<Object> frame: energy) {
         message = "";
         for (Object o: frame)
           message += o.toString() + ",";
+        message = message.substring(0, message.length() - 1);
         message += "\n";
         log.write(message);
       }
@@ -193,13 +194,13 @@ public class Chaperone implements Runnable {
       }
 
       if (mode == 2) {
-        message = "time,thread,core,u_jiffies,k_jiffies,";
+        message = "time,thread,core,u_jiffies,k_jiffies";
       } else if (mode == 3) {
-        message = "time,thread,core,state,";
+        message = "time,thread,core,state";
       }
 
       if (readMemory) {
-        message += "bytes,";
+        message += ",bytes";
       }
 
       message += "\n";
@@ -209,6 +210,7 @@ public class Chaperone implements Runnable {
         message = "";
         for (Object o: frame)
           message += o.toString() + ",";
+        message = message.substring(0, message.length() - 1);
         message += "\n";
         log.write(message);
       }
