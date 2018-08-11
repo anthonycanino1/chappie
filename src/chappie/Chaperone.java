@@ -54,13 +54,13 @@ public class Chaperone implements Runnable {
   private com.sun.management.ThreadMXBean bean;
 
   private int mode = 2;
-  private int polling = 10000;
+  private int polling = 1000;
   private int coreRate = 2000;
   private boolean readMemory = true;
 
   public Chaperone(int mode, int polling, int coreRate, boolean memory) {
     this.mode = mode;
-    this.polling = polling;
+    this.polling = Math.min(999999, polling * 1000);
     this.coreRate =  coreRate;
     this.readMemory = memory;
 
@@ -78,8 +78,12 @@ public class Chaperone implements Runnable {
     int curr = 0;
     List<Object> measure;
 
+    long start = System.nanoTime();
+
     while(!thread.isInterrupted()) {
       Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
+
+      long current = System.nanoTime() - start;
 
       for(Thread thread: threadSet) {
         if (mode > 1) {
@@ -124,6 +128,7 @@ public class Chaperone implements Runnable {
           measure = new ArrayList<Object>();
 
           measure.add(curr);
+          measure.add(current);
 
           measure.add(i + 1);
           measure.add(reading[3 * i + 2]);
@@ -142,6 +147,10 @@ public class Chaperone implements Runnable {
         Thread.sleep(0, polling);
       } catch (InterruptedException e) { Thread.currentThread().interrupt();}
     }
+
+    long now = System.nanoTime() - start;
+
+    System.out.println("Execution took " + (double)now / 1000000000.0 + " seconds");
 
     retire();
     return;
@@ -170,7 +179,7 @@ public class Chaperone implements Runnable {
 
       String message = "";
 
-      message = "time,socket,package,dram,u_jiffies,k_jiffies\n";
+      message = "epoch,time,socket,package,dram,u_jiffies,k_jiffies\n";
 
       log.write(message);
       for (List<Object> frame: energy) {
@@ -194,9 +203,9 @@ public class Chaperone implements Runnable {
       }
 
       if (mode == 2) {
-        message = "time,thread,core,u_jiffies,k_jiffies";
+        message = "epoch,thread,core,u_jiffies,k_jiffies";
       } else if (mode == 3) {
-        message = "time,thread,core,state";
+        message = "epoch,thread,core,state";
       }
 
       if (readMemory) {
