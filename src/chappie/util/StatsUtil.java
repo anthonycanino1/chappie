@@ -68,8 +68,8 @@ public class StatsUtil {
 				stats_str.append(sample.thread_name).append(",");
 				stats_str.append(sample.method_name).append(",");
 				stats_str.append(sample.event==METHOD_START?"START":"END");
-				stats_str.append(sample.timestamp);
-				stats_str.append(sample.epoch);
+				stats_str.append(sample.timestamp).append(",");
+				stats_str.append(sample.epoch).append(",");
 				
 				if(sample.energy!=null) {
 					for(List<Double> ener : sample.energy) {
