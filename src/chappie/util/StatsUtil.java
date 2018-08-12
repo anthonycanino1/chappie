@@ -80,8 +80,15 @@ public class StatsUtil {
 				}
 
 				if(sample.jiffies!=null) {
-					for (Object jiff_entry : sample.jiffies) {
-						stats_str.append(jiff_entry).append(",");
+					int indx=1;
+					for (Object os_entry : sample.jiffies) {
+						if (indx%2==1) {
+							stats_str.append(os_entry).append(",");
+						} else {
+							List os_vals = (List) os_entry;
+							stats_str.append(os_vals.get(0)).append(",");
+							stats_str.append(os_vals.get(1)).append(",");
+						}
 					}
 				}
 
