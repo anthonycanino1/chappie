@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Set;
 
+import java.io.*;
+
 public class StatsUtil {
 
 	public static final int NAIVE=0;
@@ -33,7 +35,6 @@ public class StatsUtil {
 	}
 
 
-	//The jiffies for the calling thread will be the first entry
 	public static List get_all_thread_jiffies() {
 		Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
 		
@@ -57,16 +58,41 @@ public class StatsUtil {
 	}
 
 	//This will be called at the end of Chappie by a possibly VM Shutdown Hook
-	public static void print_method_stats() {
-		//System.out.println("Hi ... I am printing ... Implementing to Come Very Soon");
-		StringBuilder thread = new StringBuilder();
+	public static void print_method_stats() throws IOException {
+		StringBuilder stats_str = new StringBuilder();
 		for(int thread_indx = 0; thread_indx < MAX_THREADS; thread_indx++) {
 			if(method_stats[thread_indx]==null) continue;
 			List samples = method_stats[thread_indx];
 			for(Object obj : samples) {
 				MethodStatsSample sample = (MethodStatsSample) obj;
+				stats_str.append(sample.thread_name).append(",");
+				stats_str.append(sample.method_name).append(",");
+				stats_str.append(sample.event==METHOD_START?"START":"END");
+				stats_str.append(sample.timestamp);
+				stats_str.append(sample.epoch);
+				
+				if(sample.energy!=null) {
+					for(List<Double> ener : sample.energy) {
+						for(Double val : ener) {
+							stats_str.append(val.doubleValue()).append(",");
+						}
+					}
+				}
+
+				if(sample.jiffies!=null) {
+					for (Object jiff_entry : sample.jiffies) {
+						stats_str.append(jiff_entry).append(",");
+					}
+				}
+
+				stats_str.append("end \n");
 			}
 		}
+
+		 PrintWriter methods = new PrintWriter(new BufferedWriter(new FileWriter("method_stats.csv")));
+		 methods.print(stats_str.toString());
+		 methods.close();
+
 	}
 
 	public static void notify_before(String method_name, int profile_mode) {
@@ -116,7 +142,6 @@ class MethodStatsSample {
 	public List<List<Double>> energy;
 	public String method_name;
 	public List jiffies;
-	public long mythread_jiffiers;
 	//Either METHOD_START or METHOD_END
 	public int event;
 	public String thread_name;
