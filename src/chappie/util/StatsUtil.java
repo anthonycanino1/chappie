@@ -7,7 +7,12 @@ import java.util.ArrayList;
 import java.util.Set;
 
 public class StatsUtil {
-	
+
+	public static final int NAIVE=0;
+	public static final int OS_NAIVE=1;
+	public static final int OS_SAMPLE=2;
+	public static final int VM_SAMPLE=3;
+
 	public static final int METHOD_START = 1;
 	public static final int METHOD_END = 2; 
 
@@ -47,19 +52,21 @@ public class StatsUtil {
 	}
 
 
-
-	public static final int NAIVE=0;
-	public static final int OS_NAIVE=1;
-	public static final int OS_SAMPLE=2;
-	public static final int VM_SAMPLE=3;
-
 	public static int get_energy_epoch() {
 		return -1;
 	}
 
 	//This will be called at the end of Chappie by a possibly VM Shutdown Hook
 	public static void print_method_stats() {
-		System.out.println("Hi ... I am printing ... Implementing to Come Very Soon");
+		//System.out.println("Hi ... I am printing ... Implementing to Come Very Soon");
+		StringBuilder thread = new StringBuilder();
+		for(int thread_indx = 0; thread_indx < MAX_THREADS; thread_indx++) {
+			if(method_stats[thread_indx]==null) continue;
+			List samples = method_stats[thread_indx];
+			for(Object obj : samples) {
+				MethodStatsSample sample = (MethodStatsSample) obj;
+			}
+		}
 	}
 
 	public static void notify_before(String method_name, int profile_mode) {
@@ -75,7 +82,7 @@ public class StatsUtil {
 		sample.timestamp = System.currentTimeMillis();
 		sample.method_name = method_name;
 		sample.event = event;
-		
+
 		if(profile_mode == NAIVE || profile_mode == OS_NAIVE) {
 			sample.energy = read_energy(); 
 		}
@@ -89,12 +96,16 @@ public class StatsUtil {
 		}
 
 
-		int my_id = (int) Thread.currentThread().getId();
+	
+		Thread cur_thread = Thread.currentThread();
+		int my_id = (int) cur_thread.getId();
+		String my_name = cur_thread.getName();
 		List this_thread_stats = method_stats[my_id];
 		if(this_thread_stats == null) {
 			method_stats[my_id] = this_thread_stats = new ArrayList();
 		}
 
+		sample.thread_name = my_name;
 		this_thread_stats.add(sample);
 	}
 }
@@ -108,6 +119,7 @@ class MethodStatsSample {
 	public long mythread_jiffiers;
 	//Either METHOD_START or METHOD_END
 	public int event;
+	public String thread_name;
 }
 
 
