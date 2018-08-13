@@ -84,7 +84,7 @@ public class StatsUtil {
 
 				if(sample.jiffies!=null) {
 					int indx=1;
-					stats_str.append(sample.jiffies.size()).append(",");
+					stats_str.append(sample.jiffies.size()/2).append(",");
 					for (Object os_entry : sample.jiffies) {
 						if (indx%2==1) {
 							stats_str.append(os_entry).append(",");
