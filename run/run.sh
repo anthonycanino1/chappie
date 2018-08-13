@@ -21,3 +21,4 @@ java -Xbootclasspath/p:$CHAPPIE_PATH -cp $JARS -javaagent:$CHAPPIE_PATH chappie.
 echo 'Moving data to chappie.'${jar_name}
 mkdir chappie.$jar_name
 mv chappie.*.*.* chappie.$jar_name
+mv method_stats.*.* chappie.$jar_name
