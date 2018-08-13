@@ -78,10 +78,13 @@ public class StatsUtil {
 							stats_str.append(val.doubleValue()).append(",");
 						}
 					}
+				} else {
+					stats_str.append("-1,-1,-1,-1,-1,-1");
 				}
 
 				if(sample.jiffies!=null) {
 					int indx=1;
+					stats_str.append(sample.jiffies.size()).append(",");
 					for (Object os_entry : sample.jiffies) {
 						if (indx%2==1) {
 							stats_str.append(os_entry).append(",");
