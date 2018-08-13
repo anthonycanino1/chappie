@@ -78,19 +78,25 @@ public class StatsUtil {
 							stats_str.append(val.doubleValue()).append(",");
 						}
 					}
+				} else {
+					stats_str.append("-1,-1,-1,-1,-1,-1");
 				}
 
 				if(sample.jiffies!=null) {
 					int indx=1;
+					stats_str.append(sample.jiffies.size()/2).append(",");
 					for (Object os_entry : sample.jiffies) {
 						if (indx%2==1) {
 							stats_str.append(os_entry).append(",");
 						} else {
-							List os_vals = (List) os_entry;
-							stats_str.append(os_vals.get(0)).append(",");
-							stats_str.append(os_vals.get(1)).append(",");
+							int[] os_vals = (int[]) os_entry;
+							stats_str.append(os_vals[0]).append(",");
+							stats_str.append(os_vals[1]).append(",");
+							stats_str.append(os_vals[2]).append(",");
 						}
 					}
+				} else {
+					stats_str.append("0,");	
 				}
 
 				stats_str.append("end \n");
