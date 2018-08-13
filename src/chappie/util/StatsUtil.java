@@ -95,6 +95,8 @@ public class StatsUtil {
 							stats_str.append(os_vals[2]).append(",");
 						}
 					}
+				} else {
+					stats_str.append("0,");	
 				}
 
 				stats_str.append("end \n");
