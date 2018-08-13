@@ -85,9 +85,10 @@ public class StatsUtil {
 						if (indx%2==1) {
 							stats_str.append(os_entry).append(",");
 						} else {
-							List os_vals = (List) os_entry;
-							stats_str.append(os_vals.get(0)).append(",");
-							stats_str.append(os_vals.get(1)).append(",");
+							int[] os_vals = (int[]) os_entry;
+							stats_str.append(os_vals[0]).append(",");
+							stats_str.append(os_vals[1]).append(",");
+							stats_str.append(os_vals[2]).append(",");
 						}
 					}
 				}
