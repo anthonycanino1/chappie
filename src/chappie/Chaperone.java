@@ -53,12 +53,14 @@ public class Chaperone implements Runnable {
   private Thread thread;
   private com.sun.management.ThreadMXBean bean;
 
+  public static int epoch = 0;
   private int mode = 2;
   private int polling = 1000;
   private int coreRate = 2000;
   private boolean readMemory = true;
 
   public Chaperone(int mode, int polling, int coreRate, boolean memory) {
+    Chaperone.epoch = 0;
     this.mode = mode;
     this.polling = Math.min(999999, polling * 1000);
     this.coreRate =  coreRate;
@@ -75,7 +77,6 @@ public class Chaperone implements Runnable {
   protected List<List<Object>> energy = new ArrayList<List<Object>>();
 
   public void run() {
-    int curr = 0;
     List<Object> measure;
 
     long start = System.nanoTime();
@@ -89,12 +90,12 @@ public class Chaperone implements Runnable {
         if (mode > 1) {
           measure = new ArrayList<Object>();
 
-          measure.add(curr);
+          measure.add(epoch);
 
           String name = thread.getName();
           measure.add(name);
 
-          if ((curr % coreRate) == 0) {
+          if ((epoch % coreRate) == 0) {
             measure.add(GLIBC.getOSStats(name)[0]);
           } else {
             measure.add("");
@@ -127,7 +128,7 @@ public class Chaperone implements Runnable {
         for (int i = 0; i < reading.length / 3; ++i) {
           measure = new ArrayList<Object>();
 
-          measure.add(curr);
+          measure.add(epoch);
           measure.add(current);
 
           measure.add(i + 1);
@@ -141,7 +142,7 @@ public class Chaperone implements Runnable {
         }
       }
 
-      curr++;
+      epoch++;
 
       try {
         Thread.sleep(0, polling);

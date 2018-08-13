@@ -1,5 +1,6 @@
 package chappie.util;
 
+import chappie.Chaperone;
 
 import jrapl.EnergyCheckUtils.*;
 import java.util.List;
@@ -16,7 +17,7 @@ public class StatsUtil {
 	public static final int VM_SAMPLE=3;
 
 	public static final int METHOD_START = 1;
-	public static final int METHOD_END = 2; 
+	public static final int METHOD_END = 2;
 
 	public static final int MAX_THREADS = 2048*1024;
 	public static List[] method_stats = new ArrayList[MAX_THREADS];
@@ -28,7 +29,7 @@ public class StatsUtil {
 		for (int i = 0; i < jrapl_reading.length / 3; ++i) {
 			List<Double> measure = new ArrayList<Double>();
 			measure.add(jrapl_reading[3 * i + 2]);
-		   	measure.add(jrapl_reading[3 * i]);	   
+		   	measure.add(jrapl_reading[3 * i]);
 			energy_reading.add(measure);
 		}
 		return energy_reading;
@@ -37,11 +38,11 @@ public class StatsUtil {
 
 	public static List get_all_thread_jiffies() {
 		Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
-		
+
 		//For performacne, one array list will contain both names and jiffies
 		//First entry is the thread name, next entry is a long[] that represents the jiffies readings and so on
 		List os_stats = new ArrayList(threadSet.size() * 2);
-		
+
 		for(Thread thr : threadSet) {
 			String name = thr.getName();
 			int[] os_stat =  GLIBC.getOSStats(name);
@@ -54,7 +55,7 @@ public class StatsUtil {
 
 
 	public static int get_energy_epoch() {
-		return -1;
+		return Chaperone.epoch;
 	}
 
 	//This will be called at the end of Chappie by a possibly VM Shutdown Hook
@@ -70,7 +71,7 @@ public class StatsUtil {
 				stats_str.append(sample.event==METHOD_START?"START":"END");
 				stats_str.append(sample.timestamp).append(",");
 				stats_str.append(sample.epoch).append(",");
-				
+
 				if(sample.energy!=null) {
 					for(List<Double> ener : sample.energy) {
 						for(Double val : ener) {
@@ -118,7 +119,7 @@ public class StatsUtil {
 		sample.event = event;
 
 		if(profile_mode == NAIVE || profile_mode == OS_NAIVE) {
-			sample.energy = read_energy(); 
+			sample.energy = read_energy();
 		}
 
 		if(profile_mode == OS_NAIVE) {
@@ -126,11 +127,11 @@ public class StatsUtil {
 		}
 
 		if(profile_mode == OS_SAMPLE || profile_mode==VM_SAMPLE) {
-			sample.epoch = get_energy_epoch();	
+			sample.epoch = get_energy_epoch();
 		}
 
 
-	
+
 		Thread cur_thread = Thread.currentThread();
 		int my_id = (int) cur_thread.getId();
 		String my_name = cur_thread.getName();
@@ -154,5 +155,3 @@ class MethodStatsSample {
 	public int event;
 	public String thread_name;
 }
-
-
