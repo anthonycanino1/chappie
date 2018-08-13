@@ -300,9 +300,11 @@ public class Chaperone implements Runnable {
           System.out.println("==================================================");
           System.out.println("Dismissing the chaperone");
           chaperone.dismiss();
+          chappie.util.print_method_stats();
           Files.move(Paths.get("chappie.trace.csv"), Paths.get("chappie.trace." + i + ".csv"));
           Files.move(Paths.get("chappie.thread.csv"), Paths.get("chappie.thread." + i + ".csv"));
           Files.move(Paths.get("chappie.stack.txt"), Paths.get("chappie.stack." + i + ".txt"));
+          Files.move(Paths.get("method_stats.csv"), Paths.get("method_stats." + i + ".txt"));
         }
       } catch(Exception e) {
         System.out.println("Unable to bootstrap " + args[1] + ": " + e);
