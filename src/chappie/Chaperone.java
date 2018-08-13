@@ -306,7 +306,7 @@ public class Chaperone implements Runnable {
           System.out.println("==================================================");
           System.out.println("Dismissing the chaperone");
           chaperone.dismiss();
-          chappie.util.print_method_stats();
+          chappie.util.StatsUtil.print_method_stats();
           Files.move(Paths.get("chappie.trace.csv"), Paths.get("chappie.trace." + i + ".csv"));
           Files.move(Paths.get("chappie.thread.csv"), Paths.get("chappie.thread." + i + ".csv"));
           Files.move(Paths.get("chappie.stack.txt"), Paths.get("chappie.stack." + i + ".txt"));
