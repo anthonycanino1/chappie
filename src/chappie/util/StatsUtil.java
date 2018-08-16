@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Set;
 
 import java.io.*;
+import java.util.Random;
 
 public class StatsUtil {
 
@@ -19,12 +20,31 @@ public class StatsUtil {
 	public static final int METHOD_START = 1;
 	public static final int METHOD_END = 2;
 
-	public static final int MAX_THREADS = 2048*1024;
-	public static List[] method_stats = new ArrayList[MAX_THREADS];
+	public static final int MAX_THREADS = 256;
+	public static final int MAX_LOG_BUFFER = 2048;
 
-	public static List<List<Double>> read_energy() {
+	public static final int SAMPLES_PER_THREAD=1390240;
+
+	//public static List[] method_stats = new ArrayList[MAX_THREADS];
+	//public static PrintWriter[] thread_writers = new PrintWriter[MAX_THREADS];
+	//public static int[] thread_index = new int[MAX_THREADS];
+	//public static MethodStatsSample[][] thread_samples = new MethodStatsSample[MAX_THREADS][MAX_LOG_BUFFER]; 
+	public static String[][] sample_method_names 	= new String[MAX_THREADS][SAMPLES_PER_THREAD];
+	public static int[][] sample_event_epochs 	= new int[MAX_THREADS][SAMPLES_PER_THREAD];
+	public static int[][] sample_event_types 	= new int [MAX_THREADS][SAMPLES_PER_THREAD];
+	public static int[]sample_counts 		= new int[MAX_THREADS];
+	public static String[] thread_names      	= new String[MAX_THREADS];
+
+	public static void close_open_files() {
+		//To be called by Chaperon retire() method
+	}
+
+	public static int INITIAL_STATS_ALLOC = 1024*1024*64;
+
+	public static double[] read_energy() {
 		double[] jrapl_reading = jrapl.EnergyCheckUtils.getEnergyStats();
-		List<List<Double>> energy_reading = new ArrayList<List<Double>>();
+		return jrapl_reading;	
+		/*List<List<Double>> energy_reading = new ArrayList<List<Double>>();
 
 		for (int i = 0; i < jrapl_reading.length / 3; ++i) {
 			List<Double> measure = new ArrayList<Double>();
@@ -32,7 +52,7 @@ public class StatsUtil {
 		   	measure.add(jrapl_reading[3 * i]);
 			energy_reading.add(measure);
 		}
-		return energy_reading;
+		return energy_reading;*/
 	}
 
 
@@ -42,7 +62,6 @@ public class StatsUtil {
 		//For performacne, one array list will contain both names and jiffies
 		//First entry is the thread name, next entry is a long[] that represents the jiffies readings and so on
 		List os_stats = new ArrayList(threadSet.size() * 2);
-
 		for(Thread thr : threadSet) {
 			String name = thr.getName();
 			int[] os_stat =  GLIBC.getOSStats(name);
@@ -59,54 +78,27 @@ public class StatsUtil {
 	}
 
 	//This will be called at the end of Chappie by a possibly VM Shutdown Hook
-	public static void print_method_stats() throws IOException {
+	public static void print_method_stats() throws Exception  {
 		StringBuilder stats_str = new StringBuilder();
-		for(int thread_indx = 0; thread_indx < MAX_THREADS; thread_indx++) {
-			if(method_stats[thread_indx]==null) continue;
-			List samples = method_stats[thread_indx];
-			for(Object obj : samples) {
-				MethodStatsSample sample = (MethodStatsSample) obj;
-				stats_str.append(sample.thread_name).append(",");
-				stats_str.append(sample.method_name).append(",");
-				stats_str.append(sample.event==METHOD_START?"START":"END");
-				stats_str.append(sample.timestamp).append(",");
-				stats_str.append(sample.epoch).append(",");
+		PrintWriter mlog = new PrintWriter(new BufferedWriter(new FileWriter("method_stats.csv")));
 
-				if(sample.energy!=null) {
-					for(List<Double> ener : sample.energy) {
-						for(Double val : ener) {
-							stats_str.append(val.doubleValue()).append(",");
-						}
-					}
-				} else {
-					stats_str.append("-1,-1,-1,-1,-1,-1");
-				}
-
-				if(sample.jiffies!=null) {
-					int indx=1;
-					stats_str.append(sample.jiffies.size()/2).append(",");
-					for (Object os_entry : sample.jiffies) {
-						if (indx%2==1) {
-							stats_str.append(os_entry).append(",");
-						} else {
-							int[] os_vals = (int[]) os_entry;
-							stats_str.append(os_vals[0]).append(",");
-							stats_str.append(os_vals[1]).append(",");
-							stats_str.append(os_vals[2]).append(",");
-						}
-						indx++;
-					}
-				} else {
-					stats_str.append("0,");	
-				}
-
-				stats_str.append("end \n");
+		for(int thread_index = 0; thread_index < MAX_THREADS; thread_index++) {
+			String thread_name = thread_names[thread_index];
+			if(thread_name == null) continue;
+			//print samples
+			int no_samples = sample_counts[thread_index];
+			
+			for(int sample_index = 0; no_samples < no_samples; sample_index++) {
+				stats_str.append(thread_name).append(",");
+				stats_str.append(sample_method_names[thread_index][sample_index]).append(",");
+				stats_str.append(sample_event_types[thread_index][sample_index]).append(",");
+				stats_str.append(sample_event_epochs[thread_index][sample_index]).append(",");
+				stats_str.append("\n");
 			}
 		}
 
-		 PrintWriter methods = new PrintWriter(new BufferedWriter(new FileWriter("method_stats.csv")));
-		 methods.print(stats_str.toString());
-		 methods.close();
+		
+		mlog.print(stats_str.toString());
 
 	}
 
@@ -119,42 +111,26 @@ public class StatsUtil {
 	}
 
 	public static void notify_method(String method_name, int profile_mode, int event) {
-		MethodStatsSample sample = new MethodStatsSample();
-		sample.timestamp = System.currentTimeMillis();
-		sample.method_name = method_name;
-		sample.event = event;
-
-		if(profile_mode == NAIVE || profile_mode == OS_NAIVE) {
-			sample.energy = read_energy();
-		}
-
-		if(profile_mode == OS_NAIVE) {
-			sample.jiffies = get_all_thread_jiffies();
-		}
-
-		if(profile_mode == OS_SAMPLE || profile_mode==VM_SAMPLE) {
-			sample.epoch = get_energy_epoch();
-		}
-
-
 
 		Thread cur_thread = Thread.currentThread();
 		int my_id = (int) cur_thread.getId();
 		String my_name = cur_thread.getName();
-		List this_thread_stats = method_stats[my_id];
-		if(this_thread_stats == null) {
-			method_stats[my_id] = this_thread_stats = new ArrayList();
+		int my_sample_count = sample_counts[my_id]++;
+		
+		if(my_sample_count==0) {
+			thread_names[my_sample_count] = cur_thread.getName();	
 		}
 
-		sample.thread_name = my_name;
-		this_thread_stats.add(sample);
+		sample_event_epochs[my_id][my_sample_count] = get_energy_epoch();
+		sample_event_types[my_id][my_sample_count] = event;
+		sample_method_names[my_id][my_sample_count] = method_name;
 	}
 }
 
 class MethodStatsSample {
 	public int epoch;
 	public long timestamp;
-	public List<List<Double>> energy;
+	public double[] energy;
 	public String method_name;
 	public List jiffies;
 	//Either METHOD_START or METHOD_END

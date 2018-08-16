@@ -245,12 +245,6 @@ public class Chaperone implements Runnable {
       }
       log.close();
     }
-
-    try {
-	chappie.util.StatsUtil.print_method_stats();
-    } catch(Exception e) {
-	e.printStackTrace();
-    }
   }
 
   public static void main(String[] args) throws IOException {
