@@ -117,7 +117,13 @@ public class Chaperone implements Runnable {
             measure.add(bean.getThreadAllocatedBytes(Thread.currentThread().getId()));
           }
 
+	  // For Khaled: Modification to make
+	  // StrackTraceElement e = thread.getStackTrace()[];
+	  // e goes into measure
+
           threads.add(measure);
+
+	  
         }
       }
 
@@ -236,6 +242,12 @@ public class Chaperone implements Runnable {
         System.err.println("Error: " + io.getMessage());
       }
 
+      try {
+	 chappie.util.StatsUtil.print_method_stats();
+      } catch(Exception exception) {
+	      exception.printStackTrace();
+      }
+
       for (String thread : GLIBC.callsites.keySet()) {
         message = thread;
         for (StackTraceElement e: GLIBC.callsites.get(thread))
@@ -300,7 +312,6 @@ public class Chaperone implements Runnable {
           System.out.println("==================================================");
           System.out.println("Dismissing the chaperone");
           chaperone.dismiss();
-          chappie.util.StatsUtil.print_method_stats();
           Files.move(Paths.get("chappie.trace.csv"), Paths.get("chappie.trace." + i + ".csv"));
           Files.move(Paths.get("chappie.thread.csv"), Paths.get("chappie.thread." + i + ".csv"));
           Files.move(Paths.get("chappie.stack.txt"), Paths.get("chappie.stack." + i + ".txt"));

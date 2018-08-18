@@ -9,7 +9,7 @@ jar_name=${jar_name%\.*}
 jar_url=file:/$jar_path
 
 rm chappie.*.csv chappie.$jar_name -rf
-
+export ITERS=1
 export CHAPPIE_PATH="/home/kmahmou1/chappie_project/chappie/chappie.jar"
 export JARS="$CHAPPIE_PATH:$jar_path"
 
