@@ -48,9 +48,12 @@ import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
 
-public class Chaperone implements Runnable {
+import java.util.Timer;
+import java.util.TimerTask;
 
-  private Thread thread;
+public class Chaperone extends TimerTask {
+  private Timer timer;
+
   private com.sun.management.ThreadMXBean bean;
 
   public static int epoch = 0;
@@ -59,109 +62,98 @@ public class Chaperone implements Runnable {
   private int coreRate = 2000;
   private boolean readMemory = true;
 
+  private long start = 0;
+
   public Chaperone(int mode, int polling, int coreRate, boolean memory) {
     Chaperone.epoch = 0;
     this.mode = mode;
-    this.polling = Math.min(999999, polling * 1000);
+    // this.polling = Math.min(999999, polling * 1000);
+    this.polling = polling;
     this.coreRate =  coreRate;
     this.readMemory = memory;
 
     GLIBC.getProcessId();
     bean = (com.sun.management.ThreadMXBean)ManagementFactory.getThreadMXBean();
 
-    thread = new Thread(this, "Chaperone");
-    thread.start();
+    start = System.nanoTime();
+
+    timer = new Timer("Chaperone");
+    timer.scheduleAtFixedRate(this, 0, 2);
   }
 
   protected List<List<Object>> threads = new ArrayList<List<Object>>();
   protected List<List<Object>> energy = new ArrayList<List<Object>>();
 
+  @Override
   public void run() {
     List<Object> measure;
 
-    long start = System.nanoTime();
+    long elapsed = System.nanoTime() - start;
 
-    while(!thread.isInterrupted()) {
-      Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
+    Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
 
-      long current = System.nanoTime() - start;
-
-      for(Thread thread: threadSet) {
-        if (mode > 1) {
-          measure = new ArrayList<Object>();
-
-          measure.add(epoch);
-
-          String name = thread.getName();
-          measure.add(name);
-
-          if ((epoch % coreRate) == 0) {
-            measure.add(GLIBC.getOSStats(name)[0]);
-          } else {
-            measure.add("");
-          }
-
-          if (mode == 2) {
-            measure.add(GLIBC.getOSStats(name)[1]);
-            measure.add(GLIBC.getOSStats(name)[2]);
-          }
-
-          if (mode == 3) {
-            if (thread.getState() == Thread.State.RUNNABLE)
-              measure.add(true);
-            else
-              measure.add(false);
-          }
-
-          if (readMemory) {
-            measure.add(bean.getThreadAllocatedBytes(Thread.currentThread().getId()));
-          }
-
-          threads.add(measure);
-        }
-      }
-
+    for(Thread thread: threadSet) {
       if (mode > 1) {
-        int[] jiffies = GLIBC.getJiffies();
-        double[] reading = jrapl.EnergyCheckUtils.getEnergyStats();
+        measure = new ArrayList<Object>();
 
-        for (int i = 0; i < reading.length / 3; ++i) {
-          measure = new ArrayList<Object>();
+        measure.add(epoch);
 
-          measure.add(epoch);
-          measure.add(current);
+        String name = thread.getName();
+        measure.add(name);
 
-          measure.add(i + 1);
-          measure.add(reading[3 * i + 2]);
-          measure.add(reading[3 * i]);
-
-          measure.add(jiffies[0]);
-          measure.add(jiffies[1]);
-
-          energy.add(measure);
+        if ((epoch % coreRate) == 0) {
+          measure.add(GLIBC.getOSStats(name)[0]);
+        } else {
+          measure.add("");
         }
+
+        if (mode == 2) {
+          measure.add(GLIBC.getOSStats(name)[1]);
+          measure.add(GLIBC.getOSStats(name)[2]);
+        }
+
+        if (mode == 3) {
+          if (thread.getState() == Thread.State.RUNNABLE)
+            measure.add(true);
+          else
+            measure.add(false);
+        }
+
+        if (readMemory) {
+          measure.add(bean.getThreadAllocatedBytes(Thread.currentThread().getId()));
+        }
+
+        threads.add(measure);
       }
-
-      epoch++;
-
-      try {
-        Thread.sleep(0, polling);
-      } catch (InterruptedException e) { Thread.currentThread().interrupt();}
     }
 
-    long now = System.nanoTime() - start;
+    if (mode > 1) {
+      int[] jiffies = GLIBC.getJiffies();
+      double[] reading = jrapl.EnergyCheckUtils.getEnergyStats();
 
-    System.out.println("Execution took " + (double)now / 1000000000.0 + " seconds");
+      for (int i = 0; i < reading.length / 3; ++i) {
+        measure = new ArrayList<Object>();
 
-    retire();
-    return;
+        measure.add(epoch);
+        measure.add(elapsed);
+
+        measure.add(i + 1);
+        measure.add(reading[3 * i + 2]);
+        measure.add(reading[3 * i]);
+
+        measure.add(jiffies[0]);
+        measure.add(jiffies[1]);
+
+        energy.add(measure);
+      }
+    }
+
+    epoch++;
   }
 
   public void dismiss() {
-    thread.interrupt();
-    try {
-      thread.join();
-    } catch (Exception e) { }
+    timer.cancel();
+    retire();
   }
 
   private void retire() {
@@ -306,7 +298,7 @@ public class Chaperone implements Runnable {
           System.out.println("==================================================");
           System.out.println("Dismissing the chaperone");
           chaperone.dismiss();
-          chappie.util.print_method_stats();
+          chappie.util.StatsUtil.print_method_stats();
           Files.move(Paths.get("chappie.trace.csv"), Paths.get("chappie.trace." + i + ".csv"));
           Files.move(Paths.get("chappie.thread.csv"), Paths.get("chappie.thread." + i + ".csv"));
           Files.move(Paths.get("chappie.stack.txt"), Paths.get("chappie.stack." + i + ".txt"));
