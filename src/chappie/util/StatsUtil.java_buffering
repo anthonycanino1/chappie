@@ -20,11 +20,11 @@ public class StatsUtil {
 	public static final int METHOD_START = 1;
 	public static final int METHOD_END = 2;
 
-	public static final int MAX_THREADS = 1024;
-	public static final int MAX_LOG_BUFFER = 1024*1024;
+	public static final int MAX_THREADS = 20480;
+	public static final int MAX_LOG_BUFFER = 2048;
 
 	public static List[] method_stats = new ArrayList[MAX_THREADS];
-	//public static PrintWriter[] thread_writers = new PrintWriter[MAX_THREADS];
+	public static PrintWriter[] thread_writers = new PrintWriter[MAX_THREADS];
 	public static int[] thread_index = new int[MAX_THREADS];
 	public static MethodStatsSample[][] thread_samples = new MethodStatsSample[MAX_THREADS][MAX_LOG_BUFFER]; 
 	
@@ -73,18 +73,17 @@ public class StatsUtil {
 	}
 
 	//This will be called at the end of Chappie by a possibly VM Shutdown Hook
-	public static void print_method_stats() throws Exception  {
-		System.out.println("Printing Method Stats");
+	public static void print_method_stats()  {
 		StringBuilder stats_str = new StringBuilder();
-		PrintWriter mywriter = new PrintWriter(new BufferedWriter(new FileWriter("method_stats.csv"))); 
-		for(int my_id = 0; my_id < MAX_THREADS; my_id++) {
-		System.out.println("Number of Stats for thread" + my_id + " is " + thread_index[my_id]);
-		if(thread_index[my_id]==0) continue;	
-		for(int sample_index=0; sample_index < thread_index[my_id]; sample_index++) {
+		int my_id = (int) Thread.currentThread().getId();
+		String myname = Thread.currentThread().getName();
+		PrintWriter mywriter = thread_writers[my_id];
+		
+		for(int sample_index=0; sample_index < MAX_LOG_BUFFER; sample_index++) {
 				MethodStatsSample sample = thread_samples[my_id][sample_index];
-				stats_str.append(sample.thread_name).append(",");
+				stats_str.append(myname).append(",");
 				stats_str.append(sample.method_name).append(",");
-				stats_str.append(sample.event==METHOD_START?"START":"END").append(",");
+				stats_str.append(sample.event==METHOD_START?"START":"END");
 				stats_str.append(sample.timestamp).append(",");
 				stats_str.append(sample.epoch).append(",");
 
@@ -93,7 +92,7 @@ public class StatsUtil {
 						stats_str.append(val).append(",");
 					}
 				} else {
-					stats_str.append("no_energy").append(",");
+					stats_str.append("-1,-1,-1,-1,-1,-1");
 				}
 
 				if(sample.jiffies!=null) {
@@ -117,12 +116,10 @@ public class StatsUtil {
 
 				stats_str.append("end \n");
 		}
-		}
 
 		 try {
 			 mywriter.print(stats_str.toString());
 		 	 mywriter.flush();
-			 mywriter.close();
 		 } catch (Exception exception) {
 			exception.printStackTrace();
 		 }
@@ -136,10 +133,8 @@ public class StatsUtil {
 		notify_method(method_name, profile_mode, METHOD_END);
 	}
 
-
-	public static int cnt = 0;
-
 	public static void notify_method(String method_name, int profile_mode, int event) {
+
 		Thread cur_thread = Thread.currentThread();
 		int my_id = (int) cur_thread.getId();
 		String my_name = cur_thread.getName();
@@ -148,10 +143,33 @@ public class StatsUtil {
 		if(sample==null) {
 			for(int sample_indx = 0; sample_indx < MAX_LOG_BUFFER; sample_indx++) {
 				thread_samples[my_id][sample_indx] = new MethodStatsSample();
+				
+				try {
+					thread_writers[my_id] = new PrintWriter(new BufferedWriter(new FileWriter(my_name+".csv")));
+				} catch(Exception exc) {
+					System.out.println("Cannot open file for writing!!! :(");
+					exc.printStackTrace();
+					System.exit(0);
+				}
 			}
 		}
 
 		int sample_index = thread_index[my_id]; 
+		
+		if(sample_index==MAX_LOG_BUFFER-1) {
+			thread_index[my_id] = 0;
+			print_method_stats();
+			return;
+		}
+
+		
+		if(sample_index==MAX_LOG_BUFFER-1) {
+			thread_index[my_id] = 0;
+			print_method_stats();
+			//No need to take sample when we are printing .... Just discard the current sample
+			return;
+		}
+
 		sample = thread_samples[my_id][sample_index];
 		
 		long ts = 0;
@@ -160,23 +178,26 @@ public class StatsUtil {
 		}
 
 		sample.timestamp = ts;
-			sample.method_name = method_name;
-			sample.event = event;
+		
+		sample.method_name = method_name;
+		sample.event = event;
 
-			if(profile_mode == NAIVE || profile_mode == OS_NAIVE) {
-				sample.energy = read_energy();
-				//read_energy();
-			}
+		if(profile_mode == NAIVE || profile_mode == OS_NAIVE) {
+			sample.energy = read_energy();
+			//read_energy();
+		}
 
-			if(profile_mode == OS_NAIVE) {
-				sample.jiffies = get_all_thread_jiffies();
-			}
+		if(profile_mode == OS_NAIVE) {
+			sample.jiffies = get_all_thread_jiffies();
+			//get_all_thread_jiffies();
+		}
 
-			if(profile_mode == OS_SAMPLE || profile_mode==VM_SAMPLE) {
-				sample.epoch = get_energy_epoch();
-			}
+		if(profile_mode == OS_SAMPLE || profile_mode==VM_SAMPLE) {
+			sample.epoch = get_energy_epoch();
+			//get_energy_epoch();
+		}
 
-			sample.thread_name = my_name;
+		sample.thread_name = my_name;
 		thread_index[my_id]++;
 	}
 }

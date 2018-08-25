@@ -119,8 +119,17 @@ public class Chaperone extends TimerTask {
             measure.add(false);
         }
 
+<<<<<<< HEAD
         if (readMemory) {
           measure.add(bean.getThreadAllocatedBytes(Thread.currentThread().getId()));
+=======
+	  StackTraceElement[] trace = thread.getStackTrace();
+	  measure.add(trace); 
+
+          threads.add(measure);
+
+	  
+>>>>>>> a4f2bd09abd028d3b9d871b4378fe98dd44cc781
         }
 
         threads.add(measure);
@@ -205,15 +214,23 @@ public class Chaperone extends TimerTask {
         message += ",bytes";
       }
 
-      message += "\n";
+
+      message += ",stack";
+      message  += "\n";
 
       log.write(message);
       for (List<Object> frame : threads) {
         message = "";
-        for (Object o: frame)
-          message += o.toString() + ",";
-        message = message.substring(0, message.length() - 1);
-        message += "\n";
+	StackTraceElement[] es = (StackTraceElement[]) frame.remove(frame.size()-1); 
+	for (Object o: frame) message += o.toString() + ",";
+        //message = message.substring(0, message.length() - 1);
+	message += es.length+",";
+	
+	for(StackTraceElement e : es) {
+		message+=e.toString()+",";
+	}
+
+        message += "end \n";
         log.write(message);
       }
       log.close();
@@ -236,12 +253,6 @@ public class Chaperone extends TimerTask {
         log.write(message);
       }
       log.close();
-    }
-
-    try {
-	chappie.util.StatsUtil.print_method_stats();
-    } catch(Exception e) {
-	e.printStackTrace();
     }
   }
 
@@ -298,7 +309,10 @@ public class Chaperone extends TimerTask {
           System.out.println("==================================================");
           System.out.println("Dismissing the chaperone");
           chaperone.dismiss();
+<<<<<<< HEAD
           chappie.util.StatsUtil.print_method_stats();
+=======
+>>>>>>> a4f2bd09abd028d3b9d871b4378fe98dd44cc781
           Files.move(Paths.get("chappie.trace.csv"), Paths.get("chappie.trace." + i + ".csv"));
           Files.move(Paths.get("chappie.thread.csv"), Paths.get("chappie.thread." + i + ".csv"));
           Files.move(Paths.get("chappie.stack.txt"), Paths.get("chappie.stack." + i + ".txt"));
