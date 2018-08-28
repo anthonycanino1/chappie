@@ -119,17 +119,8 @@ public class Chaperone extends TimerTask {
             measure.add(false);
         }
 
-<<<<<<< HEAD
-        if (readMemory) {
-          measure.add(bean.getThreadAllocatedBytes(Thread.currentThread().getId()));
-=======
-	  StackTraceElement[] trace = thread.getStackTrace();
-	  measure.add(trace); 
-
-          threads.add(measure);
-
-	  
->>>>>>> a4f2bd09abd028d3b9d871b4378fe98dd44cc781
+		if (readMemory) {
+			measure.add(bean.getThreadAllocatedBytes(Thread.currentThread().getId()));
         }
 
         threads.add(measure);
@@ -221,14 +212,14 @@ public class Chaperone extends TimerTask {
       log.write(message);
       for (List<Object> frame : threads) {
         message = "";
-	StackTraceElement[] es = (StackTraceElement[]) frame.remove(frame.size()-1); 
+	//StackTraceElement[] es = (StackTraceElement[]) frame.remove(frame.size()-1); 
 	for (Object o: frame) message += o.toString() + ",";
-        //message = message.substring(0, message.length() - 1);
-	message += es.length+",";
+        message = message.substring(0, message.length() - 1);
+	//message += es.length+",";
 	
-	for(StackTraceElement e : es) {
-		message+=e.toString()+",";
-	}
+	//for(StackTraceElement e : es) {
+	//	message+=e.toString()+",";
+	//}
 
         message += "end \n";
         log.write(message);
@@ -309,14 +300,10 @@ public class Chaperone extends TimerTask {
           System.out.println("==================================================");
           System.out.println("Dismissing the chaperone");
           chaperone.dismiss();
-<<<<<<< HEAD
-          chappie.util.StatsUtil.print_method_stats();
-=======
->>>>>>> a4f2bd09abd028d3b9d871b4378fe98dd44cc781
+
           Files.move(Paths.get("chappie.trace.csv"), Paths.get("chappie.trace." + i + ".csv"));
           Files.move(Paths.get("chappie.thread.csv"), Paths.get("chappie.thread." + i + ".csv"));
           Files.move(Paths.get("chappie.stack.txt"), Paths.get("chappie.stack." + i + ".txt"));
-          Files.move(Paths.get("method_stats.csv"), Paths.get("method_stats." + i + ".txt"));
         }
       } catch(Exception e) {
         System.out.println("Unable to bootstrap " + args[1] + ": " + e);
