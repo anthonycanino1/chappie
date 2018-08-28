@@ -74,11 +74,11 @@ public class StatsUtil {
 
 	//This will be called at the end of Chappie by a possibly VM Shutdown Hook
 	public static void print_method_stats() throws Exception  {
-		System.out.println("Printing Method Stats");
+		//System.out.println("Printing Method Stats");
 		StringBuilder stats_str = new StringBuilder();
 		PrintWriter mywriter = new PrintWriter(new BufferedWriter(new FileWriter("method_stats.csv"))); 
 		for(int my_id = 0; my_id < MAX_THREADS; my_id++) {
-		System.out.println("Number of Stats for thread" + my_id + " is " + thread_index[my_id]);
+		//System.out.println("Number of Stats for thread" + my_id + " is " + thread_index[my_id]);
 		if(thread_index[my_id]==0) continue;	
 		for(int sample_index=0; sample_index < thread_index[my_id]; sample_index++) {
 				MethodStatsSample sample = thread_samples[my_id][sample_index];
