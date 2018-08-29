@@ -221,7 +221,7 @@ public class Chaperone extends TimerTask {
 	//	message+=e.toString()+",";
 	//}
 
-        message += "end \n";
+        message += ",end \n";
         log.write(message);
       }
       log.close();
