@@ -64,6 +64,12 @@ public class Chaperone extends TimerTask {
 
   private long start = 0;
 
+
+  //If method stats instrumentation is enabled ... this field should be set to 1. 
+  //If set 1, a call to StatsUtil.print_method_stats will be placed at the end ....
+  public static int instrument = 0;
+  public static int stack_print = 0;
+
   public Chaperone(int mode, int polling, int coreRate, boolean memory) {
     Chaperone.epoch = 0;
     this.mode = mode;
@@ -123,6 +129,10 @@ public class Chaperone extends TimerTask {
 			measure.add(bean.getThreadAllocatedBytes(Thread.currentThread().getId()));
         }
 
+	if(stack_print==1) {
+		measure.add(thread.getStackTrace());
+	}
+
         threads.add(measure);
       }
     }
@@ -143,6 +153,7 @@ public class Chaperone extends TimerTask {
 
         measure.add(jiffies[0]);
         measure.add(jiffies[1]);
+
 
         energy.add(measure);
       }
@@ -212,18 +223,32 @@ public class Chaperone extends TimerTask {
       log.write(message);
       for (List<Object> frame : threads) {
         message = "";
-	//StackTraceElement[] es = (StackTraceElement[]) frame.remove(frame.size()-1); 
-	for (Object o: frame) message += o.toString() + ",";
-        message = message.substring(0, message.length() - 1);
-	//message += es.length+",";
+	StackTraceElement[] es = null;
 	
-	//for(StackTraceElement e : es) {
-	//	message+=e.toString()+",";
-	//}
+	
+	if(stack_print==1) {
+	    es = (StackTraceElement[]) frame.remove(frame.size()-1); 
+	}
+
+	for (Object o: frame) message += o.toString() + ",";
+        //message = message.substring(0, message.length() - 1);
+	
+	if(stack_print==1) {
+		message += es.length+";";
+	
+		for(StackTraceElement e : es) {
+			message+=e.toString()+",";
+		}
+	}
 
         message += ",end \n";
         log.write(message);
       }
+
+
+	
+      message += "end \n";
+      log.write(message);
       log.close();
 
       path = System.getenv("CHAPPIE_STACK_LOG");
@@ -250,8 +275,20 @@ public class Chaperone extends TimerTask {
   public static void main(String[] args) throws IOException {
     Integer iterations = 10;
     try {
-      iterations = Integer.parseInt(System.getenv("ITERS"));
+      iterations = Integer.parseInt(System.getProperty("ITERS"));
     } catch(Exception e) { }
+
+    try {
+      instrument = Integer.parseInt(System.getProperty("INSTRUMENT"));
+    } catch(Exception e) { }
+
+
+    try {
+      stack_print = Integer.parseInt(System.getProperty("STACK_PRINT"));
+    } catch(Exception e) { }
+
+    System.out.println("Number of Iterations : " + iterations + " Iterations");
+    System.out.println("Record Stack : " + stack_print);
 
     Integer mode = 3;
     try {
@@ -297,13 +334,26 @@ public class Chaperone extends TimerTask {
 
           Chaperone chaperone = new Chaperone(mode, polling, coreRate, readMemory == 1);
           main.invoke(null, (Object)params.toArray(new String[params.size()]));
-          System.out.println("==================================================");
+        
+	  if(instrument==1) { 
+		  try {
+			  StatsUtil.print_method_stats();
+		  } catch(Exception ex) {
+			  ex.printStackTrace();
+	  	}
+	  }
+	 
+	  System.out.println("==================================================");
           System.out.println("Dismissing the chaperone");
           chaperone.dismiss();
-
+	
           Files.move(Paths.get("chappie.trace.csv"), Paths.get("chappie.trace." + i + ".csv"));
           Files.move(Paths.get("chappie.thread.csv"), Paths.get("chappie.thread." + i + ".csv"));
           Files.move(Paths.get("chappie.stack.txt"), Paths.get("chappie.stack." + i + ".txt"));
+	  System.out.println("Instrumentation is Set To:" + instrument);
+	  if(instrument==1) {
+        	  Files.move(Paths.get("method_stats.csv"), Paths.get("method_stats" + i + ".csv"));
+	  }
         }
       } catch(Exception e) {
         System.out.println("Unable to bootstrap " + args[1] + ": " + e);
