@@ -96,7 +96,8 @@ public class Chaperone extends TimerTask {
 
     long elapsed = System.nanoTime() - start;
 
-    Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
+    Map<Thread,StackTraceElement[]> stacks = Thread.getAllStackTraces();
+    Set<Thread> threadSet = stacks.keySet();
 
     for(Thread thread: threadSet) {
       if (mode > 1) {
@@ -130,7 +131,8 @@ public class Chaperone extends TimerTask {
         }
 
 	if(stack_print==1) {
-		measure.add(thread.getStackTrace());
+    StackTraceElement[] s = stacks.get(thread);
+		measure.add(s);
 	}
 
         threads.add(measure);
@@ -138,21 +140,27 @@ public class Chaperone extends TimerTask {
     }
 
     if (mode > 1) {
-      int[] jiffies = GLIBC.getJiffies();
+      //int[] jiffies = GLIBC.getJiffies();
       double[] reading = jrapl.EnergyCheckUtils.getEnergyStats();
+
+      long diff = (System.nanoTime() - start) - elapsed;
 
       for (int i = 0; i < reading.length / 3; ++i) {
         measure = new ArrayList<Object>();
 
         measure.add(epoch);
         measure.add(elapsed);
+        measure.add(diff);
 
         measure.add(i + 1);
         measure.add(reading[3 * i + 2]);
         measure.add(reading[3 * i]);
 
-        measure.add(jiffies[0]);
-        measure.add(jiffies[1]);
+        //measure.add(jiffies[0]);
+        //measure.add(jiffies[1]);
+
+        measure.add(0);
+        measure.add(0);
 
 
         energy.add(measure);
@@ -164,6 +172,11 @@ public class Chaperone extends TimerTask {
 
   public void dismiss() {
     timer.cancel();
+    try {
+      Thread.sleep(5000);
+    } catch (Exception e) {
+      
+    }
     retire();
   }
 
@@ -183,7 +196,7 @@ public class Chaperone extends TimerTask {
 
       String message = "";
 
-      message = "epoch,time,socket,package,dram,u_jiffies,k_jiffies\n";
+      message = "epoch,time,diff,socket,package,dram,u_jiffies,k_jiffies\n";
 
       log.write(message);
       for (List<Object> frame: energy) {
@@ -231,23 +244,25 @@ public class Chaperone extends TimerTask {
 	}
 
 	for (Object o: frame) message += o.toString() + ",";
-        //message = message.substring(0, message.length() - 1);
+        message = message.substring(0, message.length() - 1);
 	
 	if(stack_print==1) {
-		message += es.length+";";
+    // 
+		message += es.length+",";
 	
 		for(StackTraceElement e : es) {
-			message+=e.toString()+",";
+      // Turn this to semi
+			message+=e.toString()+";";
 		}
 	}
 
-        message += ",end \n";
+        message += "\n";
         log.write(message);
       }
 
 
 	
-      message += "end \n";
+      message += "\n";
       log.write(message);
       log.close();
 
@@ -275,16 +290,16 @@ public class Chaperone extends TimerTask {
   public static void main(String[] args) throws IOException {
     Integer iterations = 10;
     try {
-      iterations = Integer.parseInt(System.getProperty("ITERS"));
+      iterations = Integer.parseInt(System.getenv("ITERS"));
     } catch(Exception e) { }
 
     try {
-      instrument = Integer.parseInt(System.getProperty("INSTRUMENT"));
+      instrument = Integer.parseInt(System.getenv("INSTRUMENT"));
     } catch(Exception e) { }
 
 
     try {
-      stack_print = Integer.parseInt(System.getProperty("STACK_PRINT"));
+      stack_print = Integer.parseInt(System.getenv("STACK_PRINT"));
     } catch(Exception e) { }
 
     System.out.println("Number of Iterations : " + iterations + " Iterations");
@@ -357,9 +372,11 @@ public class Chaperone extends TimerTask {
         }
       } catch(Exception e) {
         System.out.println("Unable to bootstrap " + args[1] + ": " + e);
+        e.printStackTrace();
       }
     } catch(Exception e) {
       System.out.println("Unable to load " + args[0] + ": " + e);
+      e.printStackTrace();
     }
   }
 }
