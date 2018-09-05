@@ -68,7 +68,7 @@ public class Chaperone extends TimerTask {
   //If method stats instrumentation is enabled ... this field should be set to 1. 
   //If set 1, a call to StatsUtil.print_method_stats will be placed at the end ....
   public static int instrument = 0;
-  public static int stack_print = 0;
+  public static int stack_print = 1;
 
   public Chaperone(int mode, int polling, int coreRate, boolean memory) {
     Chaperone.epoch = 0;
@@ -252,11 +252,11 @@ public class Chaperone extends TimerTask {
 	
 		for(StackTraceElement e : es) {
       // Turn this to semi
-			message+=e.toString()+";";
+			message+=e.toString()+",";
 		}
 	}
 
-        message += "\n";
+        message += "end\n";
         log.write(message);
       }
 
@@ -310,7 +310,7 @@ public class Chaperone extends TimerTask {
       mode = Integer.parseInt(System.getenv("MODE"));
     } catch(Exception e) { }
 
-    Integer polling = 1000;
+    Integer polling = 2000;
     try {
       polling = Integer.parseInt(System.getenv("POLLING"));
     } catch(Exception e) { }
