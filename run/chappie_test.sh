@@ -1,10 +1,12 @@
 #!/bin/bash
 
-export ITERS=1
-export MODE=3
-export POLLING=2
-export CORE_RATE=2
-export MEMORY=1
+export ITERS=10
+export MODE=FULL_SAMPLE
+# export POLLING=1
+# export CORE_RATE=1
+export MEMORY=true
+export STACK_PRINT=true
+export INSTRUMENT=true
 
 if [ "$#" -eq  "0" ]
   then

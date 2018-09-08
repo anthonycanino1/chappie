@@ -26,9 +26,9 @@ public class StatsUtil {
 	public static List[] method_stats = new ArrayList[MAX_THREADS];
 	//public static PrintWriter[] thread_writers = new PrintWriter[MAX_THREADS];
 	public static int[] thread_index = new int[MAX_THREADS];
-	public static MethodStatsSample[][] thread_samples = new MethodStatsSample[MAX_THREADS][MAX_LOG_BUFFER]; 
-	
-	
+	public static MethodStatsSample[][] thread_samples = new MethodStatsSample[MAX_THREADS][MAX_LOG_BUFFER];
+
+
 
 	public static void close_open_files() {
 		//To be called by Chaperon retire() method
@@ -38,7 +38,7 @@ public class StatsUtil {
 
 	public static double[] read_energy() {
 		double[] jrapl_reading = jrapl.EnergyCheckUtils.getEnergyStats();
-		return jrapl_reading;	
+		return jrapl_reading;
 		/*List<List<Double>> energy_reading = new ArrayList<List<Double>>();
 
 		for (int i = 0; i < jrapl_reading.length / 3; ++i) {
@@ -59,7 +59,7 @@ public class StatsUtil {
 		List os_stats = new ArrayList(threadSet.size() * 2);
 		for(Thread thr : threadSet) {
 			String name = thr.getName();
-			int[] os_stat =  GLIBC.getOSStats(name);
+			String[] os_stat =  GLIBC.getOSStats(name);
 			os_stats.add(name);
 			os_stats.add(os_stat);
 		}
@@ -76,10 +76,10 @@ public class StatsUtil {
 	public static void print_method_stats() throws Exception  {
 		//System.out.println("Printing Method Stats");
 		StringBuilder stats_str = new StringBuilder();
-		PrintWriter mywriter = new PrintWriter(new BufferedWriter(new FileWriter("method_stats.csv"))); 
+		PrintWriter mywriter = new PrintWriter(new BufferedWriter(new FileWriter("method_stats.csv")));
 		for(int my_id = 0; my_id < MAX_THREADS; my_id++) {
 		//System.out.println("Number of Stats for thread" + my_id + " is " + thread_index[my_id]);
-		if(thread_index[my_id]==0) continue;	
+		if(thread_index[my_id]==0) continue;
 		for(int sample_index=0; sample_index < thread_index[my_id]; sample_index++) {
 				MethodStatsSample sample = thread_samples[my_id][sample_index];
 				stats_str.append(sample.thread_name).append(",");
@@ -110,9 +110,9 @@ public class StatsUtil {
 						}
 						indx++;
 					}
-					
+
 				} else {
-					stats_str.append("0,");	
+					stats_str.append("0,");
 				}
 
 				stats_str.append("end \n");
@@ -144,16 +144,16 @@ public class StatsUtil {
 		int my_id = (int) cur_thread.getId();
 		String my_name = cur_thread.getName();
 		MethodStatsSample sample = thread_samples[my_id][0];
-		
+
 		if(sample==null) {
 			for(int sample_indx = 0; sample_indx < MAX_LOG_BUFFER; sample_indx++) {
 				thread_samples[my_id][sample_indx] = new MethodStatsSample();
 			}
 		}
 
-		int sample_index = thread_index[my_id]; 
+		int sample_index = thread_index[my_id];
 		sample = thread_samples[my_id][sample_index];
-		
+
 		long ts = 0;
 		if(profile_mode != VM_SAMPLE && profile_mode != OS_SAMPLE) {
 			ts = System.currentTimeMillis();

@@ -31,6 +31,8 @@ import java.util.List;
 import java.util.Arrays;
 import java.util.ArrayList;
 
+import java.nio.charset.StandardCharsets;
+
 interface GLIBCLibrary extends Library {
   static GLIBCLibrary glibc = (GLIBCLibrary)Native.loadLibrary("c", GLIBCLibrary.class);
 
@@ -45,7 +47,7 @@ public abstract class GLIBC {
 
   static int gettid() { return GLIBCLibrary.glibc.syscall(186); }
 
-  static Map<String, Integer> tids = new HashMap<String, Integer>();
+  public static Map<String, Integer> tids = new HashMap<String, Integer>();
   public static int getThreadId() {
     String name = Thread.currentThread().getName();
     if (!tids.containsKey(name) || name == "Chaperone")
@@ -54,32 +56,27 @@ public abstract class GLIBC {
     return tids.get(name);
   }
 
-  private static String lastName = "";
-  private static int[] lastOSStats;
+  private static String lastName;
+  private static String[] lastOSStats;
 
-  public static int[] getOSStats(String name) {
-    if (lastName == name) {
-      return lastOSStats;
-    } else {
-      String path = "/proc/" + pid + "/task/" + tids.get(name) + "/stat";
+  private final static String[] DEFAULT_CORE_READING = new String[] {"-1", "0", "0"};
 
+  public static String[] getOSStats(String name) {
+    String path = "/proc/" + pid + "/task/" + tids.get(name) + "/stat";
+    if (lastName != name) {
       try {
         BufferedReader reader = new BufferedReader(new FileReader(path));
         String message = reader.readLine();
         reader.close();
 
         String[] messages = message.split(" ");
-        int[] values = new int[3];
-        values[0] = Integer.parseInt(messages[38]);
-        values[1] = Integer.parseInt(messages[14]);
-        values[2] = Integer.parseInt(messages[15]);
-
-        lastOSStats = values;
-        return values;
+        lastOSStats = new String[] {messages[38], messages[14], messages[15]};
+        lastName = name;
       } catch(Exception e) {
-        return new int[] {-1, 0, 0};
+        return DEFAULT_CORE_READING;
       }
     }
+    return lastOSStats;
   }
 
   public static int[] getJiffies() {
@@ -114,10 +111,9 @@ public abstract class GLIBC {
     }
   }
 
-  public static Map<String, List<StackTraceElement>> callsites = new HashMap<String, List<StackTraceElement>>();
+  public static Map<String, StackTraceElement[]> callsites = new HashMap<String, StackTraceElement[]>();
 
   public static void getCallSite(String name) {
-    callsites.put(name, Arrays.asList(Thread.currentThread().getStackTrace()));
-
+    callsites.put(name, Thread.currentThread().getStackTrace());
   }
 }
