@@ -118,7 +118,6 @@ public class Chaperone extends TimerTask {
         for(Thread thread: threadArray) {
           if (thread != null) {
             measure = new ArrayList<Object>();
-
             measure.add(epoch);
 
             String name = thread.getName();
@@ -189,7 +188,6 @@ public class Chaperone extends TimerTask {
         } catch(Exception e) { }
       }
     }
-
     retire();
   }
 
@@ -215,7 +213,7 @@ public class Chaperone extends TimerTask {
         System.err.println("Error: " + io.getMessage());
       }
 
-      message = "epoch,time,socket,package,dram,u_jiffies,k_jiffies\n";
+      message = "epoch,time,diff,socket,package,dram,u_jiffies,k_jiffies\n";
       log.write(message);
 
       for (List<Object> frame: energy) {
@@ -256,14 +254,14 @@ public class Chaperone extends TimerTask {
       for (List<Object> frame : threads) {
         message = "";
 
-        for (Object item: frame)
-          if (item instanceof Object[]) {
-            Object[] stack = (Object[])item;
-            message += stack.length + ";";
-            for (Object o: stack)
-              message += o.toString() + ";";
-          } else
-            message += item.toString() + ",";
+      for (Object item: frame)
+        if (item instanceof Object[]) {
+          Object[] stack = (Object[])item;
+          message += stack.length + ";";
+          for (Object o: stack)
+            message += o.toString() + ";";
+        } else
+          message += item.toString() + ",";
 
         message = message.substring(0, message.length() - 1);
         message += "\n";
@@ -393,9 +391,11 @@ public class Chaperone extends TimerTask {
         }
       } catch(Exception e) {
         System.out.println("Unable to bootstrap " + args[1] + ": " + e);
+        e.printStackTrace();
       }
     } catch(Exception e) {
       System.out.println("Unable to load " + args[0] + ": " + e);
+      e.printStackTrace();
     }
   }
 }
