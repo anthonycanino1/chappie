@@ -252,7 +252,7 @@ public class Chaperone extends TimerTask {
 	
 		for(StackTraceElement e : es) {
       // Turn this to semi
-			message+=e.toString()+",";
+			message+=e.toString()+";";
 		}
 	}
 
