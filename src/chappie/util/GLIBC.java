@@ -40,6 +40,26 @@ interface GLIBCLibrary extends Library {
 }
 
 public abstract class GLIBC {
+  static native String getStackTraceTop(Thread thread);
+
+  static {
+	try {
+  		NativeUtils.loadLibraryFromJar("/chappie/util/lib_stack_top.so");
+  	} catch (Exception e) {
+  		e.printStackTrace();
+  	}
+  }
+
+  public static String peekStack(Thread thread) {
+    String stackTop = GLIBC.getStackTraceTop(thread);
+    return stackTop;
+    // if (stackTop == null)
+    // else
+    //   return stackTop;
+    // System.out.println(GLIBC.getStackTraceTop(thread));
+    // return GLIBC.getStackTraceTop(thread);
+  }
+
   static int getpid() { return GLIBCLibrary.glibc.syscall(39); }
 
   static Integer pid = getpid();

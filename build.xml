@@ -22,8 +22,8 @@
 	</path>
 
 	<target name="compile" depends="init" description="Compile source">
+		<exec executable="/usr/bin/make"><arg value="-C"/><arg value="src/chappie/util"/></exec>
 		<mkdir dir="${build.classes.dir}" />
-
     <javac
       source="1.8" target="1.8"
       srcdir="${src.dir}"
@@ -35,6 +35,7 @@
 
   <target name="jar" depends="compile">
 		<jar jarfile="${runtime.jar}" manifest="manifest.txt">
+			<fileset dir="src/" includes="chappie/**/*.so" />
 			<fileset dir="build/classes" includes="chappie/**/*.class" />
 			<fileset dir="build/classes" includes="*.class" />
 			<fileset dir="vendor/jrapl-port/classes" includes="jrapl/**/*.class" />

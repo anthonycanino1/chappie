@@ -2,6 +2,7 @@
 
 export MODE=0
 export ITERS=1
+export STACK_PRINT=true
 
 export TIMES=1
 export STEPS=1
