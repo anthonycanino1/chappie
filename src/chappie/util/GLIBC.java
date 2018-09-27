@@ -53,11 +53,6 @@ public abstract class GLIBC {
   public static String peekStack(Thread thread) {
     String stackTop = GLIBC.getStackTraceTop(thread);
     return stackTop;
-    // if (stackTop == null)
-    // else
-    //   return stackTop;
-    // System.out.println(GLIBC.getStackTraceTop(thread));
-    // return GLIBC.getStackTraceTop(thread);
   }
 
   static int getpid() { return GLIBCLibrary.glibc.syscall(39); }

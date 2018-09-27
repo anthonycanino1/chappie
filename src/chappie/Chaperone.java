@@ -83,9 +83,9 @@ public class Chaperone extends TimerTask {
     Chaperone.epoch = 0;
     bean = (com.sun.management.ThreadMXBean)ManagementFactory.getThreadMXBean();
 
-    // rootThreadGroup = Thread.currentThread().getThreadGroup();
-    // while (rootThreadGroup.getParent() != null)
-    //   rootThreadGroup = rootThreadGroup.getParent();
+    rootThreadGroup = Thread.currentThread().getThreadGroup();
+    while (rootThreadGroup.getParent() != null)
+      rootThreadGroup = rootThreadGroup.getParent();
 
     start = System.nanoTime();
 
@@ -108,16 +108,16 @@ public class Chaperone extends TimerTask {
       long elapsed = System.nanoTime() - start;
 
       if (mode != Mode.NOP && mode != Mode.NAIVE && mode != Mode.OS_NAIVE) {
-        // int capacity = rootThreadGroup.activeCount() + 1;
-        // Thread[] threadArray = new Thread[capacity];
-        // while(rootThreadGroup.enumerate(threadArray, true) == capacity) {
-        //     capacity *= 2;
-        //     threadArray = new Thread[capacity];
-        // }
-        //
-        // for(Thread thread: threadArray) {
-        Map<Thread, ?> threadStacks = Thread.getAllStackTraces();
-        for(Thread thread: threadStacks.keySet()) {
+        int capacity = rootThreadGroup.activeCount() + 1;
+        Thread[] threadArray = new Thread[capacity];
+        while(rootThreadGroup.enumerate(threadArray, true) == capacity) {
+          capacity *= 2;
+          threadArray = new Thread[capacity];
+        }
+        
+        for(Thread thread: threadArray) {
+        //Map<Thread, ?> threadStacks = Thread.getAllStackTraces();
+        //for(Thread thread: threadStacks.keySet()) {
           if (thread != null) {
             measure = new ArrayList<Object>();
             measure.add(epoch);

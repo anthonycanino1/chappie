@@ -7,6 +7,7 @@ static jvmtiEnv *jvmti = NULL;
 
 JNIEXPORT jstring JNICALL Java_chappie_util_GLIBC_getStackTraceTop(JNIEnv* env, jobject o, jthread thread) {
   if (jvm == NULL && jvmti == NULL) {
+    printf("ONE TIME INIT\n");
     int ec = (*env)->GetJavaVM(env, &jvm);
     if (ec != 0) {
       printf("Failed to get JavaVM!\n");
@@ -21,21 +22,31 @@ JNIEXPORT jstring JNICALL Java_chappie_util_GLIBC_getStackTraceTop(JNIEnv* env, 
   jint count = 0;
   jvmtiError err = JVMTI_ERROR_NONE;
 
-  err = (*jvmti)->GetStackTrace(jvmti, thread, 0, 5, frames, &count);
-  //printf("%i\n", count);
-
-  char *err_name;
-  err_name = NULL;
-  (void)(*jvmti)->GetErrorName(jvmti, err, &err_name);
-  //printf("ErrorCode:%d ErrorName:%s\n", err, err_name);
+  err = (*jvmti)->PeekStackTrace(jvmti, thread, 0, 1, frames, &count);
+  //err = (*jvmti)->GetStackTrace(jvmti, thread, 0, 1, frames, &count);
 
   if (err == JVMTI_ERROR_NONE && count >= 1) {
     char *name_ptr;
     char *sig_ptr;
     char *generic_ptr;
     err = (*jvmti)->GetMethodName(jvmti, frames[0].method, &name_ptr, &sig_ptr, &generic_ptr);
-    return (*env)->NewStringUTF(env, name_ptr);
+
+    jclass clazz;
+    err = (*jvmti)->GetMethodDeclaringClass(jvmti, frames[0].method, &clazz);
+
+    err = (*jvmti)->GetClassSignature(jvmti, clazz, &sig_ptr, &generic_ptr);
+
+    char *p = sig_ptr;
+    while (*p != 0) {
+      if (*p == '/' || *p == ';') *p = '.';
+      ++p;
+    }
+
+    char fqn[256];
+    sprintf(fqn, "%s%s", sig_ptr+1, name_ptr);
+
+    return (*env)->NewStringUTF(env, fqn);
   } else {
-    return (*env)->NewStringUTF(env, "");
+    return (*env)->NewStringUTF(env, "NULL");
   }
 }
