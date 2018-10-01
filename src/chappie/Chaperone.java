@@ -309,6 +309,8 @@ public class Chaperone extends TimerTask {
 
   public static void main(String[] args) throws IOException {
     GLIBC.getProcessId();
+    GLIBC.getThreadId();
+
 
     int iterations = 10;
     try {
