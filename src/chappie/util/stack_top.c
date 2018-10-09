@@ -21,15 +21,19 @@ JNIEXPORT jstring JNICALL Java_chappie_util_GLIBC_getStackTraceTop(JNIEnv* env, 
   jvmtiFrameInfo frames[5];
   jint count = 0;
   jvmtiError err = JVMTI_ERROR_NONE;
+  jmethodID mptr;
+  jlocation loc;
 
-  err = (*jvmti)->PeekStackTrace(jvmti, thread, 0, 1, frames, &count);
+  //err = (*jvmti)->PeekStackTrace(jvmti, thread, 0, 1, frames, &count);
   //err = (*jvmti)->GetStackTrace(jvmti, thread, 0, 1, frames, &count);
+  //err = (*jvmti)->GetFrameLocation(jvmti, thread, 0, &mptr, &loc);
 
+  /*
   if (err == JVMTI_ERROR_NONE && count >= 1) {
     char *name_ptr;
     char *sig_ptr;
     char *generic_ptr;
-    err = (*jvmti)->GetMethodName(jvmti, frames[0].method, &name_ptr, &sig_ptr, &generic_ptr);
+    err = (*jvmti)->GetMethodName(jvmti, mptr, &name_ptr, &sig_ptr, &generic_ptr);
 
     jclass clazz;
     err = (*jvmti)->GetMethodDeclaringClass(jvmti, frames[0].method, &clazz);
@@ -48,5 +52,9 @@ JNIEXPORT jstring JNICALL Java_chappie_util_GLIBC_getStackTraceTop(JNIEnv* env, 
     return (*env)->NewStringUTF(env, fqn);
   } else {
     return (*env)->NewStringUTF(env, "NULL");
-  }
+  }*/
+
+  char buf[50];
+  err = (*jvmti)->PeekPC(jvmti, thread, buf);
+  return (*env)->NewStringUTF(env,buf);
 }

@@ -115,9 +115,9 @@ public class Chaperone extends TimerTask {
           threadArray = new Thread[capacity];
         }
         
-        for(Thread thread: threadArray) {
-        //Map<Thread, ?> threadStacks = Thread.getAllStackTraces();
-        //for(Thread thread: threadStacks.keySet()) {
+        //for(Thread thread: threadArray) {
+        Map<Thread, ?> threadStacks = Thread.getAllStackTraces();
+        for(Thread thread: threadStacks.keySet()) {
           if (thread != null) {
             measure = new ArrayList<Object>();
             measure.add(epoch);
