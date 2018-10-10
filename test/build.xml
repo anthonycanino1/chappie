@@ -35,7 +35,7 @@
 	<target name="jar" depends="compile">
 		<jar jarfile="${runtime.jar}">
 			<fileset dir="build/classes" includes="chappie_test/*.class" />
-			<zipgroupfileset dir="vendor" includes="*.jar"/>
+			<!-- <zipgroupfileset dir="vendor" includes="*.jar"/> -->
 		</jar>
   </target>
 
