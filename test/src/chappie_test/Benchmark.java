@@ -26,7 +26,7 @@ import java.util.Arrays;
 
 import java.io.*;
 
-// import net.openhft.affinity.Affinity;
+import net.openhft.affinity.Affinity;
 
 import java.util.BitSet;
 

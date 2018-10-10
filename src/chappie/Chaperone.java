@@ -65,7 +65,7 @@ public class Chaperone extends TimerTask {
   private long start = 0;
 
 
-  //If method stats instrumentation is enabled ... this field should be set to 1.
+  //If method stats instrumentation is enabled ... this field should be set to 1. 
   //If set 1, a call to StatsUtil.print_method_stats will be placed at the end ....
   public static int instrument = 0;
   public static int stack_print = 0;
@@ -84,10 +84,8 @@ public class Chaperone extends TimerTask {
     start = System.nanoTime();
 
     timer = new Timer("Chaperone");
-    timer.scheduleAtFixedRate(this, 0, polling);
+    timer.scheduleAtFixedRate(this, 0, 2);
   }
-
-  protected static Map<String, Map<Thread, Integer>> threadSuffixes = new HashMap<String, Map<Thread, Integer>>();
 
   protected List<List<Object>> threads = new ArrayList<List<Object>>();
   protected List<List<Object>> energy = new ArrayList<List<Object>>();
@@ -108,19 +106,7 @@ public class Chaperone extends TimerTask {
         measure.add(epoch);
 
         String name = thread.getName();
-
-        if (!threadSuffixes.containsKey(name))
-          threadSuffixes.put(name, new HashMap<Thread, Integer>());
-
-        if (threadSuffixes.get(name).size() == 0) {
-          System.out.println("first thread");
-          threadSuffixes.get(name).put(thread, 0);
-        } else if (!threadSuffixes.get(name).containsKey(thread)) {
-          System.out.println("new thread");
-          threadSuffixes.get(name).put(thread, threadSuffixes.get(name).size());
-        }
-
-        measure.add(name + '_' + threadSuffixes.get(name).get(thread));
+        measure.add(name);
 
         if ((epoch % coreRate) == 0) {
           measure.add(GLIBC.getOSStats(name)[0]);
@@ -189,7 +175,7 @@ public class Chaperone extends TimerTask {
     try {
       Thread.sleep(5000);
     } catch (Exception e) {
-
+      
     }
     retire();
   }
@@ -251,19 +237,19 @@ public class Chaperone extends TimerTask {
       for (List<Object> frame : threads) {
         message = "";
 	StackTraceElement[] es = null;
-
-
+	
+	
 	if(stack_print==1) {
-	    es = (StackTraceElement[]) frame.remove(frame.size()-1);
+	    es = (StackTraceElement[]) frame.remove(frame.size()-1); 
 	}
 
 	for (Object o: frame) message += o.toString() + ",";
         message = message.substring(0, message.length() - 1);
-
+	
 	if(stack_print==1) {
-    //
+    // 
 		message += es.length+",";
-
+	
 		for(StackTraceElement e : es) {
       // Turn this to semi
 			message+=e.toString()+";";
@@ -275,7 +261,7 @@ public class Chaperone extends TimerTask {
       }
 
 
-
+	
       message += "\n";
       log.write(message);
       log.close();
@@ -363,19 +349,19 @@ public class Chaperone extends TimerTask {
 
           Chaperone chaperone = new Chaperone(mode, polling, coreRate, readMemory == 1);
           main.invoke(null, (Object)params.toArray(new String[params.size()]));
-
-	  if(instrument==1) {
+        
+	  if(instrument==1) { 
 		  try {
 			  StatsUtil.print_method_stats();
 		  } catch(Exception ex) {
 			  ex.printStackTrace();
 	  	}
 	  }
-
+	 
 	  System.out.println("==================================================");
           System.out.println("Dismissing the chaperone");
           chaperone.dismiss();
-
+	
           Files.move(Paths.get("chappie.trace.csv"), Paths.get("chappie.trace." + i + ".csv"));
           Files.move(Paths.get("chappie.thread.csv"), Paths.get("chappie.thread." + i + ".csv"));
           Files.move(Paths.get("chappie.stack.txt"), Paths.get("chappie.stack." + i + ".txt"));
