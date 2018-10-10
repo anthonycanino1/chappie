@@ -95,8 +95,12 @@ public class Chaperone extends TimerTask {
     }
   }
 
+
   protected List<List<Object>> threads = new ArrayList<List<Object>>();
   protected List<List<Object>> energy = new ArrayList<List<Object>>();
+
+  protected static Map<String, Map<Thread, Integer>> duplicateThreads = new HashMap<String, Map<Thread, Integer>>();
+  protected static Map<Thread, String> lastCore = new HashMap<Thread, String>();
 
   private boolean terminate = false;
   private boolean terminated = false;
@@ -123,12 +127,21 @@ public class Chaperone extends TimerTask {
             measure.add(epoch);
 
             String name = thread.getName();
-            measure.add(name);
+            if (!duplicateThreads.containsKey(name))
+              duplicateThreads.put(name, new HashMap<Thread, Integer>());
+            if (!duplicateThreads.get(name).containsKey(thread))
+              duplicateThreads.get(name).put(thread, duplicateThreads.get(name).size());
 
-            if ((epoch % coreReadingFactor) == 0)
+            measure.add(name + '#' + duplicateThreads.get(name).get(thread));
+
+            if ((epoch % coreReadingFactor) == 0) {
+              String core = GLIBC.getOSStats(name)[0];
+              lastCore.put(thread, core);
               measure.add(GLIBC.getOSStats(name)[0]);
+            } else if (lastCore.containsKey(thread))
+              measure.add(lastCore.get(thread));
             else
-              measure.add("");
+              measure.add("-1");
 
             if (mode == Mode.OS_SAMPLE || mode == Mode.FULL_SAMPLE) {
               measure.add(GLIBC.getOSStats(name)[1]);
@@ -144,7 +157,8 @@ public class Chaperone extends TimerTask {
         		if (readMemory) measure.add(bean.getThreadAllocatedBytes(Thread.currentThread().getId()));
 
           	// if (printStackTrace) measure.add(thread.getStackTrace());
-            if (printStackTrace) measure.add(GLIBC.peekStack(thread));
+            // if (printStackTrace) measure.add(GLIBC.peekStack(thread));
+            if (printStackTrace) measure.add(threadStacks.get(thread));
 
             threads.add(measure);
           }
@@ -260,7 +274,7 @@ public class Chaperone extends TimerTask {
       for (Object item: frame)
         if (item instanceof Object[]) {
           Object[] stack = (Object[])item;
-          message += stack.length + ";";
+          // message += stack.length + ";";
           for (Object o: stack)
             message += o.toString() + ";";
         } else
@@ -309,6 +323,7 @@ public class Chaperone extends TimerTask {
 
   public static void main(String[] args) throws IOException {
     GLIBC.getProcessId();
+    GLIBC.getThreadId();
 
     int iterations = 10;
     try {
@@ -317,7 +332,6 @@ public class Chaperone extends TimerTask {
 
     Mode mode = Mode.VM_SAMPLE;
     try {
-      System.out.println(System.getenv("MODE"));
       mode = Mode.valueOf(System.getenv("MODE"));
     } catch(Exception e) { }
 
@@ -358,7 +372,7 @@ public class Chaperone extends TimerTask {
 
     URLClassLoader loader;
     try {
-      
+
       System.out.println("Loading " + args[0]);
       loader = new URLClassLoader(new URL[] {new URL(args[0])});
       Method main = loader.loadClass(args[1]).getMethod("main", String[].class);
