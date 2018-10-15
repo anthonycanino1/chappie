@@ -113,13 +113,7 @@ public class Chaperone extends TimerTask {
 
       if (mode != Mode.NOP && mode != Mode.NAIVE && mode != Mode.OS_NAIVE) {
         int capacity = rootThreadGroup.activeCount() + 1;
-        Thread[] threadArray = new Thread[capacity];
-        while(rootThreadGroup.enumerate(threadArray, true) == capacity) {
-          capacity *= 2;
-          threadArray = new Thread[capacity];
-        }
-        
-        //for(Thread thread: threadArray) {
+                
         Map<Thread, ?> threadStacks = Thread.getAllStackTraces();
         for(Thread thread: threadStacks.keySet()) {
           if (thread != null) {
@@ -156,8 +150,6 @@ public class Chaperone extends TimerTask {
 
         		if (readMemory) measure.add(bean.getThreadAllocatedBytes(Thread.currentThread().getId()));
 
-          	// if (printStackTrace) measure.add(thread.getStackTrace());
-            // if (printStackTrace) measure.add(GLIBC.peekStack(thread));
             if (printStackTrace) measure.add(threadStacks.get(thread));
 
             threads.add(measure);
