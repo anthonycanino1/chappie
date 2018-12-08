@@ -1,0 +1,3 @@
+/home/timur/Projects/chappie/src/async/CMakeFiles/rebuild_cache.dir
+/home/timur/Projects/chappie/src/async/CMakeFiles/edit_cache.dir
+/home/timur/Projects/chappie/src/async/CMakeFiles/lagent.dir

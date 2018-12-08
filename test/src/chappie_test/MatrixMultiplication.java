@@ -28,7 +28,7 @@ public class MatrixMultiplication extends Benchmark {
 
   public MatrixMultiplication(int size, int iterations) {
     super();
-    
+
     this.size = size;
     this.iterations = iterations;
 

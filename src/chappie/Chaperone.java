@@ -31,6 +31,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 import java.io.*;
 
@@ -52,40 +53,39 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 public class Chaperone extends TimerTask {
-  public enum Mode {NOP, NAIVE, OS_NAIVE, OS_SAMPLE, VM_SAMPLE, FULL_SAMPLE}
+  public enum Mode {NOP, SAMPLE}
 
-  public static int epoch = 0;
-
-  private long start;
-
-  private Timer timer;
-  private com.sun.management.ThreadMXBean bean;
+  // Chaperone Parameters
+  private Mode mode;
 
   private int polling;
-  private int coreReadingFactor;
+  private int osReadingFactor;
+  private int jraplReadingFactor;
 
-  private Mode mode;
   private boolean readMemory;
-  private boolean instrumentMethods;
-  private boolean printStackTrace;
+  private boolean readJiffies;
 
-  ThreadGroup rootThreadGroup;
+  // Metrics
+  private int epoch = 0;
+  private com.sun.management.ThreadMXBean bean;
+  private long start;
+  private long elapsedTime = 0;
+  private long chappieReadingTime = 0;
 
-  public Chaperone(Mode mode, int polling, int coreRate, boolean memory, boolean instrument, boolean printStack) {
-    this.polling = polling;
-    this.coreReadingFactor = coreRate;
+  private Timer timer;
 
+  public Chaperone(Mode mode, int polling, int osRate, int jraplRate, boolean memory, boolean readJiffies) {
     this.mode = mode;
+
+    this.polling = polling;
+    this.osReadingFactor = osRate;
+    this.jraplReadingFactor = jraplRate;
+
     this.readMemory = memory;
-    this.instrumentMethods = instrument;
-    this.printStackTrace = printStack;
+    this.readJiffies = readJiffies;
 
-    Chaperone.epoch = 0;
+    this.epoch = 0;
     bean = (com.sun.management.ThreadMXBean)ManagementFactory.getThreadMXBean();
-
-    rootThreadGroup = Thread.currentThread().getThreadGroup();
-    while (rootThreadGroup.getParent() != null)
-      rootThreadGroup = rootThreadGroup.getParent();
 
     start = System.nanoTime();
 
@@ -95,89 +95,104 @@ public class Chaperone extends TimerTask {
     }
   }
 
+  // Runtime data containers
+  private List<List<Object>> application = new ArrayList<List<Object>>();
+  private List<List<Object>> threads = new ArrayList<List<Object>>();
+  private List<List<Object>> energy = new ArrayList<List<Object>>();
+  private ArrayList<String> jiffies = new ArrayList<String>();
 
-  protected List<List<Object>> threads = new ArrayList<List<Object>>();
-  protected List<List<Object>> energy = new ArrayList<List<Object>>();
+  // Management for lazy/staggered sampling
+  private int head = 0;
+  private Set<Thread> threadSet = new HashSet<Thread>();
 
-  protected static Map<String, Map<Thread, Integer>> duplicateThreads = new HashMap<String, Map<Thread, Integer>>();
-  protected static Map<Thread, String> lastCore = new HashMap<Thread, String>();
+  private double[] lastRAPLReading = new double[0];
 
+  // Termination flags
+  // The timer class does not have a proper termination method. Luckily,
+  // only main touches the chaperone, so we can use a double flag lock.
   private boolean terminate = false;
   private boolean terminated = false;
 
   @Override
   public void run() {
+    // Check if we need to stop
     if (!terminate) {
       List<Object> measure;
-      long elapsed = System.nanoTime() - start;
+      long unixTime = System.currentTimeMillis();
 
-      if (mode != Mode.NOP && mode != Mode.NAIVE && mode != Mode.OS_NAIVE) {
-        int capacity = rootThreadGroup.activeCount() + 1;
-                
-        Map<Thread, ?> threadStacks = Thread.getAllStackTraces();
-        for(Thread thread: threadStacks.keySet()) {
-          if (thread != null) {
+      long lastReading = elapsedTime;
+      elapsedTime = System.nanoTime() - start;
+      lastReading = elapsedTime - lastReading;
+
+      if (mode != Mode.NOP) {
+
+        // Read all the jiffies of the entire application
+        if (readJiffies)
+          for (File f: new File("/proc/" + GLIBC.getProcessId() + "/task/").listFiles()) {
+            measure = new ArrayList<Object>();
+            int id = Integer.parseInt(f.getName());
+
+            measure.add(epoch);
+            measure.add(id);
+            for (String reading: GLIBC.getOSStats(id, (epoch % osReadingFactor) == 0))
+              measure.add(reading);
+
+            application.add(measure);
+          }
+
+        int tail = GLIBC.toAdd.size();
+        for (int i = head; i < tail; i++)
+          threadSet.add(GLIBC.toAdd.get(i));
+
+        List<Thread> toRemove = new ArrayList<Thread>();
+        for(Thread thread: threadSet) {
+          if (thread != null && thread.isAlive()) {
             measure = new ArrayList<Object>();
             measure.add(epoch);
+            measure.add(unixTime);
 
-            String name = thread.getName();
-            if (!duplicateThreads.containsKey(name))
-              duplicateThreads.put(name, new HashMap<Thread, Integer>());
-            if (!duplicateThreads.get(name).containsKey(thread))
-              duplicateThreads.get(name).put(thread, duplicateThreads.get(name).size());
+            measure.add(thread.getName());
+            measure.add(thread.getId());
 
-            measure.add(name + '#' + duplicateThreads.get(name).get(thread));
+            measure.add(GLIBC.tids.get(thread));
 
-            if ((epoch % coreReadingFactor) == 0) {
-              String core = GLIBC.getOSStats(name)[0];
-              lastCore.put(thread, core);
-              measure.add(GLIBC.getOSStats(name)[0]);
-            } else if (lastCore.containsKey(thread))
-              measure.add(lastCore.get(thread));
+            for (String reading: GLIBC.getOSStats(thread, (epoch % osReadingFactor) == 0))
+              measure.add(reading);
+
+            if (thread == Thread.currentThread())
+              measure.add((double)chappieReadingTime / lastReading);
+            else if (thread.getState() == Thread.State.RUNNABLE)
+              measure.add(1);
             else
-              measure.add("-1");
+              measure.add(0);
 
-            if (mode == Mode.OS_SAMPLE || mode == Mode.FULL_SAMPLE) {
-              measure.add(GLIBC.getOSStats(name)[1]);
-              measure.add(GLIBC.getOSStats(name)[2]);
-            }
-
-            if (mode == Mode.VM_SAMPLE || mode == Mode.FULL_SAMPLE)
-              if (thread.getState() == Thread.State.RUNNABLE)
-                measure.add(true);
-              else
-                measure.add(false);
-
-        		if (readMemory) measure.add(bean.getThreadAllocatedBytes(Thread.currentThread().getId()));
-
-            if (printStackTrace) measure.add(threadStacks.get(thread));
+        		if (readMemory) measure.add(bean.getThreadAllocatedBytes(thread.getId()));
 
             threads.add(measure);
-          }
+          } else if (thread != null) toRemove.add(thread);
         }
+        for (Thread thread: toRemove)
+          threadSet.remove(thread);
 
-        if (mode != Mode.NOP && mode != Mode.NAIVE && mode != Mode.OS_NAIVE) {
-          int[] jiffies = GLIBC.getJiffies();
-          double[] reading = jrapl.EnergyCheckUtils.getEnergyStats();
+        jiffies.add(GLIBC.getJiffies(readJiffies && epoch % osReadingFactor == 0));
 
-          long readingTime = (System.nanoTime() - start) - elapsed;
+        if (lastRAPLReading.length == 0 || epoch % jraplReadingFactor == 0)
+          lastRAPLReading = jrapl.EnergyCheckUtils.getEnergyStats();
 
-          for (int i = 0; i < reading.length / 3; ++i) {
-            measure = new ArrayList<Object>();
+        chappieReadingTime = (System.nanoTime() - start) - elapsedTime;
 
-            measure.add(epoch);
-            measure.add(elapsed);
-            measure.add(readingTime);
+        for (int i = 0; i < lastRAPLReading.length / 3; ++i) {
+          measure = new ArrayList<Object>();
 
-            measure.add(i + 1);
-            measure.add(reading[3 * i + 2]);
-            measure.add(reading[3 * i]);
+          measure.add(epoch);
+          measure.add(elapsedTime);
+          measure.add(chappieReadingTime);
 
-            measure.add(jiffies[0]);
-            measure.add(jiffies[1]);
+          measure.add(i + 1);
+          measure.add(lastRAPLReading[3 * i + 2]);
+          measure.add(lastRAPLReading[3 * i]);
 
-            energy.add(measure);
-          }
+          energy.add(measure);
         }
 
         epoch++;
@@ -203,8 +218,7 @@ public class Chaperone extends TimerTask {
   private void retire() {
     PrintWriter log = null;
     String path = "chappie.runtime.csv";
-    String message = "" + (System.nanoTime() - start);
-
+    String message = "" + elapsedTime;
     try {
       log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
     } catch (Exception io) {
@@ -214,7 +228,70 @@ public class Chaperone extends TimerTask {
     log.write(message);
     log.close();
 
-    if (mode != Mode.NOP && mode != Mode.NAIVE && mode != Mode.OS_NAIVE) {
+    if (mode != Mode.NOP) {
+      path = "chappie.application.csv";
+      try {
+        log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
+      } catch (Exception io) {
+        System.err.println("Error: " + io.getMessage());
+      }
+
+      message = "epoch,tid,core,u_jiffies,k_jiffies\n";
+      log.write(message);
+
+      for (List<Object> frame: application) {
+        message = "";
+        for (Object item: frame)
+          message += item.toString() + ",";
+        message = message.substring(0, message.length() - 1);
+        message += "\n";
+        log.write(message);
+      }
+      log.close();
+
+      path = "chappie.thread.csv";
+      try {
+        log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
+      } catch (Exception io) {
+        System.err.println("Error: " + io.getMessage());
+      }
+
+      message = "epoch,time,thread,pid,tid,core,u_jiffies,k_jiffies,state";
+
+      if (readMemory)
+      message += ",bytes";
+
+      message += "\n";
+
+      log.write(message);
+      for (List<Object> frame : threads) {
+        message = "";
+
+        try {
+          for (Object item: frame)
+          message += item.toString() + ",";
+
+          message = message.substring(0, message.length() - 1);
+          message += "\n";
+          log.write(message);
+        } catch (Exception e) { }
+      }
+      log.close();
+
+      path = "chappie.jiffies.csv";
+      try {
+        log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
+      } catch (Exception io) {
+        System.err.println("Error: " + io.getMessage());
+      }
+
+      if (readJiffies)
+	      for (String jiffy : jiffies)
+	        log.write(jiffy + "\n");
+      else
+		      log.write("\n");
+      log.close();
+
       path = "chappie.trace.csv";
       try {
         log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
@@ -222,7 +299,7 @@ public class Chaperone extends TimerTask {
         System.err.println("Error: " + io.getMessage());
       }
 
-      message = "epoch,time,diff,socket,package,dram,u_jiffies,k_jiffies\n";
+      message = "epoch,time,diff,socket,package,dram\n";
       log.write(message);
 
       for (List<Object> frame: energy) {
@@ -234,82 +311,6 @@ public class Chaperone extends TimerTask {
         log.write(message);
       }
       log.close();
-
-      path = "chappie.thread.csv";
-
-      try {
-        log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
-      } catch (Exception io) {
-        System.err.println("Error: " + io.getMessage());
-      }
-
-      if (mode == Mode.OS_SAMPLE) {
-        message = "epoch,thread,core,u_jiffies,k_jiffies";
-      } else if (mode == Mode.VM_SAMPLE) {
-        message = "epoch,thread,core,state";
-      } else if (mode == Mode.FULL_SAMPLE) {
-        message = "epoch,thread,core,u_jiffies,k_jiffies,state";
-      }
-
-      if (readMemory)
-        message += ",bytes";
-
-      if(printStackTrace)
-        message += ",stack";
-
-      message += "\n";
-
-      log.write(message);
-      for (List<Object> frame : threads) {
-        message = "";
-
-      for (Object item: frame)
-        if (item instanceof Object[]) {
-          Object[] stack = (Object[])item;
-          // message += stack.length + ";";
-          for (Object o: stack)
-            message += o.toString() + ";";
-        } else
-          message += item.toString() + ",";
-
-        message = message.substring(0, message.length() - 1);
-        message += "\n";
-        log.write(message);
-      }
-      log.close();
-
-      path = "chappie.stack.txt";
-      try {
-        log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
-      } catch (Exception io) {
-        System.err.println("Error: " + io.getMessage());
-      }
-
-      for (String thread : GLIBC.callsites.keySet()) {
-        message = thread;
-        for (StackTraceElement element: GLIBC.callsites.get(thread))
-          message += "," + element.toString();
-        message += "\n";
-        log.write(message);
-      }
-      log.close();
-
-      if(instrumentMethods) {
-        try {
-          StatsUtil.print_method_stats();
-        } catch(Exception e) { }
-      } else {
-          path = "method_stats.csv";
-
-          try {
-            log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
-          } catch (Exception io) {
-            System.err.println("Error: " + io.getMessage());
-          }
-
-          log.write("No instrumentation present.\n");
-          log.close();
-      }
     }
   }
 
@@ -317,12 +318,18 @@ public class Chaperone extends TimerTask {
     GLIBC.getProcessId();
     GLIBC.getThreadId();
 
+    for (Thread thread: Thread.getAllStackTraces().keySet())
+      if (!GLIBC.tids.containsKey(thread)) {
+        GLIBC.tids.put(thread, -1);
+        GLIBC.toAdd.add(thread);
+      }
+
     int iterations = 10;
     try {
       iterations = Integer.parseInt(System.getenv("ITERS"));
     } catch(Exception e) { }
 
-    Mode mode = Mode.VM_SAMPLE;
+    Mode mode = Mode.SAMPLE;
     try {
       mode = Mode.valueOf(System.getenv("MODE"));
     } catch(Exception e) { }
@@ -332,39 +339,38 @@ public class Chaperone extends TimerTask {
       polling = Integer.parseInt(System.getenv("POLLING"));
     } catch(Exception e) { }
 
-    int coreRate = 1;
+    int osRate = 1;
     try {
-      coreRate = Integer.parseInt(System.getenv("CORE_RATE"));
+      osRate = Integer.parseInt(System.getenv("CORE_RATE"));
+    } catch(Exception e) { }
+
+    int jraplRate = 1;
+    try {
+      jraplRate = Integer.parseInt(System.getenv("JRAPL_RATE"));
     } catch(Exception e) { }
 
     boolean readMemory = true;
     try {
       readMemory = Boolean.parseBoolean(System.getenv("MEMORY"));
-      System.out.println(readMemory);
     } catch(Exception e) { }
 
-    boolean instrument = false;
+    boolean readJiffies = false;
     try {
-      instrument = Boolean.parseBoolean(System.getenv("INSTRUMENT"));
-    } catch(Exception e) { }
-
-    boolean printStack = false;
-    try {
-      printStack = Boolean.parseBoolean(System.getenv("STACK_PRINT"));
+      readJiffies = Boolean.parseBoolean(System.getenv("READ_JIFFIES"));
     } catch(Exception e) { }
 
     System.out.println("Number of Iterations : " + iterations);
     System.out.println("Chaperone Parameters:" +
                         "\n - Mode:\t\t\t" + mode +
                         "\n - Polling Rate:\t\t" + polling + " milliseconds" +
-                        "\n - Core Reading Factor:\t\t" + coreRate +
+                        "\n - OS Reading Factor:\t\t" + osRate +
+                        "\n - JRAPL Reading Factor:\t" + jraplRate +
                         "\n - Memory Readings:\t\t" + readMemory +
-                        "\n - Method Instrumentation:\t" + instrument +
-                        "\n - Print Stack Trace:\t\t" + printStack);
+                        "\n - System Jiffies Readings:\t" + readJiffies);
 
     URLClassLoader loader;
-    try {
 
+    try {
       System.out.println("Loading " + args[0]);
       loader = new URLClassLoader(new URL[] {new URL(args[0])});
       Method main = loader.loadClass(args[1]).getMethod("main", String[].class);
@@ -384,21 +390,19 @@ public class Chaperone extends TimerTask {
           System.out.println("==================================================");
 
           long start = System.nanoTime();
-          Chaperone chaperone = new Chaperone(mode, polling, coreRate, readMemory, instrument, printStack);
+          Chaperone chaperone = new Chaperone(mode, polling, osRate, jraplRate, readMemory, readJiffies);
           main.invoke(null, (Object)params.toArray(new String[params.size()]));
 
       	  System.out.println("==================================================");
-          System.out.println("Dismissing the chaperone");
           System.out.println(args[1] + " ran in " + String.format("%4f", (double)(System.nanoTime() - start) / 1000000000) + " seconds");
+          System.out.println("Dismissing the chaperone");
           chaperone.dismiss();
 
-          try {
-            Files.move(Paths.get("chappie.runtime.csv"), Paths.get("chappie.runtime." + i + ".csv"));
-            Files.move(Paths.get("chappie.trace.csv"), Paths.get("chappie.trace." + i + ".csv"));
-            Files.move(Paths.get("chappie.thread.csv"), Paths.get("chappie.thread." + i + ".csv"));
-            Files.move(Paths.get("chappie.stack.txt"), Paths.get("chappie.stack." + i + ".txt"));
-            Files.move(Paths.get("method_stats.csv"), Paths.get("chappie.methods." + i + ".csv"));
-          } catch(Exception e) { }
+          Files.move(Paths.get("chappie.runtime.csv"), Paths.get("chappie.runtime." + i + ".csv"));
+          Files.move(Paths.get("chappie.application.csv"), Paths.get("chappie.application." + i + ".csv"));
+          Files.move(Paths.get("chappie.thread.csv"), Paths.get("chappie.thread." + i + ".csv"));
+          Files.move(Paths.get("chappie.jiffies.csv"), Paths.get("chappie.jiffies." + i + ".csv"));
+          Files.move(Paths.get("chappie.trace.csv"), Paths.get("chappie.trace." + i + ".csv"));
         }
       } catch(Exception e) {
         System.out.println("Unable to bootstrap " + args[1] + ": " + e);
@@ -408,5 +412,7 @@ public class Chaperone extends TimerTask {
       System.out.println("Unable to load " + args[0] + ": " + e);
       e.printStackTrace();
     }
+
+    Runtime.getRuntime().halt(0);
   }
 }

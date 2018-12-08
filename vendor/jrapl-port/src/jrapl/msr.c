@@ -229,6 +229,7 @@ void get_msr_unit(rapl_msr_unit *unit_obj, uint64_t data) {
 /*Get wraparound value in order to prevent nagetive value*/
 void 
 get_wraparound_energy(double energy_unit) {
+	printf("Energy Unit: %f Wrap Around: %f\n", energy_unit, 1.0 / energy_unit);
 	WRAPAROUND_VALUE = 1.0 / energy_unit;
 }
 

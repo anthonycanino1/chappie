@@ -1,16 +1,17 @@
 #!/bin/bash
 
-export ITERS=2
+rm chappie.chappie_test -rf
+
+export ITERS=1
 export MODE=VM_SAMPLE
 export POLLING=4
-export CORE_RATE=4
-export MEMORY=true
-export INSTRUMENT=false
-export STACK_PRINT=true
+export CORE_RATE=10
+export JRAPL_RATE=2
+export READ_JIFFIES=true
 
 if [ "$#" -eq  "0" ]
   then
     ./run.sh ../test/chappie_test.jar "" chappie_test.Benchmark 5
-else
-  ./run.sh ../test/chappie_test.jar "" chappie_test.Benchmark $1
-fi
+  else
+    ./run.sh ../test/chappie_test.jar "" chappie_test.Benchmark $1
+  fi

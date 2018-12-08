@@ -10,4 +10,4 @@ jrapl:
 
 clean:
 	make -C src/jrapl clean
-	rm -rf classes/*
+	rm -rf classes

@@ -21,7 +21,6 @@ public class EnergyCheckUtils {
 
 	public static int socketNum;
 	static {
-		// tababako1, again, fix path
 		try {
 			Field fieldSysPath = ClassLoader.class
 					.getDeclaredField("sys_paths");
@@ -30,7 +29,7 @@ public class EnergyCheckUtils {
 		} catch (Exception e) {
 
 		}
-		//System.loadLibrary("CPUScaler");
+
 		try {
 		NativeUtils.loadLibraryFromJar("/jrapl/libCPUScaler.so");
 		} catch (Exception e) {
@@ -77,7 +76,6 @@ public class EnergyCheckUtils {
 			}
 			return stats;
 		}
-
 	}
 
   public static void DeallocProfile() {

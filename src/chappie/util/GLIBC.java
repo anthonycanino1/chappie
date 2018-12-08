@@ -21,8 +21,12 @@ package chappie.util;
 
 import java.io.*;
 
+import java.util.Set;
+import java.util.HashSet;
+
 import java.util.Map;
 import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.sun.jna.Library;
 import com.sun.jna.Native;
@@ -33,6 +37,9 @@ import java.util.ArrayList;
 
 import java.nio.charset.StandardCharsets;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
+
 interface GLIBCLibrary extends Library {
   static GLIBCLibrary glibc = (GLIBCLibrary)Native.loadLibrary("c", GLIBCLibrary.class);
 
@@ -40,21 +47,6 @@ interface GLIBCLibrary extends Library {
 }
 
 public abstract class GLIBC {
-  static native String getStackTraceTop(Thread thread);
-
-  static {
-	try {
-  		NativeUtils.loadLibraryFromJar("/chappie/util/lib_stack_top.so");
-  	} catch (Exception e) {
-  		e.printStackTrace();
-  	}
-  }
-
-  public static String peekStack(Thread thread) {
-    String stackTop = GLIBC.getStackTraceTop(thread);
-    return stackTop;
-  }
-
   static int getpid() { return GLIBCLibrary.glibc.syscall(39); }
 
   static Integer pid = getpid();
@@ -62,73 +54,65 @@ public abstract class GLIBC {
 
   static int gettid() { return GLIBCLibrary.glibc.syscall(186); }
 
-  public static Map<String, Integer> tids = new HashMap<String, Integer>();
-  public static int getThreadId() {
-    String name = Thread.currentThread().getName();
-    if (!tids.containsKey(name) || name == "Chaperone")
-      tids.put(name, gettid());
+  public static Thread main = Thread.currentThread();
+  public static List<Thread> toAdd = new ArrayList<Thread>();
+  public static Map<Thread, Integer> tids = new ConcurrentHashMap<Thread, Integer>();
 
-    return tids.get(name);
+  public static int getThreadId() {
+    Thread thread = Thread.currentThread();
+
+    if (!tids.containsKey(thread) || thread != main) {
+      toAdd.add(thread);
+      tids.put(thread, gettid());
+    }
+
+    return tids.get(thread);
   }
 
-  private static String lastName;
-  private static String[] lastOSStats;
+  public static void unmapThread() {
+    Thread thread = Thread.currentThread();
 
-  private final static String[] DEFAULT_CORE_READING = new String[] {"-1", "0", "0"};
+    tids.remove(thread);
+  }
 
-  public static String[] getOSStats(String name) {
-    String path = "/proc/" + pid + "/task/" + tids.get(name) + "/stat";
-    if (lastName != name) {
-      try {
+  private final static String[] DEFAULT_OS_READING = new String[] {"-1", "0", "0"};
+
+  private static Map<Integer, String[]> lastOSReading = new HashMap<Integer, String[]>();
+
+  public static String[] getOSStats(Thread thread, boolean read) {
+    if (tids.containsKey(thread) && tids.get(thread) > -1)
+      return getOSStats(tids.get(thread), read);
+    else
+      return DEFAULT_OS_READING;
+  }
+
+  public static String[] getOSStats(int tid, boolean read) {
+    try {
+      if (read || !lastOSReading.containsKey(tid)) {
+        String path = "/proc/" + pid + "/task/" + tid + "/stat";
         BufferedReader reader = new BufferedReader(new FileReader(path));
         String message = reader.readLine();
         reader.close();
 
         String[] messages = message.split(" ");
-        lastOSStats = new String[] {messages[38], messages[14], messages[15]};
-        lastName = name;
-      } catch(Exception e) {
-        return DEFAULT_CORE_READING;
+        lastOSReading.put(tid, new String[] {messages[38], messages[13], messages[14]});
       }
-    }
-    return lastOSStats;
+    } catch(Exception e) { }
+
+    if (lastOSReading.containsKey(tid))
+      return lastOSReading.get(tid);
+    else
+      return DEFAULT_OS_READING;
   }
 
-  public static int[] getJiffies() {
-    String path = "/proc/" + pid + "/stat";
+  private static String lastJiffies = "";
 
-    try {
-      BufferedReader reader = new BufferedReader(new FileReader(path));
-      String message = reader.readLine();
-      reader.close();
+  public static String getJiffies(boolean read) {
+    if (read)
+    	try {
+        lastJiffies = new String(Files.readAllBytes(Paths.get("/proc/stat")));
+	    } catch(Exception e) { }
 
-      String[] messages = message.split(" ");
-      int[] values = new int[2];
-      values[0] = Integer.parseInt(messages[14]);
-      values[1] = Integer.parseInt(messages[15]);
-
-      return values;
-    } catch(Exception e) {
-      return new int[] {-1, 0, 0};
-    }
-  }
-
-  public static int getCore(String name) {
-    String path = "/proc/" + pid + "/task/" + tids.get(name) + "/stat";
-
-    try {
-      BufferedReader reader = new BufferedReader(new FileReader(path));
-      String message = reader.readLine();
-      reader.close();
-      return Integer.parseInt(message.split(" ")[38]);
-    } catch(Exception e) {
-      return -1;
-    }
-  }
-
-  public static Map<String, StackTraceElement[]> callsites = new HashMap<String, StackTraceElement[]>();
-
-  public static void getCallSite(String name) {
-    callsites.put(name, Thread.currentThread().getStackTrace());
+    return lastJiffies;
   }
 }
