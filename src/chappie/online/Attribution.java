@@ -6,10 +6,20 @@ import java.util.List;
 import java.util.Map;
 
 
+import chappie.Chaperone;
+
+
 /**
  *  API for client to call attribution functions.
  */
 public class Attribution {
+
+
+    private static Chaperone chappie;
+
+    private static void init_attribution(Chaperone chapp) {
+        chappie =  chapp;
+    }
 
 
     /**
@@ -19,7 +29,10 @@ public class Attribution {
      */
     public static AppOSActivityReport get_os_activeness(int epochs) {
         AppOSActivityReport osReport = new AppOSActivityReport();
-        //Same logic will copied fromthe offline attribution version ...
+        //Data will be fetched starting from current_epoch -1 to avoid synchronization
+        int current_epoch = chappie.get_current_epoch();
+        List<String> sys_jiffies = chappie.get_sys_jiffies(current_epoch,epochs);
+        List<List<Object>> app_jiffies = chappie.application_jiffies(current_epoch,epochs);
         return osReport;
     }
 
@@ -27,5 +40,9 @@ public class Attribution {
         HashMap<Integer, List<ThreadEnergyAttribution>> energy_reports = new HashMap<>();
         return energy_reports;
     }
+
+
+
+
 
 }

@@ -53,6 +53,11 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 public class Chaperone extends TimerTask {
+
+
+  //This will be programatically set later
+  public static int NUM_SOCKETS=2;
+
   public enum Mode {NOP, SAMPLE}
 
   // Chaperone Parameters
@@ -100,6 +105,36 @@ public class Chaperone extends TimerTask {
   private List<List<Object>> threads = new ArrayList<List<Object>>();
   private List<List<Object>> energy = new ArrayList<List<Object>>();
   private ArrayList<String> jiffies = new ArrayList<String>();
+
+
+  public int get_current_epoch() {
+    return epoch;
+  }
+
+  /**
+   *
+   * Will pull all system jiffies readings from epoch (epoch-1 ) up to epoch -n
+   *
+   *
+   * @param epoch Last epoch
+   * @n Number of epochs to pull records for
+   */
+  public List<String> get_sys_jiffies(int epoch, int n) {
+    return jiffies.subList(epoch-n-1,epoch);
+  }
+
+  /**
+   *
+   * Will pull all application jiffies readings from epoch (epoch - 1 - n ) up to epoch -1
+   * int epoch, int n
+   *
+   * @param epoch Last epoch
+   * @n Number of epochs to pull records for
+   */
+  public List<List<Object>> application_jiffies(int epoch, int n) {
+    return application.subList(epoch-n-1,epoch);
+  }
+
 
   // Management for lazy/staggered sampling
   private int head = 0;
