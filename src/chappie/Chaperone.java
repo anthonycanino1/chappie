@@ -55,8 +55,12 @@ import java.util.TimerTask;
 public class Chaperone extends TimerTask {
 
 
-  //This will be programatically set later
-  public static int NUM_SOCKETS=2;
+    public static int NUM_SOCKETS=2;
+  public static final int VIRTUAL_CORES = 40;
+  public static final int CORE_PER_SOCKETS = 20;
+  public static final int NUMER_OF_SOCKETS = VIRTUAL_CORES/CORE_PER_SOCKETS;
+  public static final int JIFF_LEN = 10;
+  public static final int EPOCH_RATE=10;
 
   public enum Mode {NOP, SAMPLE}
 
@@ -116,11 +120,11 @@ public class Chaperone extends TimerTask {
    * Will pull all system jiffies readings from epoch (epoch-1 ) up to epoch -n
    *
    *
-   * @param epoch Last epoch
-   * @n Number of epochs to pull records for
+   * @param start Start epoch to fetch
+   * @param end Last epoch to fetch inclusive
    */
-  public List<String> get_sys_jiffies(int epoch, int n) {
-    return jiffies.subList(epoch-n-1,epoch);
+  public List<String> get_sys_jiffies(int start, int end) {
+    return jiffies.subList(start,end+1);
   }
 
   /**
@@ -128,11 +132,11 @@ public class Chaperone extends TimerTask {
    * Will pull all application jiffies readings from epoch (epoch - 1 - n ) up to epoch -1
    * int epoch, int n
    *
-   * @param epoch Last epoch
-   * @n Number of epochs to pull records for
+   * @param start Start epoch to fetch
+   * @param end Last epoch to fetch inclusive
    */
-  public List<List<Object>> application_jiffies(int epoch, int n) {
-    return application.subList(epoch-n-1,epoch);
+  public List<List<Object>> application_jiffies(int start, int end) {
+    return application.subList(start,end+1);
   }
 
 
