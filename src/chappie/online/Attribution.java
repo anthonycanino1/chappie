@@ -16,6 +16,12 @@ import chappie.Chaperone;
 public class Attribution {
 
 
+    public static final int OS_EPOCH_INDX = 0;
+    public static final int OS_TID_INDX = 1;
+    public static final int OS_CORE_INDX = 2;
+    public static final int OS_USR_JIFF_INDX = 3;
+    public static final int OS_KER_JIFF_INDX = 4;
+
     private static Chaperone chappie;
 
     private static void init_attribution(Chaperone chapp) {
@@ -33,9 +39,9 @@ public class Attribution {
      * @param end Last epoch to fetch inclusive
      */
     public double[][] get_os_activeness(int start, int end) {
-        AppOSActivityReport osReport = new AppOSActivityReport();
-        List<String> raw_sys_jiffies = chappie.get_sys_jiffies(start,end);
-        List<List<Object>> raw_app_jiffies = chappie.application_jiffies(start,end);
+            AppOSActivityReport osReport = new AppOSActivityReport();
+            List<String> raw_sys_jiffies = chappie.get_sys_jiffies(start,end);
+            List<List<Object>> raw_app_jiffies = chappie.application_jiffies(start,end);
 
         //First Step :: Calulate minimum jiffies per core across the entire /proc/stat file
         long[][] core_mins = new long[Chaperone.VIRTUAL_CORES][Chaperone.JIFF_LEN];
@@ -129,11 +135,11 @@ public class Attribution {
 
         for(List<Object> thread_reading : raw_app_jiffies) {
             ThreadReading tr = new ThreadReading();
-            tr.tid= Long.parseLong(thread_reading.get(1).toString());
-            tr.epoch = Integer.parseInt(thread_reading.get(0).toString());
-            tr.core_id = Integer.parseInt(thread_reading.get(2).toString());
-            tr.kernel_jiffies = Long.parseLong(thread_reading.get(4).toString());
-            tr.user_jiffies = Long.parseLong(thread_reading.get(3).toString());
+            tr.tid= Long.parseLong(thread_reading.get(OS_TID_INDX).toString());
+            tr.epoch = Integer.parseInt(thread_reading.get(OS_EPOCH_INDX).toString());
+            tr.core_id = Integer.parseInt(thread_reading.get(OS_CORE_INDX).toString());
+            tr.kernel_jiffies = Long.parseLong(thread_reading.get(OS_KER_JIFF_INDX).toString());
+            tr.user_jiffies = Long.parseLong(thread_reading.get(OS_USR_JIFF_INDX).toString());
 
             if(!thread_readings.containsKey(tr.tid)) {
                 thread_readings.put(tr.tid, new ArrayList<ThreadReading>());
@@ -210,8 +216,8 @@ public class Attribution {
         HashMap<Integer, List<ThreadEnergyAttribution>> energy_reports = new HashMap<>();
 
         /**
-         * Logic will be performed here is the same as the second part of data_processing.py.
-         * This will be implemented as part of the chappie_attribtuon project
+         *          * Logic will be performed here is the same as the second part of data_processing.py.
+         *          * This will be implemented as part of the chappie_attribtuon project
          */
         return energy_reports;
     }
