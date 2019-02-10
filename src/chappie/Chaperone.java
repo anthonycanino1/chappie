@@ -19,6 +19,7 @@
 
 package chappie;
 
+import chappie.online.Attribution;
 import chappie.util.*;
 
 import java.util.List;
@@ -102,6 +103,8 @@ public class Chaperone extends TimerTask {
       timer = new Timer("Chaperone");
       timer.scheduleAtFixedRate(this, 0, polling);
     }
+
+    Attribution.init_attribution(this);
   }
 
   // Runtime data containers
