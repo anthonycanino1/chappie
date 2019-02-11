@@ -19,26 +19,19 @@
 
 package chappie.util;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.FileReader;
 
-import java.util.Set;
-import java.util.HashSet;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
-import java.util.Map;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.sun.jna.Library;
 import com.sun.jna.Native;
-
-import java.util.List;
-import java.util.Arrays;
-import java.util.ArrayList;
-
-import java.nio.charset.StandardCharsets;
-
-import java.nio.file.Files;
-import java.nio.file.Paths;
 
 interface GLIBCLibrary extends Library {
   static GLIBCLibrary glibc = (GLIBCLibrary)Native.loadLibrary("c", GLIBCLibrary.class);
@@ -47,6 +40,7 @@ interface GLIBCLibrary extends Library {
 }
 
 public abstract class GLIBC {
+  // OS pid helpers
   static int getpid() { return GLIBCLibrary.glibc.syscall(39); }
 
   static Integer pid = getpid();
@@ -55,8 +49,8 @@ public abstract class GLIBC {
   static int gettid() { return GLIBCLibrary.glibc.syscall(186); }
 
   public static Thread main = Thread.currentThread();
-  public static List<Thread> toAdd = new ArrayList<Thread>();
-  public static Map<Thread, Integer> tids = new ConcurrentHashMap<Thread, Integer>();
+  public static ArrayList<Thread> toAdd = new ArrayList<Thread>();
+  public static ConcurrentHashMap<Thread, Integer> tids = new ConcurrentHashMap<Thread, Integer>();
 
   public static int getThreadId() {
     Thread thread = Thread.currentThread();
@@ -75,9 +69,9 @@ public abstract class GLIBC {
     tids.remove(thread);
   }
 
-  private final static String[] DEFAULT_OS_READING = new String[] {"-1", "0", "0"};
+  private final static String[] DEFAULT_OS_READING = new String[] {"-1", "0", "0", "?", "?"};
 
-  private static Map<Integer, String[]> lastOSReading = new HashMap<Integer, String[]>();
+  private static HashMap<Integer, String[]> lastOSReading = new HashMap<Integer, String[]>();
 
   public static String[] getOSStats(Thread thread, boolean read) {
     if (tids.containsKey(thread) && tids.get(thread) > -1)
@@ -95,7 +89,10 @@ public abstract class GLIBC {
         reader.close();
 
         String[] messages = message.split(" ");
-        lastOSReading.put(tid, new String[] {messages[38], messages[13], messages[14]});
+        if (messages.length > 52)
+          lastOSReading.put(tid, new String[] {messages[39], messages[14], messages[15], messages[1] + " " + messages[2], messages[3]});
+        else
+          lastOSReading.put(tid, new String[] {messages[38], messages[13], messages[14], messages[1], messages[2]});
       }
     } catch(Exception e) { }
 
@@ -103,6 +100,27 @@ public abstract class GLIBC {
       return lastOSReading.get(tid);
     else
       return DEFAULT_OS_READING;
+  }
+
+  public static String readThread(int tid) {
+    try {
+      String path = "/proc/" + pid + "/task/" + tid + "/stat";
+      BufferedReader reader = new BufferedReader(new FileReader(path));
+      String message = reader.readLine();
+      reader.close();
+
+      return message;
+    } catch(Exception e) {
+      return "";
+    }
+  }
+
+  public static String readSystemJiffies() {
+    try {
+      return new String(Files.readAllBytes(Paths.get("/proc/stat")));
+    } catch(Exception e) {
+      return "";
+    }
   }
 
   private static String lastJiffies = "";
