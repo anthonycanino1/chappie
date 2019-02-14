@@ -24,10 +24,20 @@ public class Attribution {
 
     private static Chaperone chappie;
 
-    private static void init_attribution(Chaperone chapp) {
+    public static void init_attribution(Chaperone chapp) {
         chappie =  chapp;
     }
 
+
+    public Map<Integer, List<ThreadEnergyAttribution>> get_all_thread_attrib(int start, int end) {
+        double[][] os_report = get_os_activeness(start, end);
+        AppOSActivityReport os_activity_report = new AppOSActivityReport();
+        os_activity_report.setEpoch_start(start);
+        os_activity_report.setEpoch_end(end);
+        os_activity_report.setEpoch_activity(os_report);
+        Map<Integer, List<ThreadEnergyAttribution>> thread_report = get_thread_energy_reports(os_activity_report);
+        return thread_report;
+    }
 
     public static int get_curret_epoch() {
         //The previous epoch is always gauranteed to be in the list
@@ -213,12 +223,13 @@ public class Attribution {
     }
 
     public static Map<Integer, List<ThreadEnergyAttribution>> get_thread_energy_reports(AppOSActivityReport os_report) {
-        HashMap<Integer, List<ThreadEnergyAttribution>> energy_reports = new HashMap<>();
+        HashMap<Integer, List<ThreadEnergyAttribution>> energy_reports = null;
 
-        /**
-         *          * Logic will be performed here is the same as the second part of data_processing.py.
-         *          * This will be implemented as part of the chappie_attribtuon project
-         */
+        List<List<Object>> threads = chappie.get_thread_info(os_report.getEpoch_start(), os_report.getEpoch_end());
+        List<List<Object>> trace = chappie.get_energy_info(os_report.getEpoch_start(), os_report.getEpoch_end());
+
+        //Place call to Rachit Code here ....
+
         return energy_reports;
     }
 
