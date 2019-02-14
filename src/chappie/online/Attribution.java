@@ -29,8 +29,8 @@ public class Attribution {
     }
 
 
-    public Map<Integer, List<ThreadEnergyAttribution>> get_all_thread_attrib(int start, int end) {
-        double[][] os_report = get_os_activeness(start, end);
+    public static Map<Integer, List<ThreadEnergyAttribution>> get_all_thread_attrib(int start, int end) {
+        double[][] os_report = Attribution.get_os_activeness(start, end);
         AppOSActivityReport os_activity_report = new AppOSActivityReport();
         os_activity_report.setEpoch_start(start);
         os_activity_report.setEpoch_end(end);
@@ -48,7 +48,7 @@ public class Attribution {
      * @param start Start epoch to fetch
      * @param end Last epoch to fetch inclusive
      */
-    public double[][] get_os_activeness(int start, int end) {
+    public static double[][] get_os_activeness(int start, int end) {
             AppOSActivityReport osReport = new AppOSActivityReport();
             List<String> raw_sys_jiffies = chappie.get_sys_jiffies(start,end);
             List<List<Object>> raw_app_jiffies = chappie.application_jiffies(start,end);
@@ -225,6 +225,7 @@ public class Attribution {
     public static Map<Integer, List<ThreadEnergyAttribution>> get_thread_energy_reports(AppOSActivityReport os_report) {
         HashMap<Integer, List<ThreadEnergyAttribution>> energy_reports = null;
 
+        double[][] os_state = os_report.getEpoch_activity();
         List<List<Object>> threads = chappie.get_thread_info(os_report.getEpoch_start(), os_report.getEpoch_end());
         List<List<Object>> trace = chappie.get_energy_info(os_report.getEpoch_start(), os_report.getEpoch_end());
 
