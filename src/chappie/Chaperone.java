@@ -56,7 +56,7 @@ import java.util.TimerTask;
 public class Chaperone extends TimerTask {
 
 
-    public static int NUM_SOCKETS=2;
+  public static int NUM_SOCKETS=2;
   public static final int VIRTUAL_CORES = 40;
   public static final int CORE_PER_SOCKETS = 20;
   public static final int NUMER_OF_SOCKETS = VIRTUAL_CORES/CORE_PER_SOCKETS;
@@ -128,6 +128,14 @@ public class Chaperone extends TimerTask {
    */
   public List<String> get_sys_jiffies(int start, int end) {
     return jiffies.subList(start,end+1);
+  }
+
+  public List<List<Object>> get_thread_info(int start, int end)   {
+    return threads.subList(start, end+1);
+  }
+
+  public List<List<Object>> get_energy_info(int start, int end) {
+    return energy.subList(start, end+1);
   }
 
   /**
