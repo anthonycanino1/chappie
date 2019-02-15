@@ -376,7 +376,7 @@ public class Chaperone extends TimerTask {
 
       boolean test_online_attribution=false;
       try {
-          test_online_attribution = Boolean.parseBoolean(System.getenv("TEST_ONLINE"));
+          test_online_attribution = Boolean.parseBoolean(System.getenv("ONLINE_TEST"));
       } catch(Exception e) { }
 
 
