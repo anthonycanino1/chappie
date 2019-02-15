@@ -226,6 +226,7 @@ public class Attribution {
 
   //Rachit code starts
 
+
   static int RAPL_WRAP_AROUND = 16384;
   static int JRAPL_FACTOR = 2;
 
@@ -250,8 +251,8 @@ public class Attribution {
     for (List<Object> trace_reading : raw_trace) {
       int epoch = (int)(trace_reading.get(TraceIndices.EPOCH));
       int socket = (int)(trace_reading.get(TraceIndices.SOCKET));
-      packageEnergy[epoch][socket - 1] = Double.parseDouble((String) trace_reading.get(TraceIndices.PACKAGE));
-      dramEnergy[epoch][socket - 1] = Double.parseDouble((String) trace_reading.get(TraceIndices.DRAM));
+      packageEnergy[epoch][socket - 1] = (double)(trace_reading.get(TraceIndices.PACKAGE));
+      dramEnergy[epoch][socket - 1] = (double)(trace_reading.get(TraceIndices.DRAM));
     }
     packageEnergy = subtractValues(packageEnergy);
     dramEnergy = subtractValues(dramEnergy);
@@ -291,7 +292,7 @@ public class Attribution {
 
       // if socket is -1 divide the energy among both sockets using state info
       if ((int)(list.get(ThreadIndices.SOCKET)) == -1) {
-        double state = Double.parseDouble((String) list.get(ThreadIndices.VM_STATE));
+        double state = (double)(list.get(ThreadIndices.VM_STATE));
         int socket;
 
         // divide state value equally for both sockets
@@ -365,7 +366,7 @@ public class Attribution {
         threadList.add(list);
 
         // d_epoch and activity
-        activity[d_epoch][socket - 1] += Double.parseDouble((String) list.get(ThreadIndices.VM_STATE));
+        activity[d_epoch][socket - 1] += (double)(list.get(ThreadIndices.VM_STATE));
       }
 
     }
@@ -462,6 +463,8 @@ public class Attribution {
     }
     return energy;
   }
+
+
 
   //Rachit code ends
 
