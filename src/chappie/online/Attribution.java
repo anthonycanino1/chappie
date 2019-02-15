@@ -312,8 +312,7 @@ public class Attribution {
         // add os_state info
         if (epoch % 10 != 0) {
           Double val = 0.0;
-          val = (threadMap.get(((String) list.get(ThreadIndices.THREAD)).trim()) == null) ? 0
-            : threadMap.get(((String) list.get(ThreadIndices.THREAD)).trim());
+          val = (threadMap.get(((String) list.get(ThreadIndices.THREAD)).trim()) == null) ? 0.0: threadMap.get(((String) list.get(ThreadIndices.THREAD)).trim());
           list.add(String.valueOf(val));
         } else
           list.add(String.valueOf(jiffy_dfs[epoch / 10][0]));
@@ -338,7 +337,7 @@ public class Attribution {
 
         if (epoch % 10 != 0) {
           Double val = 0.0;
-          val = (threadMap.get(((String) tempList.get(ThreadIndices.THREAD)).trim()) == null) ? 0
+          val = (threadMap.get(((String) tempList.get(ThreadIndices.THREAD)).trim()) == null) ? 0.0
             : threadMap.get(((String) tempList.get(ThreadIndices.THREAD)).trim());
           tempList.set(ThreadIndices.OS_STATE, String.valueOf(val));
         } else {
@@ -360,7 +359,7 @@ public class Attribution {
         }
         if (epoch % 10 != 0) {
           Double val = 0.0;
-          val = (threadMap.get(((String) list.get(ThreadIndices.THREAD)).trim()) == null) ? 0
+          val = (threadMap.get(((String) list.get(ThreadIndices.THREAD)).trim()) == null) ? 0.0
             : threadMap.get(((String) list.get(ThreadIndices.THREAD)).trim());
           list.add(String.valueOf(val));
         } else {
@@ -470,7 +469,7 @@ public class Attribution {
 
   //Rachit code ends
   public static Map<Integer, List<ThreadEnergyAttribution>> get_thread_energy_reports(AppOSActivityReport os_report) {
-    HashMap<Integer, List<ThreadEnergyAttribution>> energy_reports = null;
+    Map<Integer, List<ThreadEnergyAttribution>> energy_reports = null;
     double[][] os_state = os_report.getEpoch_activity();
     List<List<Object>> threads = chappie.get_thread_info(os_report.getEpoch_start(), os_report.getEpoch_end());
     List<List<Object>> trace = chappie.get_energy_info(os_report.getEpoch_start(), os_report.getEpoch_end());
