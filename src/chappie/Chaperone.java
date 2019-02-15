@@ -218,9 +218,9 @@ public class Chaperone extends TimerTask {
             if (thread == Thread.currentThread())
               measure.add((double)chappieReadingTime / lastReading);
             else if (thread.getState() == Thread.State.RUNNABLE)
-              measure.add(1);
+              measure.add(1.0);
             else
-              measure.add(0);
+              measure.add(0.0);
 
         		if (readMemory) measure.add(bean.getThreadAllocatedBytes(thread.getId()));
 
