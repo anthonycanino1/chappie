@@ -230,7 +230,7 @@ public class Attribution {
   static int JRAPL_FACTOR = 2;
 
 
-  public static Map<Integer, List<ThreadEnergyAttribution>> attributeEnergy(List<List<String>> raw_thread, 
+  public static Map<Integer, List<ThreadEnergyAttribution>> attributeEnergy(List<List<String>> raw_thread,
       List<List<String>> raw_trace, double[][] jiffy_dfs) {
 
     Map<String, Double> threadMap = new HashMap<>();
@@ -468,7 +468,6 @@ public class Attribution {
   //Rachit code ends
   public static Map<Integer, List<ThreadEnergyAttribution>> get_thread_energy_reports(AppOSActivityReport os_report) {
     HashMap<Integer, List<ThreadEnergyAttribution>> energy_reports = null;
-
     double[][] os_state = os_report.getEpoch_activity();
     List<List<Object>> threads = chappie.get_thread_info(os_report.getEpoch_start(), os_report.getEpoch_end());
     List<List<Object>> trace = chappie.get_energy_info(os_report.getEpoch_start(), os_report.getEpoch_end());
