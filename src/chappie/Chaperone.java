@@ -20,6 +20,7 @@
 package chappie;
 
 import chappie.online.Attribution;
+import chappie.online.OnlineTester;
 import chappie.util.*;
 
 import java.util.List;
@@ -63,10 +64,14 @@ public class Chaperone extends TimerTask {
   public static final int JIFF_LEN = 10;
   public static final int EPOCH_RATE=10;
 
+
   public enum Mode {NOP, SAMPLE}
 
   // Chaperone Parameters
   private Mode mode;
+
+  private boolean online_testing = false;
+  private int online_testing_frequency=0;
 
   private int polling;
   private int osReadingFactor;
@@ -84,7 +89,7 @@ public class Chaperone extends TimerTask {
 
   private Timer timer;
 
-  public Chaperone(Mode mode, int polling, int osRate, int jraplRate, boolean memory, boolean readJiffies) {
+  public Chaperone(Mode mode, int polling, int osRate, int jraplRate, boolean memory, boolean readJiffies, boolean test_online, int test_freq) {
     this.mode = mode;
 
     this.polling = polling;
@@ -95,6 +100,7 @@ public class Chaperone extends TimerTask {
     this.readJiffies = readJiffies;
 
     this.epoch = 0;
+
     bean = (com.sun.management.ThreadMXBean)ManagementFactory.getThreadMXBean();
 
     start = System.nanoTime();
@@ -105,6 +111,10 @@ public class Chaperone extends TimerTask {
     }
 
     Attribution.init_attribution(this);
+    online_testing_frequency=test_freq;
+    online_testing=test_online;
+
+
   }
 
   // Runtime data containers
@@ -134,7 +144,7 @@ public class Chaperone extends TimerTask {
     return threads.subList(start, end+1);
   }
 
-  public List<List<Object>> get_energy_info(int start, int end) {
+  List<List<Object>> get_energy_info(int start, int end) {
     return energy.subList(start, end+1);
   }
 
@@ -368,6 +378,21 @@ public class Chaperone extends TimerTask {
     GLIBC.getProcessId();
     GLIBC.getThreadId();
 
+      boolean test_online_attribution=false;
+      try {
+          test_online_attribution = Boolean.parseBoolean(System.getenv("TEST_ONLINE"));
+      } catch(Exception e) { }
+
+
+      int online_frequency = 0;
+      try {
+          online_frequency = Integer.parseInt(System.getenv("ONLINE_TEST_FREQUENCY"));
+      } catch(Exception exc) {
+
+      }
+
+
+
     for (Thread thread: Thread.getAllStackTraces().keySet())
       if (!GLIBC.tids.containsKey(thread)) {
         GLIBC.tids.put(thread, -1);
@@ -443,6 +468,14 @@ public class Chaperone extends TimerTask {
           Chaperone chaperone = new Chaperone(mode, polling, osRate, jraplRate, readMemory, readJiffies);
           main.invoke(null, (Object)params.toArray(new String[params.size()]));
 
+          if(test_online_attribution) {
+              OnlineTester onlineTester = new OnlineTester();
+              onlineTester.setChappie(chaperone);
+              onlineTester.setFrequency(online_frequency);
+              Thread tester_thread = new Thread(onlineTester);
+              tester_thread.start();
+          }
+
       	  System.out.println("==================================================");
           System.out.println(args[1] + " ran in " + String.format("%4f", (double)(System.nanoTime() - start) / 1000000000) + " seconds");
           System.out.println("Dismissing the chaperone");
@@ -463,6 +496,9 @@ public class Chaperone extends TimerTask {
       e.printStackTrace();
     }
 
-    Runtime.getRuntime().halt(0);
+
+
+
+      Runtime.getRuntime().halt(0);
   }
 }
