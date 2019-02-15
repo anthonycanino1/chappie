@@ -144,7 +144,7 @@ public class Chaperone extends TimerTask {
     return threads.subList(start, end+1);
   }
 
-  List<List<Object>> get_energy_info(int start, int end) {
+  public List<List<Object>> get_energy_info(int start, int end) {
     return energy.subList(start, end+1);
   }
 
