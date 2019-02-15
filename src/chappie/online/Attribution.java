@@ -226,33 +226,37 @@ public class Attribution {
 
   //Rachit code starts
 
+
+
   static int RAPL_WRAP_AROUND = 16384;
   static int JRAPL_FACTOR = 2;
 
-
-  public static Map<Integer, List<ThreadEnergyAttribution>> attributeEnergy(List<List<String>> raw_thread,
-      List<List<String>> raw_trace, double[][] jiffy_dfs) {
+  public static Map<Integer, List<ThreadEnergyAttribution>> attributeEnergy(List<List<Object>> raw_thread,
+      List<List<Object>> raw_trace, double[][] jiffy_dfs) {
 
     Map<String, Double> threadMap = new HashMap<>();
-    List<List<String>> threadList = new ArrayList<>();
+    List<List<Object>> threadList = new ArrayList<>();
 
     Map<Integer, List<ThreadEnergyAttribution>> energyMap = new HashMap<>();
 
     List<Double> frac = new ArrayList<>();
 
-    double packageEnergy[][] = new double[Integer.parseInt(raw_trace.get(raw_trace.size()-1).get(TraceIndices.EPOCH))+1][2];
-    double dramEnergy[][] = new double[Integer.parseInt(raw_trace.get(raw_trace.size()-1).get(TraceIndices.EPOCH))+1][2];
-    double activity[][] = new double[Integer.parseInt(raw_thread.get(raw_thread.size()-1).get(0))/2 + 1][2];
+    double packageEnergy[][] = new double[Integer
+      .parseInt((String) raw_trace.get(raw_trace.size() - 1).get(TraceIndices.EPOCH)) + 1][2];
+    double dramEnergy[][] = new double[Integer
+      .parseInt((String) raw_trace.get(raw_trace.size() - 1).get(TraceIndices.EPOCH)) + 1][2];
+    double activity[][] = new double[Integer.parseInt((String) raw_thread.get(raw_thread.size() - 1).get(0)) / 2
+      + 1][2];
 
     /*
-     * Calculate minimum package and dram values contained in trace file
-     * for each socket
+     * Calculate minimum package and dram values contained in trace file for each
+     * socket
      */
-    for(List<String> trace_reading : raw_trace) {
-      int epoch = Integer.parseInt(trace_reading.get(TraceIndices.EPOCH));
-      int socket = Integer.parseInt(trace_reading.get(TraceIndices.SOCKET));
-      packageEnergy[epoch][socket-1] = Double.parseDouble(trace_reading.get(TraceIndices.PACKAGE));
-      dramEnergy[epoch][socket-1] = Double.parseDouble(trace_reading.get(TraceIndices.DRAM));
+    for (List<Object> trace_reading : raw_trace) {
+      int epoch = Integer.parseInt((String) trace_reading.get(TraceIndices.EPOCH));
+      int socket = Integer.parseInt((String) trace_reading.get(TraceIndices.SOCKET));
+      packageEnergy[epoch][socket - 1] = Double.parseDouble((String) trace_reading.get(TraceIndices.PACKAGE));
+      dramEnergy[epoch][socket - 1] = Double.parseDouble((String) trace_reading.get(TraceIndices.DRAM));
     }
     packageEnergy = subtractValues(packageEnergy);
     dramEnergy = subtractValues(dramEnergy);
@@ -264,202 +268,201 @@ public class Attribution {
     dramEnergy = diff(dramEnergy);
 
     /*
-     * check package and dram energy and apply rapl_wrap_around value if found negative
+     * check package and dram energy and apply rapl_wrap_around value if found
+     * negative
      */
     packageEnergy = checkJrapl(packageEnergy);
     dramEnergy = checkJrapl(dramEnergy);
 
     /*
-     * Thread csv data - change format to ['epoch', 'time', 'thread', 'pid',
-     * 'tid', 'core', 'u_jiffies', 'k_jiffies', 'state', 'socket', 'os_state', 'd_epoch']
+     * Thread csv data - change format to ['epoch', 'time', 'thread', 'pid', 'tid',
+     * 'core', 'u_jiffies', 'k_jiffies', 'state', 'socket', 'os_state', 'd_epoch']
      *
      * Add os state from jiffy_dfs
      */
 
-    for(List<String> list : raw_thread) {
-      //List<String> list = new ArrayList<String>(list);
-      int epoch = Integer.parseInt(list.get(ThreadIndices.EPOCH));
-      int d_epoch = epoch/JRAPL_FACTOR;
+    for (List<Object> list : raw_thread) {
+      // List<String> list = new ArrayList<String>(list);
+      int epoch = Integer.parseInt((String) list.get(ThreadIndices.EPOCH));
+      int d_epoch = epoch / JRAPL_FACTOR;
 
-      //check core and assign socket
-      if(Integer.parseInt(list.get(ThreadIndices.CORE)) > 19)
+      // check core and assign socket
+      if (Integer.parseInt((String) list.get(ThreadIndices.CORE)) > 19)
         list.add("2");
-      else if(Integer.parseInt(list.get(ThreadIndices.CORE)) >-1 )
+      else if (Integer.parseInt((String) list.get(ThreadIndices.CORE)) > -1)
         list.add("1");
       else
         list.add("-1");
 
-      //if socket is -1 divide the energy among both sockets using state info
-      if(Integer.parseInt(list.get(ThreadIndices.SOCKET)) == -1) {
-        double state = Double.parseDouble(list.get(ThreadIndices.VM_STATE));
+      // if socket is -1 divide the energy among both sockets using state info
+      if (Integer.parseInt((String) list.get(ThreadIndices.SOCKET)) == -1) {
+        double state = Double.parseDouble((String) list.get(ThreadIndices.VM_STATE));
         int socket;
 
-        //divide state value equally for both sockets
-        state/=2;
+        // divide state value equally for both sockets
+        state /= 2;
 
-        //for unmappables1
+        // for unmappables1
         socket = 1;
 
-        if(epoch%10 == 0) {
-          threadMap.put(list.get(ThreadIndices.THREAD).trim(), jiffy_dfs[epoch/10][0]);
+        if (epoch % 10 == 0) {
+          threadMap.put(((String) list.get(ThreadIndices.THREAD)).trim(), jiffy_dfs[epoch / 10][0]);
         }
 
-        //add os_state info
-        if(epoch%10 != 0) {
+        // add os_state info
+        if (epoch % 10 != 0) {
           Double val = 0.0;
-          val = (threadMap.get(list.get(ThreadIndices.THREAD).trim()) == null) ? 0 : threadMap.get(list.get(ThreadIndices.THREAD).trim()) ;
+          val = (threadMap.get(((String) list.get(ThreadIndices.THREAD)).trim()) == null) ? 0
+            : threadMap.get(((String) list.get(ThreadIndices.THREAD)).trim());
           list.add(String.valueOf(val));
-        }
-        else
-          list.add(String.valueOf(jiffy_dfs[epoch/10][0]));
+        } else
+          list.add(String.valueOf(jiffy_dfs[epoch / 10][0]));
 
-        //Update state and socket info
+        // Update state and socket info
         list.set(ThreadIndices.VM_STATE, String.valueOf(state));
         list.set(ThreadIndices.SOCKET, String.valueOf(socket));
         list.add(String.valueOf(d_epoch));
         threadList.add(list);
 
-        //activity and d_epoch
-        activity[d_epoch][socket-1] += state;
+        // activity and d_epoch
+        activity[d_epoch][socket - 1] += state;
 
-        //for unmappables2
-        List<String >tempList = new ArrayList<String>(list);
+        // for unmappables2
+        List<Object> tempList = new ArrayList<Object>(list);
         socket = 2;
 
-        //update os_state info
-        if(epoch%10 == 0) {
-          threadMap.put(tempList.get(ThreadIndices.THREAD).trim(), jiffy_dfs[epoch/10][1]);
+        // update os_state info
+        if (epoch % 10 == 0) {
+          threadMap.put(((String) tempList.get(ThreadIndices.THREAD)).trim(), jiffy_dfs[epoch / 10][1]);
         }
 
-        if(epoch%10 != 0) {
+        if (epoch % 10 != 0) {
           Double val = 0.0;
-          val = (threadMap.get(tempList.get(ThreadIndices.THREAD).trim()) == null) ? 0 : threadMap.get(tempList.get(ThreadIndices.THREAD).trim()) ;
+          val = (threadMap.get(((String) tempList.get(ThreadIndices.THREAD)).trim()) == null) ? 0
+            : threadMap.get(((String) tempList.get(ThreadIndices.THREAD)).trim());
           tempList.set(ThreadIndices.OS_STATE, String.valueOf(val));
+        } else {
+          tempList.set(ThreadIndices.OS_STATE, String.valueOf(jiffy_dfs[epoch / 10][1]));
         }
-        else {
-          tempList.set(ThreadIndices.OS_STATE, String.valueOf(jiffy_dfs[epoch/10][1]));
-        }
-        //update socket info
+        // update socket info
         tempList.set(ThreadIndices.SOCKET, String.valueOf(socket));
         tempList.add(String.valueOf(d_epoch));
         threadList.add(tempList);
 
-        //d_epoch and activity
-        activity[d_epoch][socket-1] += state;
-      }//end-if for socket = -1
+        // d_epoch and activity
+        activity[d_epoch][socket - 1] += state;
+      } // end-if for socket = -1
       else {
-        //add os_state info for known socket
-        int socket = Integer.parseInt(list.get(ThreadIndices.SOCKET));
-        if(epoch%10 == 0) {
-          threadMap.put(list.get(ThreadIndices.THREAD).trim(), jiffy_dfs[epoch/10][socket-1]);
+        // add os_state info for known socket
+        int socket = Integer.parseInt((String) list.get(ThreadIndices.SOCKET));
+        if (epoch % 10 == 0) {
+          threadMap.put(((String) list.get(ThreadIndices.THREAD)).trim(), jiffy_dfs[epoch / 10][socket - 1]);
         }
-        if(epoch%10 != 0) {
+        if (epoch % 10 != 0) {
           Double val = 0.0;
-          val = (threadMap.get(list.get(ThreadIndices.THREAD).trim()) == null) ? 0 : threadMap.get(list.get(ThreadIndices.THREAD).trim()) ;
+          val = (threadMap.get(((String) list.get(ThreadIndices.THREAD)).trim()) == null) ? 0
+            : threadMap.get(((String) list.get(ThreadIndices.THREAD)).trim());
           list.add(String.valueOf(val));
-        }
-        else {
-          list.add(String.valueOf(jiffy_dfs[epoch/10][0]));
+        } else {
+          list.add(String.valueOf(jiffy_dfs[epoch / 10][0]));
         }
         list.add(String.valueOf(d_epoch));
         threadList.add(list);
 
-        //d_epoch and activity
-        activity[d_epoch][socket-1] += Double.parseDouble(list.get(ThreadIndices.VM_STATE));
+        // d_epoch and activity
+        activity[d_epoch][socket - 1] += Double.parseDouble((String) list.get(ThreadIndices.VM_STATE));
       }
 
     }
 
-
     /*
-     * Thread csv data - change format to ['epoch', 'time', 'thread', 'pid',
-     * 'tid', 'core', 'u_jiffies', 'k_jiffies', 'state', 'socket', 'os_state', 'd_epoch']
+     * Thread csv data - change format to ['epoch', 'time', 'thread', 'pid', 'tid',
+     * 'core', 'u_jiffies', 'k_jiffies', 'state', 'socket', 'os_state', 'd_epoch']
      */
-    for(List<String> thread : threadList) {
+    for (List<Object> thread : threadList) {
       ThreadEnergyAttribution currentAttrib = new ThreadEnergyAttribution();
-      int tid = Integer.parseInt(thread.get(ThreadIndices.TID));
-      int d_epoch = Integer.parseInt(thread.get(ThreadIndices.D_EPOCH));
-      int socket = Integer.parseInt(thread.get(ThreadIndices.SOCKET));
-      double vm_state = Double.parseDouble(thread.get(ThreadIndices.VM_STATE));
-      vm_state = vm_state / (activity[d_epoch][socket-1]);
+      int tid = Integer.parseInt((String) thread.get(ThreadIndices.TID));
+      int d_epoch = Integer.parseInt((String) thread.get(ThreadIndices.D_EPOCH));
+      int socket = Integer.parseInt((String) thread.get(ThreadIndices.SOCKET));
+      double vm_state = Double.parseDouble((String) thread.get(ThreadIndices.VM_STATE));
+      vm_state = vm_state / (activity[d_epoch][socket - 1]);
       thread.add(String.valueOf(vm_state));
-      int trace_index = (d_epoch*2)+1;
-      double t_pkg  = 0.0;
+      int trace_index = (d_epoch * 2) + 1;
+      double t_pkg = 0.0;
       double t_dram = 0.0;
-      t_pkg = packageEnergy[trace_index][socket-1]
-        * Double.parseDouble(thread.get(ThreadIndices.OS_STATE))
-        * Double.parseDouble(thread.get(ThreadIndices.VM_STATE));
-      t_dram = dramEnergy[trace_index][socket-1]
-        * Double.parseDouble(thread.get(ThreadIndices.OS_STATE))
-        * Double.parseDouble(thread.get(ThreadIndices.VM_STATE));
+      t_pkg = packageEnergy[trace_index][socket - 1]
+        * Double.parseDouble((String) thread.get(ThreadIndices.OS_STATE))
+        * Double.parseDouble((String) thread.get(ThreadIndices.VM_STATE));
+      t_dram = dramEnergy[trace_index][socket - 1]
+        * Double.parseDouble((String) thread.get(ThreadIndices.OS_STATE))
+        * Double.parseDouble((String) thread.get(ThreadIndices.VM_STATE));
 
       currentAttrib.setEpoch_no(d_epoch);
-      currentAttrib.setCore_no(Integer.parseInt(thread.get(ThreadIndices.CORE)));
+      currentAttrib.setCore_no(Integer.parseInt((String) thread.get(ThreadIndices.CORE)));
       currentAttrib.setDram_energy(t_dram);
       currentAttrib.setPkg_energy(t_pkg);
       currentAttrib.setTid(tid);
 
-      if(energyMap.get(tid) == null) {
-        List<ThreadEnergyAttribution> currentList= new ArrayList<>();
+      if (energyMap.get(tid) == null) {
+        List<ThreadEnergyAttribution> currentList = new ArrayList<>();
         currentList.add(currentAttrib);
         energyMap.put(tid, currentList);
-      }
-      else {
-        List<ThreadEnergyAttribution> currentList= energyMap.get(tid);
+      } else {
+        List<ThreadEnergyAttribution> currentList = energyMap.get(tid);
         currentList.add(currentAttrib);
         energyMap.put(tid, currentList);
       }
     }
 
-    //Add OS_State mean
+    // Add OS_State mean
     double tempFrac = 0.0;
-    for(List<String> list: threadList) {
-      tempFrac+=Double.parseDouble(list.get(ThreadIndices.OS_STATE));
+    for (List<Object> list : threadList) {
+      tempFrac += Double.parseDouble((String) list.get(ThreadIndices.OS_STATE));
     }
-    tempFrac/=threadList.size();
+    tempFrac /= threadList.size();
     frac.add(tempFrac);
     return energyMap;
   }
 
-  private static double[][] subtractValues(double[][] energy){
+  private static double[][] subtractValues(double[][] energy) {
     double min1 = Double.MAX_VALUE;
     double min2 = Double.MAX_VALUE;
-    for(int i=0; i<energy.length; i++) {
-      if(energy[i][0] < min1)
+    for (int i = 0; i < energy.length; i++) {
+      if (energy[i][0] < min1)
         min1 = energy[i][0];
-      if(energy[i][1] < min2)
+      if (energy[i][1] < min2)
         min2 = energy[i][1];
     }
 
-    for(int i=0; i<energy.length; i++) {
+    for (int i = 0; i < energy.length; i++) {
       energy[i][0] -= min1;
       energy[i][1] -= min2;
     }
     return energy;
   }
 
-  private static double[][] diff(double[][] energy){
+  private static double[][] diff(double[][] energy) {
     double temp[][] = new double[energy.length][2];
-    for(int i=1;i<energy.length;i++) {
-      if(i==1) {
+    for (int i = 1; i < energy.length; i++) {
+      if (i == 1) {
         temp[0][0] = 0;
         temp[0][1] = 0;
       }
-      temp[i][0] = energy[i][0] - energy[i-1][0];
-      temp[i][1] = energy[i][1] - energy[i-1][1];
+      temp[i][0] = energy[i][0] - energy[i - 1][0];
+      temp[i][1] = energy[i][1] - energy[i - 1][1];
     }
     return temp;
   }
 
-  private static double[][] checkJrapl(double[][] energy){
-    for(int i=0; i<energy.length;i++) {
+  private static double[][] checkJrapl(double[][] energy) {
+    for (int i = 0; i < energy.length; i++) {
       double newval1 = energy[i][0];
       double newval2 = energy[i][1];
 
-      if(newval1 < 0)
-        energy[i][0] = Math.max(newval1+RAPL_WRAP_AROUND, 0);
-      if(newval2 < 0)
-        energy[i][1] = Math.max(newval2+RAPL_WRAP_AROUND, 0);
+      if (newval1 < 0)
+        energy[i][0] = Math.max(newval1 + RAPL_WRAP_AROUND, 0);
+      if (newval2 < 0)
+        energy[i][1] = Math.max(newval2 + RAPL_WRAP_AROUND, 0);
 
     }
     return energy;
@@ -473,13 +476,9 @@ public class Attribution {
     List<List<Object>> trace = chappie.get_energy_info(os_report.getEpoch_start(), os_report.getEpoch_end());
 
     //Place call to Rachit Code here ....
-    //energy_reports = attributeEnergy(threads, trace, os_state);
+    energy_reports = attributeEnergy(threads, trace, os_state);
 
     return energy_reports;
   }
-
-
-
-
 
 }
