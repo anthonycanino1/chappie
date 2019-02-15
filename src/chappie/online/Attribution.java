@@ -250,7 +250,7 @@ public class Attribution {
      */
     for (List<Object> trace_reading : raw_trace) {
       int epoch = (int)(trace_reading.get(TraceIndices.EPOCH));
-      int socket = (int)(trace_reading.get(TraceIndices.SOCKET));
+      int socket = Integer.parseInt(trace_reading.get(TraceIndices.SOCKET).toString());
       packageEnergy[epoch][socket - 1] = (double)(trace_reading.get(TraceIndices.PACKAGE));
       dramEnergy[epoch][socket - 1] = (double)(trace_reading.get(TraceIndices.DRAM));
     }
@@ -291,7 +291,7 @@ public class Attribution {
         list.add("-1");
 
       // if socket is -1 divide the energy among both sockets using state info
-      if ((int)(list.get(ThreadIndices.SOCKET)) == -1) {
+      if (Integer.parseInt(list.get(ThreadIndices.SOCKET).toString()) == -1) {
         double state = (double)(list.get(ThreadIndices.VM_STATE));
         int socket;
 
@@ -350,7 +350,7 @@ public class Attribution {
       } // end-if for socket = -1
       else {
         // add os_state info for known socket
-        int socket = (int)(list.get(ThreadIndices.SOCKET));
+        int socket = Integer.parseInt(list.get(ThreadIndices.SOCKET).toString());
         if (epoch % 10 == 0) {
           threadMap.put(String.valueOf(list.get(ThreadIndices.THREAD)).trim(), jiffy_dfs[epoch / 10][socket - 1]);
         }
@@ -379,7 +379,7 @@ public class Attribution {
       ThreadEnergyAttribution currentAttrib = new ThreadEnergyAttribution();
       int tid = (int)(thread.get(ThreadIndices.TID));
       int d_epoch = (int)(thread.get(ThreadIndices.D_EPOCH));
-      int socket = (int)(thread.get(ThreadIndices.SOCKET));
+      int socket = Integer.parseInt((thread.get(ThreadIndices.SOCKET).toString()));
       double vm_state = (double)(thread.get(ThreadIndices.VM_STATE));
       vm_state = vm_state / (activity[d_epoch][socket - 1]);
       thread.add(String.valueOf(vm_state));
