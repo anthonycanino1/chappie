@@ -107,7 +107,6 @@ public class Chaperone extends TimerTask {
     if (mode != Mode.NOP) {
       // use the double flag to kill the process from in here
       terminate = true;
-      timer.cancel();
       while(!terminated) {
         try {
           Thread.sleep(0, 100);
@@ -121,5 +120,5 @@ public class Chaperone extends TimerTask {
     return true;
   }
 
-  // public
+  // public read()
 }

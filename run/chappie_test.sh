@@ -1,17 +1,12 @@
 #!/bin/bash
 
-rm chappie.chappie_test -rf
+# expected inputs:
+# ./chappie_test.sh -d <directory>
 
-export ITERS=1
-export MODE=VM_SAMPLE
-export POLLING=4
-export CORE_RATE=10
-export JRAPL_RATE=2
-export READ_JIFFIES=true
+directory=chappie_test
+case $1 in
+  -d) directory=$2;;
+esac
 
-if [ "$#" -eq  "0" ]
-  then
-    ./run.sh ../test/chappie_test.jar "" chappie_test.Benchmark 5
-  else
-    ./run.sh ../test/chappie_test.jar "" chappie_test.Benchmark $1
-  fi
+export CHAPPIE_DIRECTORY=$directory
+./run.sh ../test/chappie_test.jar chappie_test.Benchmark 5

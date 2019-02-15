@@ -5,7 +5,7 @@
 
 # potential exports:
 # CHAPPIE_DIRECTORY (jar level bootstrapper)
-# CHAPPIE_FILE_ITER (benchmark/grid search)
+# CHAPPIE_SUFFIX (benchmark/grid search)
 # CHAPPIE_EXTRA_JARS (any additional jars your program needs)
 
 dir=`dirname "$0"`
@@ -49,7 +49,6 @@ export JARS="$CHAPPIE_PATH:$jar_path"
 # chappie.*.csv chappie.$jar_name -rf
 
 # has to happen here because of honest profiler
-rm -rf $CHAPPIE_DIRECTORY
 mkdir -p $CHAPPIE_DIRECTORY
 
 ../../dev/build/linux-x86_64-normal-server-release/jdk/bin/java       \
