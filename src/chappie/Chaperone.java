@@ -469,7 +469,9 @@ public class Chaperone extends TimerTask {
               onlineTester.setChappie(chaperone);
               onlineTester.setFrequency(online_frequency);
               Thread tester_thread = new Thread(onlineTester);
+              tester_thread.setDaemon(true);
               tester_thread.start();
+
           }
 
       	  System.out.println("==================================================");
