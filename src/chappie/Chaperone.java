@@ -70,8 +70,6 @@ public class Chaperone extends TimerTask {
   // Chaperone Parameters
   private Mode mode;
 
-  private boolean online_testing = false;
-  private int online_testing_frequency=0;
 
   private int polling;
   private int osReadingFactor;
@@ -89,7 +87,7 @@ public class Chaperone extends TimerTask {
 
   private Timer timer;
 
-  public Chaperone(Mode mode, int polling, int osRate, int jraplRate, boolean memory, boolean readJiffies, boolean test_online, int test_freq) {
+  public Chaperone(Mode mode, int polling, int osRate, int jraplRate, boolean memory, boolean readJiffies) {
     this.mode = mode;
 
     this.polling = polling;
@@ -111,8 +109,6 @@ public class Chaperone extends TimerTask {
     }
 
     Attribution.init_attribution(this);
-    online_testing_frequency=test_freq;
-    online_testing=test_online;
 
 
   }
