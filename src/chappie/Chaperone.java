@@ -470,6 +470,7 @@ public class Chaperone extends TimerTask {
               onlineTester.setFrequency(online_frequency);
               Thread tester_thread = new Thread(onlineTester);
               tester_thread.setDaemon(true);
+              System.out.println("Online Attribution Testing Is Enabled. Stay Tuned!");
               tester_thread.start();
 
           }
