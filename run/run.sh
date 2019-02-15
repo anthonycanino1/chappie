@@ -51,11 +51,11 @@ export JARS="$CHAPPIE_PATH:$jar_path"
 # has to happen here because of honest profiler
 mkdir -p $CHAPPIE_DIRECTORY
 
-../../dev/build/linux-x86_64-normal-server-release/jdk/bin/java       \
-        -Xbootclasspath/a:$CHAPPIE_PATH                               \
-        -cp $CHAPPIE_PATH:$jar_url                                    \
-        -javaagent:$CHAPPIE_PATH                                      \
-        -agentpath:$hp_path=interval=4,logPath=$hp_log_path           \
+/home/timur/Projects/dev/build/linux-x86_64-normal-server-release/jdk/bin/java \
+        -Xbootclasspath/a:$CHAPPIE_PATH                                        \
+        -cp $CHAPPIE_PATH:$jar_url                                             \
+        -javaagent:$CHAPPIE_PATH                                               \
+        -agentpath:$hp_path=interval=4,logPath=$hp_log_path                    \
         chappie.Main $jar_url $main_class $args $d_args
 
 # # ../../dev/build/linux-x86_64-normal-server-release/jdk/bin/java $5 -Xbootclasspath/a:$CHAPPIE_PATH:$7 -cp $JARS$7 $6 -javaagent:$CHAPPIE_PATH -agentpath:$dir/../src/async/build/liblagent.so=interval=4,logPath="${DIRECTORY}/chappie.stack${ITER}.csv" chappie.Chaperone9 $jar_url $3 $4
