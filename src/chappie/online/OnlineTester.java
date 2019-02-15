@@ -19,7 +19,7 @@ public class OnlineTester implements Runnable {
                 exc.printStackTrace();
             }
             int end = chappie.get_current_epoch();
-            Attribution.get_all_thread_attrib(start, end);
+            Attribution.get_all_thread_attrib(start, end-1);
         }
     }
 
