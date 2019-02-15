@@ -292,7 +292,7 @@ public class Attribution {
 
       // if socket is -1 divide the energy among both sockets using state info
       if (Integer.parseInt(list.get(ThreadIndices.SOCKET).toString()) == -1) {
-        double state = (double)(list.get(ThreadIndices.VM_STATE));
+        double state = Double.parseDouble(list.get(ThreadIndices.VM_STATE).toString());
         int socket;
 
         // divide state value equally for both sockets
@@ -366,7 +366,7 @@ public class Attribution {
         threadList.add(list);
 
         // d_epoch and activity
-        activity[d_epoch][socket - 1] += (double)(list.get(ThreadIndices.VM_STATE));
+        activity[d_epoch][socket - 1] += Double.parseDouble(list.get(ThreadIndices.VM_STATE).toString());
       }
 
     }
