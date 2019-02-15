@@ -283,9 +283,9 @@ public class Attribution {
       int d_epoch = epoch / JRAPL_FACTOR;
 
       // check core and assign socket
-      if ((int)(list.get(ThreadIndices.CORE)) > 19)
+      if (Integer.parseInt(((String)list.get(ThreadIndices.CORE))) > 19)
         list.add("2");
-      else if ((int)(list.get(ThreadIndices.CORE)) > -1)
+      else if (Integer.parseInt((String)list.get(ThreadIndices.CORE)) > -1)
         list.add("1");
       else
         list.add("-1");
@@ -394,7 +394,7 @@ public class Attribution {
         * (double)(thread.get(ThreadIndices.VM_STATE));
 
       currentAttrib.setEpoch_no(d_epoch);
-      currentAttrib.setCore_no((int)(thread.get(ThreadIndices.CORE)));
+      currentAttrib.setCore_no(Integer.parseInt((String)thread.get(ThreadIndices.CORE)));
       currentAttrib.setDram_energy(t_dram);
       currentAttrib.setPkg_energy(t_pkg);
       currentAttrib.setTid(tid);
