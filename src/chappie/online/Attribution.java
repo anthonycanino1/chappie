@@ -473,7 +473,7 @@ public class Attribution {
     List<List<Object>> trace = chappie.get_energy_info(os_report.getEpoch_start(), os_report.getEpoch_end());
 
     //Place call to Rachit Code here ....
-    energy_reports = attributeEnergy(threads, trace, os_state);
+    //energy_reports = attributeEnergy(threads, trace, os_state);
 
     return energy_reports;
   }
