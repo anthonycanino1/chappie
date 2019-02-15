@@ -333,7 +333,7 @@ public class Attribution {
 
         if (epoch % 10 != 0) {
           Double val = 0.0;
-          val = (threadMap.get(String.valueOf(tempList.get(ThreadIndices.THREAD)).trim()) == null) ? 0
+          val = (threadMap.get(String.valueOf(tempList.get(ThreadIndices.THREAD)).trim()) == null) ? 0.0
             : threadMap.get(String.valueOf(tempList.get(ThreadIndices.THREAD)).trim());
           tempList.set(ThreadIndices.OS_STATE, String.valueOf(val));
         } else {
@@ -355,7 +355,7 @@ public class Attribution {
         }
         if (epoch % 10 != 0) {
           Double val = 0.0;
-          val = (threadMap.get(String.valueOf(list.get(ThreadIndices.THREAD)).trim()) == null) ? 0
+          val = (threadMap.get(String.valueOf(list.get(ThreadIndices.THREAD)).trim()) == null) ? 0.0
             : threadMap.get(String.valueOf(list.get(ThreadIndices.THREAD)).trim());
           list.add(String.valueOf(val));
         } else {
