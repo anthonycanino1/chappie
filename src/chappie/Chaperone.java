@@ -84,10 +84,11 @@ public class Chaperone extends TimerTask {
   private long start;
   private long elapsedTime = 0;
   private long chappieReadingTime = 0;
+  private boolean test_online_attribution;
 
   private Timer timer;
 
-  public Chaperone(Mode mode, int polling, int osRate, int jraplRate, boolean memory, boolean readJiffies) {
+  public Chaperone(Mode mode, int polling, int osRate, int jraplRate, boolean memory, boolean readJiffies,boolean test_online_attribution) {
     this.mode = mode;
 
     this.polling = polling;
@@ -96,6 +97,7 @@ public class Chaperone extends TimerTask {
 
     this.readMemory = memory;
     this.readJiffies = readJiffies;
+    this.test_online_attribution = test_online_attribution;
 
     this.epoch = 0;
 
@@ -118,6 +120,11 @@ public class Chaperone extends TimerTask {
   private List<List<Object>> threads = new ArrayList<List<Object>>();
   private List<List<Object>> energy = new ArrayList<List<Object>>();
   private ArrayList<String> jiffies = new ArrayList<String>();
+
+
+  private List[] application_array = new List[Integer.MAX_VALUE];
+  private List[] threads_array = new List[Integer.MAX_VALUE];
+
 
 
   public int get_current_epoch() {
@@ -168,6 +175,7 @@ public class Chaperone extends TimerTask {
   // only main touches the chaperone, so we can use a double flag lock.
   private boolean terminate = false;
   private boolean terminated = false;
+
 
   @Override
   public void run() {
@@ -252,6 +260,15 @@ public class Chaperone extends TimerTask {
         }
 
         epoch++;
+
+        if(test_online_attribution) {
+          if(epoch%10==0 && epoch>0) {
+            int start_ep = epoch-10;
+            int end_ep = epoch;
+            Attribution.get_all_thread_attrib(start_ep, end_ep-1);
+          }
+        }
+
       }
     } else {
       timer.cancel();
@@ -461,10 +478,10 @@ public class Chaperone extends TimerTask {
           System.out.println("==================================================");
 
           long start = System.nanoTime();
-          Chaperone chaperone = new Chaperone(mode, polling, osRate, jraplRate, readMemory, readJiffies);
+          Chaperone chaperone = new Chaperone(mode, polling, osRate, jraplRate, readMemory, readJiffies,test_online_attribution);
           main.invoke(null, (Object)params.toArray(new String[params.size()]));
 
-          if(test_online_attribution) {
+          /*if(test_online_attribution) {
               OnlineTester onlineTester = new OnlineTester();
               onlineTester.setChappie(chaperone);
               onlineTester.setFrequency(online_frequency);
@@ -473,7 +490,7 @@ public class Chaperone extends TimerTask {
               System.out.println("Online Attribution Testing Is Enabled. Stay Tuned!");
               tester_thread.start();
 
-          }
+          }*/
 
       	  System.out.println("==================================================");
           System.out.println(args[1] + " ran in " + String.format("%4f", (double)(System.nanoTime() - start) / 1000000000) + " seconds");
