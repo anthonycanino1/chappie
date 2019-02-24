@@ -29,7 +29,7 @@ if __name__ == '__main__':
 
     start = time()
 
-    args.path = os.path.join(args.path)
+    # args.path = os.path.join(args.path)
 
     benchmarks = [benchmark for benchmark in os.listdir(args.path) if benchmark != 'plots']
 
@@ -64,11 +64,12 @@ if __name__ == '__main__':
                 ax.set_yticklabels([])
                 ax.invert_yaxis()
                 ax.tick_params(
-                    axis='y',  # changes apply to the x-axis
-                    which='both',  # both major and minor ticks are affected
-                    bottom=False,  # ticks along the bottom edge are off
-                    top=False,  # ticks along the top edge are off
-                    labelbottom=False)  # labels along the bottom edge are off
+                    axis='y', # changes apply to the x-axis
+                    which='both', # both major and minor ticks are affected
+                    bottom=False, # ticks along the bottom edge are off
+                    top=False, # ticks along the top edge are off
+                    labelbottom=False # labels along the bottom edge are off
+                )
 
                 for i, v in enumerate(x):
                     ax.text(0, i - .20, str('  ' + v), color='black')

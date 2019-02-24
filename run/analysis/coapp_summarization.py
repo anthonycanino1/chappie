@@ -25,19 +25,20 @@ if __name__ == '__main__':
         os.mkdir(args.destination)
 
     summary = []
+    correlation = []
     for f in os.listdir(args.path):
         if f != 'summary':
             df = pd.read_csv(os.path.join(args.path, f, 'summary', 'chappie.component.csv')).drop(columns = ['other application package', 'other application dram'])
-            df.columns = ['socket'] + [f + ' ' + col for col in df.columns][1:]
-            summary.append(df)
+            df['order'] = int(f.split('_')[-1])
+            summary.append(df.drop(columns = ['total package', 'total dram']))
 
-    summary = pd.merge(*summary, on = 'socket')
-    summary['total package'] = summary[[col for col in summary.columns if 'total package' in col]].sum(axis = 1) / (len(os.listdir(args.path)) - 1)
-    summary['total dram'] = summary[[col for col in summary.columns if 'total dram' in col]].sum(axis = 1) / (len(os.listdir(args.path)) - 1)
-    summary = summary.drop(columns = [col for col in summary.columns if 'total package' in col and 'total package' != col])
-    summary = summary.drop(columns = [col for col in summary.columns if 'total dram' in col and 'total dram' != col])
-    summary['other application package'] = summary['total package'] - summary[[col for col in summary.columns if 'total' not in col and 'package' in col]].sum(axis = 1)
-    summary['other application dram'] = summary['total dram'] - summary[[col for col in summary.columns if 'total' not in col and 'dram' in col]].sum(axis = 1)
+            df = pd.read_csv(os.path.join(args.path, f, 'summary', 'chappie.correlation.csv'))
+            df = df.groupby(['level', 'type', 'value']).sum()
+            df['order'] = int(f.split('_')[-1])
+            correlation.append(df)
 
-    summary = summary.reindex(['socket'] + sorted([col for col in summary.columns if col != 'socket'], reverse = True), axis = 1)
+    summary = pd.concat(summary)
     summary.to_csv(os.path.join(args.path, 'summary', 'chappie.component.csv'), index = False)
+
+    correlation = pd.concat(correlation)
+    correlation.to_csv(os.path.join(args.path, 'summary', 'chappie.correlation.csv'))

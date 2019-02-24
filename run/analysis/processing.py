@@ -2,9 +2,10 @@
 
 import argparse
 import os
+import subprocess
 
 from csv import writer
-from io import StringIO
+from io import BytesIO, StringIO
 from time import time
 
 import numpy as np
@@ -51,6 +52,8 @@ if __name__ == '__main__':
         # grab the runtime values
         application_runtime = runtime[runtime['name'] == 'runtime']['value']
         pid = runtime[runtime['name'] == 'main_id']['value'].max()
+
+        application_runtime.to_csv(os.path.join(args.destination, 'chappie.runtime.csv'), mode = 'a', index = False, header = False)
 
         ########## ENERGY PROCESSING ##########
         # compute the differential energy
@@ -108,7 +111,7 @@ if __name__ == '__main__':
 
         thread_records = thread['record'].str.split(' ').map(parse_stats_records)
 
-        with StringIO() as record_data:
+        with BytesIO() as record_data:
             writer(record_data).writerows(list(thread_records.values))
             record_data.seek(0)
             thread_records = pd.read_csv(record_data, header = None)
@@ -151,33 +154,24 @@ if __name__ == '__main__':
         thread['dram'] = thread['dram']
         thread = thread[['epoch', 'timestamp', 'thread', 'socket', 'package', 'dram']]
 
-        thread = thread[['epoch', 'thread', 'timestamp', 'socket', 'package', 'dram']]
+        thread.to_csv(os.path.join(args.destination, 'chappie.thread.{}.csv'.format(k)), index = False)
+        # thread = thread[['epoch', 'thread', 'timestamp', 'socket', 'package', 'dram']]
 
         # TODO:
         # revise this step after going over it with Anthony
+        # we could just bootstrap ruby right?
 
         # stitch the methods in
         start = time()
 
-        stack.columns = ['thread', 'timestamp', '?', 'stack']
-        thread = pd.merge(thread, stack, on = 'thread')
+        thread_path = os.path.join(args.destination, 'chappie.thread.{}.csv'.format(k))
+        method_path = names[4]
+        # method_output_path = os.path.join(args.destination, 'chappie.method.{}.csv'.format(k))
 
-        thread['timestamp_diff'] = thread['timestamp_y'] - thread['timestamp_x']
-        thread.loc[thread['timestamp_diff'] < 0, 'timestamp_diff'] = np.iinfo(np.int64).max
+        ruby_args = ['-c', thread_path , '-h' , method_path]
 
-        thread = pd.merge(thread, thread.groupby(['epoch', 'thread'])['timestamp_diff'].min(), on = ['epoch', 'thread'])
-        thread = thread[thread['timestamp_diff_x'] == thread['timestamp_diff_y']]
-
-        thread['stack'] = thread['stack'].fillna('end')
-        thread = thread[['epoch', 'thread', 'socket', 'package', 'dram', 'stack']]
-
-        # thread filtering goes here
-        thread['all'] = thread['stack'].str.split(';').map(lambda x: 'end' if 'java' in x[0] else ';'.join(x))
-
-        # thread['all'] = thread['stack'].map(lambda x: 'end' if 'java' in x[0] else ';'.join(x))
-        # thread['all_top'] = thread['stack'].map(lambda x: 'end' if 'java' in x[0] else x[0])
-
-        thread['unfiltered'] = thread['stack']
+        thread = subprocess.check_output(['./analysis/opt-align.rb'] + ruby_args)
+        thread = pd.read_csv(BytesIO(thread))
 
         def filter_to_application(l):
             if l == 'end':
@@ -191,11 +185,14 @@ if __name__ == '__main__':
 
                 return ';'.join(l)
 
+        # thread filtering goes here
+        thread['all'] = thread['stack'].str.split(';').map(lambda x: 'end' if 'java' in x[0] else ';'.join(x))
+        thread['unfiltered'] = thread['stack']
         thread['deep'] = thread['stack'].str.split(';').map(filter_to_application)
 
         thread = thread.drop(columns = ['stack']).sort_values('epoch')
 
         print('{:.2f} seconds for methods'.format(time() - start))
 
-        print(thread.head())
+        # print(thread.head())
         thread.to_csv(os.path.join(args.destination, 'chappie.thread.{}.csv'.format(k)), index = False)

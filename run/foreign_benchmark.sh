@@ -9,20 +9,20 @@
 # mkdir dacapo_foreign
 
 benchmarks=(
-# avrora
-# batik
-# eclipse
+avrora
+batik
+eclipse
 # fop
-# h2
+h2
 # jython
 # luindex
 # lusearch
 # pmd
-# sunflow
+sunflow
 # tomcat
-tradebeans
-tradesoap
-xalan
+# tradebeans
+# tradesoap
+# xalan
 )
 
 export PARSECBIN=/home/acanino1/Projects/parsec-3.0/bin
@@ -44,4 +44,4 @@ done
 echo "=================================================="
 echo "Processing"
 echo "=================================================="
-./analysis.sh dacapo_foreign
+./foreign_analysis.sh dacapo_foreign data/dacapo

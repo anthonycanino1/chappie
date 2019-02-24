@@ -138,13 +138,12 @@ if __name__ == '__main__':
 
             tdfs.append(tdf)
 
-        df = pd.concat(tdfs)
+        df = pd.concat(tdfs, sort = True)
 
         df = df[['level', 'name', 'type', 'Energy', 'Time']]
         dfs.append(df)
 
     method = pd.concat(dfs)
-    print(method)
-    method.to_csv(os.path.join(args.destination, 'chappie.method.csv'))
+    method.to_csv(os.path.join(args.destination, 'chappie.method.csv'), index = False)
 
     print('{:.2f} seconds for summary'.format(time() - start))

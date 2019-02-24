@@ -41,9 +41,10 @@ done
 echo "=================================================="
 echo "Processing"
 echo "=================================================="
-for benchmark in coapp/*; do
-  ./analysis.sh $benchmark
-  echo $benchmark
-  ./analysis/coapp_summarization.py -path $benchmark
-  echo "merged $benchmark"
-done
+./coapp_analysis.sh coapp data/dacapo
+
+# for benchmark in coapp/*; do
+#   echo $benchmark
+#   ./analysis/coapp_summarization.py -path $benchmark
+#   echo "merged $benchmark"
+# done
