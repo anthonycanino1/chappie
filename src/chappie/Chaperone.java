@@ -122,12 +122,7 @@ public class Chaperone extends TimerTask {
   private ArrayList<String> jiffies = new ArrayList<String>();
 
 
-  private List[] application_array = new List[Integer.MAX_VALUE];
-  private List[] threads_array = new List[Integer.MAX_VALUE];
-
-
-
-  public int get_current_epoch() {
+    public int get_current_epoch() {
     return epoch;
   }
 
