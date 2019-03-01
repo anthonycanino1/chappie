@@ -386,7 +386,7 @@ public class Chaperone extends TimerTask {
     GLIBC.getProcessId();
     GLIBC.getThreadId();
 
-      boolean test_online_attribution=false;
+      boolean test_online_attribution=true;
       try {
           test_online_attribution = Boolean.parseBoolean(System.getenv("ONLINE_TEST"));
       } catch(Exception e) { }
@@ -476,7 +476,7 @@ public class Chaperone extends TimerTask {
           Chaperone chaperone = new Chaperone(mode, polling, osRate, jraplRate, readMemory, readJiffies,test_online_attribution);
           main.invoke(null, (Object)params.toArray(new String[params.size()]));
 
-          /*if(test_online_attribution) {
+          if(test_online_attribution) {
               OnlineTester onlineTester = new OnlineTester();
               onlineTester.setChappie(chaperone);
               onlineTester.setFrequency(online_frequency);
@@ -485,7 +485,7 @@ public class Chaperone extends TimerTask {
               System.out.println("Online Attribution Testing Is Enabled. Stay Tuned!");
               tester_thread.start();
 
-          }*/
+          }
 
       	  System.out.println("==================================================");
           System.out.println(args[1] + " ran in " + String.format("%4f", (double)(System.nanoTime() - start) / 1000000000) + " seconds");
