@@ -1,4 +1,4 @@
 build
 *.o
 *.jar
-./vendor/jrapl-port/classes/
+./vendor/jrapl-port/classes/*
