@@ -260,7 +260,9 @@ public class Chaperone extends TimerTask {
           if(epoch%10==0 && epoch>0) {
             int start_ep = epoch-10;
             int end_ep = epoch;
-            Attribution.get_all_thread_attrib(start_ep, end_ep-1);
+	    if(start_ep < end_ep) {
+		    Attribution.get_all_thread_attrib(start_ep, end_ep-1);
+	    }
           }
         }
 
@@ -476,7 +478,7 @@ public class Chaperone extends TimerTask {
           Chaperone chaperone = new Chaperone(mode, polling, osRate, jraplRate, readMemory, readJiffies,test_online_attribution);
           main.invoke(null, (Object)params.toArray(new String[params.size()]));
 
-          if(test_online_attribution) {
+          /*if(test_online_attribution) {
               OnlineTester onlineTester = new OnlineTester();
               onlineTester.setChappie(chaperone);
               onlineTester.setFrequency(online_frequency);
@@ -485,7 +487,7 @@ public class Chaperone extends TimerTask {
               System.out.println("Online Attribution Testing Is Enabled. Stay Tuned!");
               tester_thread.start();
 
-          }
+          }*/
 
       	  System.out.println("==================================================");
           System.out.println(args[1] + " ran in " + String.format("%4f", (double)(System.nanoTime() - start) / 1000000000) + " seconds");

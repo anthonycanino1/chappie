@@ -37,8 +37,9 @@ public class Attribution {
     os_activity_report.setEpoch_start(start);
     os_activity_report.setEpoch_end(end);
     os_activity_report.setEpoch_activity(os_report);
-    Map<Integer, List<ThreadEnergyAttribution>> thread_report = get_thread_energy_reports(os_activity_report);
-    return thread_report;
+    //Map<Integer, List<ThreadEnergyAttribution>> thread_report = get_thread_energy_reports(os_activity_report);
+    //return thread_report;
+    return null;
   }
 
   public static int get_curret_epoch() {
