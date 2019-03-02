@@ -279,6 +279,10 @@ public class Attribution {
 
     for (List<Object> list : raw_thread) {
       // List<String> list = new ArrayList<String>(list);
+      int start_epoch = Integer.parseInt((raw_thread.get(0)).get(ThreadIndices.CORE).toString());
+      int end_epoch = Integer.parseInt((raw_thread.get(0)).get(ThreadIndices.CORE).toString());
+      int epochDiff = end_epoch-start_epoch+1;
+
       int epoch = (int)(list.get(ThreadIndices.EPOCH));
       int d_epoch = epoch / JRAPL_FACTOR;
 
@@ -305,10 +309,10 @@ public class Attribution {
 
         if (epoch % 10 == 0) {
           int epochIndex;
-          if(epoch/10 == 0)
+          if(epochDiff/10 == 0)
             epochIndex = 0;
           else
-            epochIndex = (epoch/10) - 1;
+            epochIndex = (epochDiff/10) - 1;
           threadMap.put(String.valueOf(list.get(ThreadIndices.THREAD)).trim(), jiffy_dfs[epochIndex][0]);
         }
 
@@ -321,10 +325,10 @@ public class Attribution {
         } 
 				else{
 					int epochIndex;
-          if(epoch/10 == 0)
+          if(epochDiff/10 == 0)
             epochIndex = 0;
           else
-            epochIndex = (epoch/10) - 1;
+            epochIndex = (epochDiff/10) - 1;
 
           list.add(String.valueOf(jiffy_dfs[epochIndex][0]));
 				}
@@ -345,10 +349,10 @@ public class Attribution {
         // update os_state info
         if (epoch % 10 == 0) {
           int epochIndex;
-          if(epoch/10 == 0)
+          if(epochDiff/10 == 0)
             epochIndex = 0;
           else
-            epochIndex = (epoch/10) - 1;
+            epochIndex = (epochDiff/10) - 1;
 
           threadMap.put(String.valueOf(tempList.get(ThreadIndices.THREAD)).trim(), jiffy_dfs[epochIndex][1]);
         }
@@ -361,10 +365,10 @@ public class Attribution {
         } 
 				else {
 					int epochIndex;
-          if(epoch/10 == 0)
+          if(epochDiff/10 == 0)
             epochIndex = 0;
           else
-            epochIndex = (epoch/10) - 1;
+            epochIndex = (epochDiff/10) - 1;
 
           tempList.set(ThreadIndices.OS_STATE, String.valueOf(jiffy_dfs[epochIndex][1]));
         }
@@ -381,10 +385,10 @@ public class Attribution {
         int socket = sock;//Integer.parseInt(list.get(ThreadIndices.SOCKET).toString());
         if (epoch % 10 == 0) { 
 					int epochIndex;
-          if(epoch/10 == 0)
+          if(epochDiff/10 == 0)
             epochIndex = 0;
           else
-            epochIndex = (epoch/10) - 1;
+            epochIndex = (epochDiff/10) - 1;
           threadMap.put(String.valueOf(list.get(ThreadIndices.THREAD)).trim(), jiffy_dfs[epochIndex][socket - 1]);
         }
 
@@ -395,10 +399,10 @@ public class Attribution {
           list.add(String.valueOf(val));
         } else {
 					int epochIndex;
-          if(epoch/10 == 0)
+          if(epochDiff/10 == 0)
             epochIndex = 0;
           else
-            epochIndex = (epoch/10) - 1;
+            epochIndex = (epochDiff/10) - 1;
 
           list.add(String.valueOf(jiffy_dfs[epochIndex][socket-1]));
         }
