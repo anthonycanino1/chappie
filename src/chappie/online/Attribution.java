@@ -79,6 +79,7 @@ public class Attribution {
       String[] lines = raw_reading.split(System.getProperty("line.separator"));
       int core_index=0;
       for(String line : lines) {
+        System.out.print("");
         if(!raw_reading.startsWith("cpu")) continue;
         raw_reading = raw_reading.replace("  "," ");
         String[] raw_core_reading = raw_reading.split(" ");
