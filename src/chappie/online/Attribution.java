@@ -80,9 +80,9 @@ public class Attribution {
       int core_index=0;
       for(String line : lines) {
         System.out.print("");
-        if(!raw_reading.startsWith("cpu")) continue;
-        raw_reading = raw_reading.replace("  "," ");
-        String[] raw_core_reading = raw_reading.split(" ");
+        if(!line.startsWith("cpu")) continue;
+        line = raw_reading.replace("  "," ");
+        String[] raw_core_reading = line.split(" ");
         if(raw_core_reading[0].equalsIgnoreCase("cpu")) continue;
         for (int jiff_index = 1; jiff_index < raw_core_reading.length; jiff_index++) {
           long jiff_reading = Long.parseLong(raw_core_reading[jiff_index]);
