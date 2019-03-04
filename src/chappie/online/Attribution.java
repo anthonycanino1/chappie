@@ -81,7 +81,7 @@ public class Attribution {
       for(String line : lines) {
         System.out.print("");
         if(!line.startsWith("cpu")) continue;
-        line = raw_reading.replace("  "," ");
+        line = line.replace("  "," ");
         String[] raw_core_reading = line.split(" ");
         if(raw_core_reading[0].equalsIgnoreCase("cpu")) continue;
         for (int jiff_index = 1; jiff_index < raw_core_reading.length; jiff_index++) {
