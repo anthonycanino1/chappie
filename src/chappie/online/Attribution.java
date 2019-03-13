@@ -117,6 +117,7 @@ public class Attribution {
 
       if(epoch%10==0) {
         int selected_epoch=epoch/10;
+	selected_epoch=(selected_epoch%epoch_no_staggered);
         jiff_group_epoch_socket_staggered[selected_epoch][0]=jiff_group_epoch_socket[epoch][0];
         jiff_group_epoch_socket_staggered[selected_epoch][1]=jiff_group_epoch_socket[epoch][1];
 
@@ -179,7 +180,8 @@ public class Attribution {
 
         if(tr.epoch%10==0) {
           int selected_epoch = tr.epoch/10;
-          int socket_index = tr.core_id/Chaperone.CORE_PER_SOCKETS;
+          selected_epoch = (selected_epoch%epoch_no_staggered);
+	  int socket_index = tr.core_id/Chaperone.CORE_PER_SOCKETS;
 
           if(!first_encountered) {
             previous_u=tr.user_jiffies;
@@ -197,8 +199,19 @@ public class Attribution {
           }
 
 
-          app_jiff_group_epoch_socket_staggered[selected_epoch][socket_index]+=tr.user_jiffies;
-          app_jiff_group_epoch_socket_staggered[selected_epoch][socket_index]+=tr.kernel_jiffies;
+          try {
+	  	app_jiff_group_epoch_socket_staggered[selected_epoch][socket_index]+=tr.user_jiffies;
+	        app_jiff_group_epoch_socket_staggered[selected_epoch][socket_index]+=tr.kernel_jiffies;
+	  } catch(Throwable thr) {
+		thr.printStackTrace();
+		System.out.println("++++++++++++++++++++++++++++++++++++++++++++++++++++");
+    		System.out.println("epochs no:"+ epochs_no);
+		System.out.println(selected_epoch);
+		System.out.println(socket_index);
+		System.out.println(app_jiff_group_epoch_socket_staggered.length);
+		System.out.println("++++++++++++++++++++++++++++++++++++++++++++++++++++");
+		
+	  }
 
         }
       }
