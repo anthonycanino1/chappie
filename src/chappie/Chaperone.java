@@ -21,6 +21,7 @@ package chappie;
 
 import chappie.online.Attribution;
 import chappie.online.OnlineTester;
+import chappie.online.ThreadEnergyAttribution;
 import chappie.util.*;
 
 import java.util.List;
@@ -87,6 +88,10 @@ public class Chaperone extends TimerTask {
   private boolean test_online_attribution;
 
   private Timer timer;
+  Attribution attrib;
+
+  //private Map<Integer, List<ThreadEnergyAttribution>> energyMap = new HashMap<Integer, List<ThreadEnergyAttribution>>();
+  private List<String> energyList= new ArrayList<String>();
 
   public Chaperone(Mode mode, int polling, int osRate, int jraplRate, boolean memory, boolean readJiffies,boolean test_online_attribution) {
     this.mode = mode;
@@ -110,7 +115,8 @@ public class Chaperone extends TimerTask {
       timer.scheduleAtFixedRate(this, 0, polling);
     }
 
-    Attribution.init_attribution(this);
+    attrib = new Attribution();
+    attrib.init_attribution(this);
 
 
   }
@@ -122,7 +128,7 @@ public class Chaperone extends TimerTask {
   private ArrayList<String> jiffies = new ArrayList<String>();
 
 
-    public int get_current_epoch() {
+  public int get_current_epoch() {
     return epoch;
   }
 
@@ -139,11 +145,11 @@ public class Chaperone extends TimerTask {
   }
 
   public List<List<Object>> get_thread_info(int start, int end)   {
-    return threads.subList(start, end+1);
+    return threads.subList(start*2, (end*2));
   }
 
   public List<List<Object>> get_energy_info(int start, int end) {
-    return energy.subList(start, end+1);
+    return energy.subList(start*2, end*2);
   }
 
   /**
@@ -225,7 +231,7 @@ public class Chaperone extends TimerTask {
             else
               measure.add(0.0);
 
-        		if (readMemory) measure.add(bean.getThreadAllocatedBytes(thread.getId()));
+            if (readMemory) measure.add(bean.getThreadAllocatedBytes(thread.getId()));
 
             threads.add(measure);
           } else if (thread != null) toRemove.add(thread);
@@ -257,12 +263,30 @@ public class Chaperone extends TimerTask {
         epoch++;
 
         if(test_online_attribution) {
-          if(epoch%10==0 && epoch>0) {
+          if(epoch%30==0 && epoch>0) {
             int start_ep = epoch-10;
             int end_ep = epoch;
-	    if(start_ep < end_ep) {
-		    Attribution.get_all_thread_attrib(start_ep, end_ep-1);
-	    }
+            if(start_ep < end_ep) {
+
+              Map<Integer, List<ThreadEnergyAttribution>> tempMap; // = new HashMap<Integer, List<ThreadEnergyAttribution>>();
+              tempMap = attrib.get_all_thread_attrib(start_ep, end_ep-1);
+              for(int i : tempMap.keySet()){
+                List<ThreadEnergyAttribution> teaList = tempMap.get(i);
+                for(ThreadEnergyAttribution tea : teaList){
+                  StringBuilder energyString = new StringBuilder();
+                  energyString.append(tea.getEpoch_no());
+                  energyString.append(",");
+                  energyString.append(tea.getCore_no());
+                  energyString.append(",");
+                  energyString.append(tea.getDram_energy());
+                  energyString.append(",");
+                  energyString.append(tea.getPkg_energy());
+                  energyString.append(",");
+                  energyString.append(tea.getTid());
+                  energyList.add(new String(energyString));
+                }
+              }
+            }
           }
         }
 
@@ -274,6 +298,9 @@ public class Chaperone extends TimerTask {
   }
 
   public void dismiss() {
+    /*for(String s : energyList){
+      System.out.println(s);
+      }*/
     if (mode != Mode.NOP) {
       terminate = true;
       while(!terminated) {
@@ -286,6 +313,10 @@ public class Chaperone extends TimerTask {
   }
 
   private void retire() {
+
+    /*for(String s : energyList){
+      System.out.println(s);
+      }*/
     PrintWriter log = null;
     String path = "chappie.runtime.csv";
     String message = "" + elapsedTime;
@@ -329,7 +360,7 @@ public class Chaperone extends TimerTask {
       message = "epoch,time,thread,pid,tid,core,u_jiffies,k_jiffies,state";
 
       if (readMemory)
-      message += ",bytes";
+        message += ",bytes";
 
       message += "\n";
 
@@ -339,7 +370,7 @@ public class Chaperone extends TimerTask {
 
         try {
           for (Object item: frame)
-          message += item.toString() + ",";
+            message += item.toString() + ",";
 
           message = message.substring(0, message.length() - 1);
           message += "\n";
@@ -356,10 +387,10 @@ public class Chaperone extends TimerTask {
       }
 
       if (readJiffies)
-	      for (String jiffy : jiffies)
-	        log.write(jiffy + "\n");
+        for (String jiffy : jiffies)
+          log.write(jiffy + "\n");
       else
-		      log.write("\n");
+        log.write("\n");
       log.close();
 
       path = "chappie.trace.csv";
@@ -388,18 +419,18 @@ public class Chaperone extends TimerTask {
     GLIBC.getProcessId();
     GLIBC.getThreadId();
 
-      boolean test_online_attribution=true;
-      try {
-          test_online_attribution = Boolean.parseBoolean(System.getenv("ONLINE_TEST"));
-      } catch(Exception e) { }
+    boolean test_online_attribution=true;
+    try {
+      test_online_attribution = Boolean.parseBoolean(System.getenv("ONLINE_TEST"));
+    } catch(Exception e) { }
 
 
-      int online_frequency = 0;
-      try {
-          online_frequency = Integer.parseInt(System.getenv("ONLINE_TEST_FREQUENCY"));
-      } catch(Exception exc) {
+    int online_frequency = 0;
+    try {
+      online_frequency = Integer.parseInt(System.getenv("ONLINE_TEST_FREQUENCY"));
+    } catch(Exception exc) {
 
-      }
+    }
 
 
 
@@ -446,12 +477,12 @@ public class Chaperone extends TimerTask {
 
     System.out.println("Number of Iterations : " + iterations);
     System.out.println("Chaperone Parameters:" +
-                        "\n - Mode:\t\t\t" + mode +
-                        "\n - Polling Rate:\t\t" + polling + " milliseconds" +
-                        "\n - OS Reading Factor:\t\t" + osRate +
-                        "\n - JRAPL Reading Factor:\t" + jraplRate +
-                        "\n - Memory Readings:\t\t" + readMemory +
-                        "\n - System Jiffies Readings:\t" + readJiffies);
+        "\n - Mode:\t\t\t" + mode +
+        "\n - Polling Rate:\t\t" + polling + " milliseconds" +
+        "\n - OS Reading Factor:\t\t" + osRate +
+        "\n - JRAPL Reading Factor:\t" + jraplRate +
+        "\n - Memory Readings:\t\t" + readMemory +
+        "\n - System Jiffies Readings:\t" + readJiffies);
 
     URLClassLoader loader;
 
@@ -479,17 +510,17 @@ public class Chaperone extends TimerTask {
           main.invoke(null, (Object)params.toArray(new String[params.size()]));
 
           /*if(test_online_attribution) {
-              OnlineTester onlineTester = new OnlineTester();
-              onlineTester.setChappie(chaperone);
-              onlineTester.setFrequency(online_frequency);
-              Thread tester_thread = new Thread(onlineTester);
-              tester_thread.setDaemon(true);
-              System.out.println("Online Attribution Testing Is Enabled. Stay Tuned!");
-              tester_thread.start();
+            OnlineTester onlineTester = new OnlineTester();
+            onlineTester.setChappie(chaperone);
+            onlineTester.setFrequency(online_frequency);
+            Thread tester_thread = new Thread(onlineTester);
+            tester_thread.setDaemon(true);
+            System.out.println("Online Attribution Testing Is Enabled. Stay Tuned!");
+            tester_thread.start();
 
-          }*/
+            }*/
 
-      	  System.out.println("==================================================");
+          System.out.println("==================================================");
           System.out.println(args[1] + " ran in " + String.format("%4f", (double)(System.nanoTime() - start) / 1000000000) + " seconds");
           System.out.println("Dismissing the chaperone");
           chaperone.dismiss();
@@ -512,6 +543,6 @@ public class Chaperone extends TimerTask {
 
 
 
-      Runtime.getRuntime().halt(0);
+    Runtime.getRuntime().halt(0);
   }
 }
