@@ -145,11 +145,24 @@ public class Chaperone extends TimerTask {
   }
 
   public List<List<Object>> get_thread_info(int start, int end)   {
-    return threads.subList(start*2, (end*2));
+
+    int index_start = 0;
+    int index_end = 0;
+    for(int i=0; i<threads.size(); i++){
+      int current = (int)(threads.get(i)).get(0);
+      if(current == start && index_start == 0)
+        index_start = i;
+      if(current == end)
+        index_end = i;
+
+      if(current > end)
+        break;
+    }
+    return threads.subList(index_start, index_end);
   }
 
   public List<List<Object>> get_energy_info(int start, int end) {
-    return energy.subList(start*2, end*2);
+    return energy.subList(start*2, (end*2)+1);
   }
 
   /**
@@ -264,12 +277,13 @@ public class Chaperone extends TimerTask {
 
         if(test_online_attribution) {
           if(epoch%30==0 && epoch>0) {
-            int start_ep = epoch-10;
+            int start_ep = epoch-30;
             int end_ep = epoch;
             if(start_ep < end_ep) {
-
+              System.out.println("Start:"+start_ep+":end:"+end_ep);
               Map<Integer, List<ThreadEnergyAttribution>> tempMap; // = new HashMap<Integer, List<ThreadEnergyAttribution>>();
               tempMap = attrib.get_all_thread_attrib(start_ep, end_ep-1);
+							//test_online_attribution = false;
               for(int i : tempMap.keySet()){
                 List<ThreadEnergyAttribution> teaList = tempMap.get(i);
                 for(ThreadEnergyAttribution tea : teaList){
