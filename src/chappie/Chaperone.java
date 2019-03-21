@@ -146,11 +146,11 @@ public class Chaperone extends TimerTask {
 
   public List<List<Object>> get_thread_info(int start, int end)   {
 
-    int index_start = 0;
+    int index_start = -1;
     int index_end = 0;
     for(int i=0; i<threads.size(); i++){
       int current = (int)(threads.get(i)).get(0);
-      if(current == start && index_start == 0)
+      if(current == start && index_start == -1)
         index_start = i;
       if(current == end)
         index_end = i;
@@ -162,7 +162,7 @@ public class Chaperone extends TimerTask {
   }
 
   public List<List<Object>> get_energy_info(int start, int end) {
-    return energy.subList(start*2, (end*2)+1);
+    return energy.subList(start*2, (end*2)+2);
   }
 
   /**
@@ -174,7 +174,21 @@ public class Chaperone extends TimerTask {
    * @param end Last epoch to fetch inclusive
    */
   public List<List<Object>> application_jiffies(int start, int end) {
-    return application.subList(start,end+1);
+    //return application.subList(start,end+1);
+     int index_start = -1;
+    int index_end = 0;
+    for(int i=0; i<threads.size(); i++){
+      int current = (int)(threads.get(i)).get(0);
+      if(current == start && index_start == -1)
+        index_start = i;
+      if(current == end)
+        index_end = i;
+
+      if(current > end)
+        break;
+    }
+    return application.subList(index_start, index_end);
+
   }
 
 
