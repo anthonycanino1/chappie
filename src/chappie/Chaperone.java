@@ -20,6 +20,7 @@
 package chappie;
 
 import chappie.monitor.JDK9Monitor;
+import chappie.monitor.NOPMonitor;
 import chappie.util.GLIBC;
 
 import java.util.ArrayList;
@@ -27,7 +28,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 public class Chaperone extends TimerTask {
-  public enum Mode {NOP, SAMPLE}
+  public enum Mode {NOP, NAIVE, FULL}
 
   int mainID;
 
@@ -44,7 +45,7 @@ public class Chaperone extends TimerTask {
 
   // Polling Monitor
   // this is the wrong name...what is it?
-  private JDK9Monitor monitor;
+  private JDK9Monitor monitor = null;
 
   public Chaperone(Mode mode, int polling) {
     mainID = GLIBC.getProcessId();
@@ -52,9 +53,8 @@ public class Chaperone extends TimerTask {
     this.mode = mode;
     this.polling = polling;
 
-    this.monitor = new JDK9Monitor();
-
     if (mode != Mode.NOP) {
+      this.monitor = new JDK9Monitor();
       timer = new Timer("Chaperone");
       timer.scheduleAtFixedRate(this, 0, polling);
     }
@@ -115,8 +115,12 @@ public class Chaperone extends TimerTask {
     }
 
     // write the output from the monitor
-    monitor.dump(start, activeness);
-
+    if (monitor != null)
+      monitor.dump(start, activeness);
+    else {
+      NOPMonitor dummy = new NOPMonitor();
+      dummy.dump(start, activeness);
+    }
     return true;
   }
 

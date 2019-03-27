@@ -51,24 +51,17 @@ export JARS="$CHAPPIE_PATH:$jar_path"
 # has to happen here because of honest profiler
 mkdir -p $CHAPPIE_DIRECTORY
 
-/home/timur/Projects/dev/build/linux-x86_64-normal-server-release/jdk/bin/java \
-        -Xbootclasspath/a:$CHAPPIE_PATH                                        \
-        -cp $CHAPPIE_PATH:$jar_url                                             \
-        -javaagent:$CHAPPIE_PATH                                               \
-        -agentpath:$hp_path=interval=4,logPath=$hp_log_path                    \
-        chappie.Main $jar_url $main_class $args $d_args
-
-# # ../../dev/build/linux-x86_64-normal-server-release/jdk/bin/java $5 -Xbootclasspath/a:$CHAPPIE_PATH:$7 -cp $JARS$7 $6 -javaagent:$CHAPPIE_PATH -agentpath:$dir/../src/async/build/liblagent.so=interval=4,logPath="${DIRECTORY}/chappie.stack${ITER}.csv" chappie.Chaperone9 $jar_url $3 $4
-#
-# # if [ $MODE == NOP ] || [ $MODE == NAIVE ]; then
-# #   # java $5 -Xbootclasspath/p:$CHAPPIE_PATH:$7 -cp $JARS$7 $6 -javaagent:$CHAPPIE_PATH chappie.Chaperone $jar_url $3 $4
-# #   ../../dev/build/linux-x86_64-normal-server-release/jdk/bin/java $5 -Xbootclasspath/a:$CHAPPIE_PATH:$7 -cp $JARS$7 $6 -javaagent:$CHAPPIE_PATH chappie.Chaperone9 $jar_url $3 $4
-# # else
-# #   # java $5 -Xbootclasspath/p:$CHAPPIE_PATH:$7 -cp $JARS$7 $6 -javaagent:$CHAPPIE_PATH -agentpath:$dir/../src/async/build/liblagent.so=interval=4,logPath=log.hpl chappie.Chaperone $jar_url $3 $4
-# #   ../../dev/build/linux-x86_64-normal-server-release/jdk/bin/java $5 -Xbootclasspath/a:$CHAPPIE_PATH:$7 -cp $JARS$7 $6 -javaagent:$CHAPPIE_PATH -agentpath:$dir/../src/async/build/liblagent.so=interval=4,logPath=$DIRECTORY/chappie.stack.csv chappie.Chaperone9 $jar_url $3 $4
-# # fi
-#
-# # echo 'Moving data to chappie.'${jar_name}
-# # mkdir chappie.$jar_name
-# # mv chappie.*.*.* chappie.$jar_name
-# # mv log.hpl chappie.$jar_name/log.0.hpl
+if [ $MODE == NOP ] || [ $MODE == NAIVE ]; then
+  /home/timur/Projects/dev/build/linux-x86_64-normal-server-release/jdk/bin/java \
+          -Xbootclasspath/a:$CHAPPIE_PATH                                        \
+          -cp $CHAPPIE_PATH:$jar_url                                             \
+          -javaagent:$CHAPPIE_PATH                                               \
+          chappie.Main $jar_url $main_class $args $d_args
+else
+  /home/timur/Projects/dev/build/linux-x86_64-normal-server-release/jdk/bin/java \
+          -Xbootclasspath/a:$CHAPPIE_PATH                                        \
+          -cp $CHAPPIE_PATH:$jar_url                                             \
+          -javaagent:$CHAPPIE_PATH                                               \
+          -agentpath:$hp_path=interval=4,logPath=$hp_log_path                    \
+          chappie.Main $jar_url $main_class $args $d_args
+fi

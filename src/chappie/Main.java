@@ -34,7 +34,7 @@ import java.util.ArrayList;
 public class Main {
   public static void main(String[] args) throws IOException {
     // should be handled by highest level call (benchmark, grid search)
-    Mode mode = Mode.SAMPLE;
+    Mode mode = Mode.FULL;
     try {
       mode = Mode.valueOf(System.getenv("MODE"));
     } catch(Exception e) { }

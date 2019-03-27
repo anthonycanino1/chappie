@@ -3,8 +3,15 @@
 # expected inputs:
 # ./dacapo_benchmark.sh <iters>
 
-rm -rf dacapo
-mkdir dacapo
+export MODE=FULL
+
+mkdir -p dacapo
+mkdir -p dacapo/reference
+
+path=dacapo/dacapo
+
+rm -rf $path
+mkdir $path
 
 benchmarks=(
 avrora
@@ -14,10 +21,9 @@ fop
 h2
 jython
 luindex
-lusearch
+lusearch-fix
 pmd
 sunflow
-tomcat
 tradebeans
 tradesoap
 xalan
@@ -31,10 +37,16 @@ if [ "$#" -eq  "1" ]
 fi
 
 for benchmark in "${benchmarks[@]}"; do
-  ./benchmark.sh "./dacapo.sh $benchmark" -i $iters -d dacapo/$benchmark
+  ./benchmark.sh "./dacapo.sh $benchmark" -i $iters -d $path/$benchmark
 done
 
 echo "=================================================="
 echo "Processing"
 echo "=================================================="
-./analysis.sh dacapo
+if [ $MODE == NOP ]; then
+  for benchmark in "${benchmarks[@]}"; do
+    ./analysis/nop_processing.py -path $path/$benchmark
+  done
+else
+  ./analysis.sh $path dacapo/reference/dacapo
+fi

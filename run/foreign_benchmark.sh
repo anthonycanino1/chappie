@@ -3,26 +3,29 @@
 # expected inputs:
 # ./foreign_benchmark.sh <iters>
 
-# rm -rf $directory/scratch
+export MODE=FULL
 
-# rm -rf dacapo_foreign
-# mkdir dacapo_foreign
+# mkdir -p
+
+path=dacapo/foreign
+
+rm -rf $path
+mkdir $path
 
 benchmarks=(
 avrora
 batik
 eclipse
-# fop
+fop
 h2
-# jython
-# luindex
-# lusearch
-# pmd
+jython
+luindex
+lusearch-fix
+pmd
 sunflow
-# tomcat
-# tradebeans
-# tradesoap
-# xalan
+tradebeans
+tradesoap
+xalan
 )
 
 export PARSECBIN=/home/acanino1/Projects/parsec-3.0/bin
@@ -37,11 +40,17 @@ if [ "$#" -eq  "1" ]
 fi
 
 for benchmark in "${benchmarks[@]}"; do
-  ./benchmark.sh "./foreign.sh \"./dacapo.sh $benchmark\" \"$PARSECBIN/parsecmgmt -a run -p ferret -i simlarge\"" -i $iters -d dacapo_foreign/$benchmark
+  ./benchmark.sh "./foreign.sh \"./dacapo.sh $benchmark\" \"$PARSECBIN/parsecmgmt -a run -p ferret -i simlarge\"" -i $iters -d $path/$benchmark
   rm -rf $directory/scratch
 done
 
 echo "=================================================="
 echo "Processing"
 echo "=================================================="
-./foreign_analysis.sh dacapo_foreign data/dacapo
+if [ $MODE == NOP ]; then
+  for benchmark in "${benchmarks[@]}"; do
+    ./analysis/nop_processing.py -path $path/$benchmark
+  done
+else
+  ./foreign_analysis.sh $path ./dacapo/reference/foreign ./dacapo/dacapo
+fi

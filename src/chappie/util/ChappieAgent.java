@@ -9,7 +9,7 @@ public class ChappieAgent {
   public static void premain(String agentArgs, Instrumentation inst) {
     inst.addTransformer(new ExitStopper(), true);
 
-    inst.addTransformer(new ThreadOSMapper());
+    // inst.addTransformer(new ThreadOSMapper());
 		try {
       inst.retransformClasses(new Class[] {java.lang.System.class, java.lang.Thread.class});
 		} catch(Exception exception) { }

@@ -5,6 +5,9 @@
 
 root=$1
 reference=$2
+method_reference=$3
+
+sudo rm -rf $root/summary
 
 for experiment in $root/*; do
   echo $experiment
@@ -14,15 +17,19 @@ for experiment in $root/*; do
   sudo rm -rf $experiment/benchmark_1/processed
   sudo rm -rf $experiment/benchmark_1/summary
   analysis/processing.py -path $experiment/benchmark_1
-  analysis/summarization.py -path $experiment/benchmark_1
-  analysis/correlation.py -path $experiment/benchmark_1 -reference $reference/$bench_name
+  # analysis/summarization.py -path $experiment/benchmark_1 -reference $reference/$bench_name
+  # analysis/correlation.py -path $experiment/benchmark_1 -reference $method_reference/$bench_name
+  analysis/summarization.py -path $experiment/benchmark_1 -reference $reference/$bench_names/benchmark_1
+  analysis/correlation.py -path $experiment/benchmark_1 -reference $method_reference/$bench_name
 
   bench_name=${bench_names##*_}
   sudo rm -rf $experiment/benchmark_2/processed
   sudo rm -rf $experiment/benchmark_2/summary
   analysis/processing.py -path $experiment/benchmark_2
-  analysis/summarization.py -path $experiment/benchmark_2
-  analysis/correlation.py -path $experiment/benchmark_2 -reference $reference/$bench_name
+  # analysis/summarization.py -path $experiment/benchmark_2 -reference $reference/$bench_name
+  # analysis/correlation.py -path $experiment/benchmark_2 -reference $method_reference/$bench_name
+  analysis/summarization.py -path $experiment/benchmark_2 -reference $reference/$bench_names/benchmark_2
+  analysis/correlation.py -path $experiment/benchmark_2 -reference $method_reference/$bench_name
 
   analysis/coapp_summarization.py -path $experiment
 done

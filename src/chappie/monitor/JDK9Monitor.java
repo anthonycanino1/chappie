@@ -71,12 +71,11 @@ public class JDK9Monitor {
     // helper due to the cold run problem we experienced around dacapo
     suffix = System.getenv("CHAPPIE_SUFFIX");
     suffix = suffix != null ? "." + suffix : "";
-
-    // System.out.println(suffix);
   }
 
   // Runtime data containers
   private ArrayList<ArrayList<Object>> threadData = new ArrayList<ArrayList<Object>>();
+  private ArrayList<ArrayList<Object>> idData = new ArrayList<ArrayList<Object>>();
   private ArrayList<String> jiffiesData = new ArrayList<String>();
   private ArrayList<ArrayList<Object>> energyData = new ArrayList<ArrayList<Object>>();
 
@@ -86,8 +85,8 @@ public class JDK9Monitor {
     // needed for method alignment
     long unixTime = System.currentTimeMillis();
 
-    // Read jiffies of the application
     if (epoch % threadInterval == 0) {
+      // Read jiffies of the application
       for (File f: new File("/proc/" + GLIBC.getProcessId() + "/task/").listFiles()) {
         measure = new ArrayList<Object>();
         int tid = Integer.parseInt(f.getName());
@@ -99,6 +98,27 @@ public class JDK9Monitor {
 
         threadData.add(measure);
       }
+
+      // Read the java ids of all live threads
+      ThreadGroup rootGroup = Thread.currentThread().getThreadGroup();
+      ThreadGroup parentGroup;
+      while ((parentGroup = rootGroup.getParent()) != null)
+          rootGroup = parentGroup;
+
+      Thread[] threads = new Thread[rootGroup.activeCount()];
+      while (rootGroup.enumerate(threads, true ) == threads.length)
+          threads = new Thread[threads.length * 2];
+
+      for (Thread thread: threads)
+        if (thread != null) {
+          measure = new ArrayList<Object>();
+
+          measure.add(epoch);
+          measure.add(thread.getName());
+          measure.add(thread.getId());
+
+          idData.add(measure);
+        }
     }
 
     // Read jiffies of system
@@ -147,6 +167,26 @@ public class JDK9Monitor {
     log.write(message);
 
     for (List<Object> frame: threadData) {
+      message = "";
+      for (Object item: frame)
+        message += item.toString() + ",";
+      message = message.substring(0, message.length() - 1);
+      message += "\n";
+      log.write(message);
+    }
+
+    log.close();
+
+    // id data
+    path = Paths.get(directory, "chappie.id" + suffix + ".csv").toString();
+    try {
+      log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
+    } catch (Exception io) { }
+
+    message = "epoch,thread,id\n";
+    log.write(message);
+
+    for (List<Object> frame: idData) {
       message = "";
       for (Object item: frame)
         message += item.toString() + ",";

@@ -21,6 +21,18 @@ def df_diff(df, by, values):
         df.groupby(by)[values].diff().fillna(0)
     ], axis = 1).drop(columns = [value + '_' for value in values])
 
+def filter_to_application(l):
+    if l == 'end':
+        return l
+    else:
+        while len(l) > 1:
+            if 'java' in l[0]:
+                l.pop()
+            else:
+                break
+
+        return ';'.join(l)
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-path', default = "chappie_test")
@@ -40,14 +52,15 @@ if __name__ == '__main__':
     runtime = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'runtime' in f])
 
     threads = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'thread' in f])
+    ids = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'id' in f])
     energies = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'energy' in f])
     jiffies = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'system' in f])
     stacks = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'stack' in f])
 
     activeness = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'activeness' in f])
 
-    for k, names in enumerate(zip(runtime, threads, energies, jiffies, stacks, activeness)):
-        runtime, thread, energy, jiffy, stack, activity = [pd.read_csv(f) if 'stack' not in f else pd.read_csv(f, header = None) for f in names]
+    for k, names in enumerate(zip(runtime, threads, ids, energies, jiffies, stacks, activeness)):
+        runtime, thread, id, energy, jiffy, stack, activity = [pd.read_csv(f) if 'stack' not in f else pd.read_csv(f, header = None) for f in names]
 
         # grab the runtime values
         application_runtime = runtime[runtime['name'] == 'runtime']['value']
@@ -58,10 +71,6 @@ if __name__ == '__main__':
         ########## ENERGY PROCESSING ##########
         # compute the differential energy
         start = time()
-        energy = pd.merge(energy, energy.groupby('socket').min(), on = 'socket', suffixes = ('', '_'))
-        energy['package'] -= energy['package_']
-        energy['dram'] -= energy['dram_']
-        energy = energy[['epoch', 'socket', 'package', 'dram']]
 
         energy = df_diff(energy, 'socket', ['package', 'dram'])
 
@@ -87,11 +96,7 @@ if __name__ == '__main__':
         jiffy['jiffies'] = sum(jiffy[col] for col in jiffy.columns if 'jiffies' in col)
         jiffy = jiffy.drop(columns = [col for col in jiffy.columns if 'jiffies' in col and col != 'jiffies']).reset_index()
 
-        jiffy = pd.merge(jiffy, jiffy.groupby('socket').min(), on = 'socket', suffixes = ('', '_')).reset_index()
-        jiffy['jiffies'] -= jiffy['jiffies_']
-        jiffy = df_diff(jiffy, 'socket', ['jiffies'])
-
-        jiffy = jiffy[['epoch', 'socket', 'jiffies']]
+        jiffy = df_diff(jiffy, 'socket', ['jiffies'])[['epoch', 'socket', 'jiffies']]
 
         print('{:.2f} seconds for jiffies'.format(time() - start))
 
@@ -111,7 +116,7 @@ if __name__ == '__main__':
 
         thread_records = thread['record'].str.split(' ').map(parse_stats_records)
 
-        with BytesIO() as record_data:
+        with StringIO() as record_data:
             writer(record_data).writerows(list(thread_records.values))
             record_data.seek(0)
             thread_records = pd.read_csv(record_data, header = None)
@@ -120,11 +125,6 @@ if __name__ == '__main__':
         thread = pd.concat([thread, thread_records], axis = 1)
         thread = thread[['epoch', 'timestamp', 'tid', 'thread', 'state', 'u_jiffies', 'k_jiffies', 'socket']]
         thread.loc[thread['tid'] == pid, 'thread'] = 'main'
-
-        # rescale jiffies to min
-        thread = pd.merge(thread, thread.groupby('tid').min(), on = 'tid', suffixes = ('', '_'))
-        thread['u_jiffies'] = thread['u_jiffies'] - thread['u_jiffies_']
-        thread['k_jiffies'] = thread['k_jiffies'] - thread['k_jiffies_']
 
         # get differential jiffies
         thread = df_diff(thread, 'tid', ['u_jiffies', 'k_jiffies'])
@@ -152,40 +152,34 @@ if __name__ == '__main__':
         thread['package'] = thread['package']
         thread['dram'] *= thread['state']
         thread['dram'] = thread['dram']
-        thread = thread[['epoch', 'timestamp', 'thread', 'socket', 'package', 'dram']]
+        thread = thread[['epoch', 'timestamp', 'thread', 'tid', 'socket', 'package', 'dram']]
 
-        thread.to_csv(os.path.join(args.destination, 'chappie.thread.{}.csv'.format(k)), index = False)
-        # thread = thread[['epoch', 'thread', 'timestamp', 'socket', 'package', 'dram']]
+        id = id[['thread', 'id']].drop_duplicates()
+        thread = pd.merge(thread, id, on = 'thread', how = 'left')[['epoch', 'timestamp', 'thread', 'tid', 'id', 'socket', 'package', 'dram']]
+        thread['id'] = thread['id'].fillna(-1).astype(int)
 
-        # TODO:
-        # revise this step after going over it with Anthony
-        # we could just bootstrap ruby right?
-
-        # stitch the methods in
         start = time()
 
-        thread_path = os.path.join(args.destination, 'chappie.thread.{}.csv'.format(k))
-        method_path = names[4]
-        # method_output_path = os.path.join(args.destination, 'chappie.method.{}.csv'.format(k))
+        stack.columns = ['thread', 'timestamp', 'id', 'stack']
+        df = pd.merge(thread, stack.reset_index(), on = 'thread', how = 'right', suffixes = ('', '_'))
+        df['diff'] = abs(df['timestamp'] - df['timestamp_'])
+        df = df.sort_values(['diff', 'index']).drop_duplicates(['epoch', 'thread']).drop_duplicates('index').sort_values('epoch')
+        df = df[['epoch', 'thread', 'stack']]
 
-        ruby_args = ['-c', thread_path , '-h' , method_path]
+        thread = pd.merge(thread, df, on = ['epoch', 'thread'], how = 'left')
+        thread['stack'] = thread['stack'].fillna('end').astype(str)
 
-        thread = subprocess.check_output(['./analysis/opt-align.rb'] + ruby_args)
-        thread = pd.read_csv(BytesIO(thread))
+        ## this is still having issues
+        # thread_path = os.path.join(args.destination, 'chappie.thread.{}.csv'.format(k))
+        # thread.to_csv(thread_path, index = False)
+        #
+        # method_path = names[4]
+        #
+        # ruby_args = ['-c', thread_path , '-h' , method_path]
+        #
+        # thread = subprocess.check_output(['./analysis/opt-align.rb'] + ruby_args)
+        # thread = pd.read_csv(BytesIO(thread))
 
-        def filter_to_application(l):
-            if l == 'end':
-                return l
-            else:
-                while len(l) > 1:
-                    if 'java' in l[0]:
-                        l.pop()
-                    else:
-                        break
-
-                return ';'.join(l)
-
-        # thread filtering goes here
         thread['all'] = thread['stack'].str.split(';').map(lambda x: 'end' if 'java' in x[0] else ';'.join(x))
         thread['unfiltered'] = thread['stack']
         thread['deep'] = thread['stack'].str.split(';').map(filter_to_application)
@@ -194,5 +188,5 @@ if __name__ == '__main__':
 
         print('{:.2f} seconds for methods'.format(time() - start))
 
-        # print(thread.head())
-        thread.to_csv(os.path.join(args.destination, 'chappie.thread.{}.csv'.format(k)), index = False)
+        thread_path = os.path.join(args.destination, 'chappie.thread.{}.csv'.format(k))
+        thread.to_csv(thread_path, index = False)

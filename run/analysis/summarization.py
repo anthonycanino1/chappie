@@ -34,6 +34,7 @@ chappie_names = (
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-path', default = "chappie_test")
+    parser.add_argument('-reference', default = "chappie_test")
     parser.add_argument('-destination', default = None)
     args = parser.parse_args()
 
@@ -47,9 +48,31 @@ if __name__ == '__main__':
 
     if not os.path.exists(args.destination):
         os.mkdir(args.destination)
+    args.reference = os.path.join(args.reference, 'processed')
 
     start = time()
-    size = len(os.listdir(args.path)) / 2
+    size = (len(os.listdir(args.path)) - 1) / 2
+
+    runtime = pd.read_csv(os.path.join(args.path, 'chappie.runtime.csv'), header = None)
+    runtime['experiment'] = 'experiment'
+
+    ref = pd.read_csv(os.path.join(args.reference, 'chappie.runtime.csv'), header = None)
+    ref['experiment'] = 'reference'
+
+    runtime = pd.concat([runtime, ref])
+    runtime.columns = ['value', 'experiment']
+
+    runtime = runtime.groupby('experiment').agg(['mean', 'std'])
+    runtime.columns = runtime.columns.droplevel()
+
+    ref = runtime['mean'][runtime.index == 'reference'].max()
+    runtime['overhead'] = np.abs(runtime['mean'] - ref) / ref
+    runtime['error'] = 1 - np.abs(runtime['mean'] - runtime['std']) / runtime['mean']
+
+    runtime.loc['experiment', 'mean'] = runtime.loc['reference', 'mean']
+    runtime.loc['experiment', 'std'] = runtime.loc['reference', 'std']
+
+    runtime.to_csv(os.path.join(args.destination, 'chappie.runtime.csv'))
 
     trace = pd.concat([pd.read_csv(os.path.join(args.path, f)) for f in os.listdir(args.path) if 'energy' in f])
     trace = trace.groupby(['socket'])[['package', 'dram']].sum() / size
@@ -76,6 +99,9 @@ if __name__ == '__main__':
 
     non_application_names = np.concatenate([names['thread'].unique() for names in (system_threads, jvm_threads, chappie_threads)])
     application_threads = thread[~thread['thread'].isin(non_application_names)]
+
+    # runtime['unique threads'] = application['thread'].unique()
+    # runtime['live threads'] = application.groupby('epoch')['thread'].unique().max() / 10
 
     system_stats = system_threads.groupby('socket').sum()[['package', 'dram']]
     system_stats.columns = ['system ' + col for col in system_stats.columns]
@@ -108,8 +134,11 @@ if __name__ == '__main__':
 
         tdfs = []
 
-        df['context'] = df[col].str.split(';').map(lambda x: ';'.join(x[:2]))
-        tdf = df.groupby('context')['energy'].agg(('sum', 'count')).reset_index()
+        df['method'] = df[col].str.split(';').map(lambda x: x[0])
+        df['context'] = df[col].str.split(';').map(lambda x: x[:2])
+        df['context'] = df['context'].map(lambda x: x[1] if isinstance(x, list) and len(x) > 1 else 'end')
+
+        tdf = df.groupby(['method', 'context'])['energy'].agg(('sum', 'count')).reset_index()
         tdf['sum'] /= tdf['sum'].sum()
         tdf['sum'] *= 100
         tdf['count'] /= tdf['count'].sum()
@@ -144,6 +173,11 @@ if __name__ == '__main__':
         dfs.append(df)
 
     method = pd.concat(dfs)
+
+    # filter away context pairs?
+    # runtime['methods'] = method['name'].unique()
+    # runtime.to_csv(os.path.join(args.destination, 'chappie.runtime.csv'))
+
     method.to_csv(os.path.join(args.destination, 'chappie.method.csv'), index = False)
 
     print('{:.2f} seconds for summary'.format(time() - start))

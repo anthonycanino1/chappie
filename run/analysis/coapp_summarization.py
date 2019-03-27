@@ -26,6 +26,7 @@ if __name__ == '__main__':
 
     summary = []
     correlation = []
+    runtime = []
     for f in os.listdir(args.path):
         if f != 'summary':
             df = pd.read_csv(os.path.join(args.path, f, 'summary', 'chappie.component.csv')).drop(columns = ['other application package', 'other application dram'])
@@ -37,8 +38,15 @@ if __name__ == '__main__':
             df['order'] = int(f.split('_')[-1])
             correlation.append(df)
 
+            df = pd.read_csv(os.path.join(args.path, f, 'summary', 'chappie.runtime.csv'))
+            df['order'] = int(f.split('_')[-1])
+            runtime.append(df)
+
     summary = pd.concat(summary)
     summary.to_csv(os.path.join(args.path, 'summary', 'chappie.component.csv'), index = False)
 
     correlation = pd.concat(correlation)
     correlation.to_csv(os.path.join(args.path, 'summary', 'chappie.correlation.csv'))
+
+    runtime = pd.concat(runtime)
+    runtime.to_csv(os.path.join(args.path, 'summary', 'chappie.runtime.csv'))
