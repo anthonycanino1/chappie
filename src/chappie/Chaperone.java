@@ -71,12 +71,13 @@ public class Chaperone extends TimerTask {
   private long start;
   private long elapsedTime = 0;
   private long chappieReadingTime = 0;
+  private boolean no_rapl;
 
   private Timer timer;
 
-  public Chaperone(Mode mode, int polling, int osRate, int jraplRate, boolean memory, boolean readJiffies) {
+  public Chaperone(Mode mode, int polling, int osRate, int jraplRate, boolean memory, boolean readJiffies, boolean no_rapl) {
     this.mode = mode;
-
+    this.no_rapl=no_rapl;
     this.polling = polling;
     this.osReadingFactor = osRate;
     this.jraplReadingFactor = jraplRate;
@@ -93,6 +94,10 @@ public class Chaperone extends TimerTask {
       timer = new Timer("Chaperone");
       timer.scheduleAtFixedRate(this, 0, polling);
     }
+
+   if(no_rapl) {
+	lastRAPLReading = new double[] {-2,-2,-2,-2,-2,-2};
+   }
   }
 
   // Runtime data containers
@@ -176,7 +181,8 @@ public class Chaperone extends TimerTask {
 
         jiffies.add(GLIBC.getJiffies(readJiffies && epoch % osReadingFactor == 0));
 
-        if (lastRAPLReading.length == 0 || epoch % jraplReadingFactor == 0)
+	
+	if (!no_rapl && (lastRAPLReading.length == 0 || epoch % jraplReadingFactor == 0))
           lastRAPLReading = jrapl.EnergyCheckUtils.getEnergyStats();
 
         chappieReadingTime = (System.nanoTime() - start) - elapsedTime;
@@ -324,6 +330,12 @@ public class Chaperone extends TimerTask {
         GLIBC.toAdd.add(thread);
       }
 
+    
+    boolean no_rapl=false;
+    try {
+	no_rapl = Boolean.parseBoolean(System.getenv("NO_RAPL"));
+    } catch(Exception exc) { }
+
     int iterations = 10;
     try {
       iterations = Integer.parseInt(System.getenv("ITERS"));
@@ -390,7 +402,7 @@ public class Chaperone extends TimerTask {
           System.out.println("==================================================");
 
           long start = System.nanoTime();
-          Chaperone chaperone = new Chaperone(mode, polling, osRate, jraplRate, readMemory, readJiffies);
+          Chaperone chaperone = new Chaperone(mode, polling, osRate, jraplRate, readMemory, readJiffies, no_rapl);
           main.invoke(null, (Object)params.toArray(new String[params.size()]));
 
       	  System.out.println("==================================================");
