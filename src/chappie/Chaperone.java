@@ -72,15 +72,17 @@ public class Chaperone extends TimerTask {
   private long elapsedTime = 0;
   private long chappieReadingTime = 0;
   private boolean no_rapl;
+  private boolean gem5_cmdline_dumpstats;
 
   private Timer timer;
 
-  public Chaperone(Mode mode, int polling, int osRate, int jraplRate, boolean memory, boolean readJiffies, boolean no_rapl) {
+  public Chaperone(Mode mode, int polling, int osRate, int jraplRate, boolean memory, boolean readJiffies, boolean no_rapl, boolean gem5_cmdline_dumpstats) {
     this.mode = mode;
     this.no_rapl=no_rapl;
     this.polling = polling;
     this.osReadingFactor = osRate;
     this.jraplReadingFactor = jraplRate;
+    this.gem5_cmdline_dumpstats = gem5_cmdline_dumpstats;
 
     this.readMemory = memory;
     this.readJiffies = readJiffies;
@@ -95,6 +97,7 @@ public class Chaperone extends TimerTask {
       timer.scheduleAtFixedRate(this, 0, polling);
     }
 
+   
    if(no_rapl) {
 	lastRAPLReading = new double[] {-2,-2,-2,-2,-2,-2};
    }
@@ -181,8 +184,18 @@ public class Chaperone extends TimerTask {
 
         jiffies.add(GLIBC.getJiffies(readJiffies && epoch % osReadingFactor == 0));
 
+
+       if(gem5_cmdline_dumpstats) {
+	Runtime rt = Runtime.getRuntime();
+	try {
+		Process pr = rt.exec("/sbin/m5 resetstats");	
+	} catch(Exception exc) {
+		exc.printStackTrace();
+	}
+       
+	}	
 	
-	if (!no_rapl && (lastRAPLReading.length == 0 || epoch % jraplReadingFactor == 0))
+       if (!no_rapl && (lastRAPLReading.length == 0 || epoch % jraplReadingFactor == 0))
           lastRAPLReading = jrapl.EnergyCheckUtils.getEnergyStats();
 
         chappieReadingTime = (System.nanoTime() - start) - elapsedTime;
@@ -336,6 +349,12 @@ public class Chaperone extends TimerTask {
 	no_rapl = Boolean.parseBoolean(System.getenv("NO_RAPL"));
     } catch(Exception exc) { }
 
+
+    boolean gem5_cmdline_dumpstats=false;
+    try {
+	gem5_cmdline_dumpstats = Boolean.parseBoolean(System.getenv("GEM5_CMDLINE_DUMPSTATS"));
+    } catch(Exception exc) { }
+
     int iterations = 10;
     try {
       iterations = Integer.parseInt(System.getenv("ITERS"));
@@ -402,7 +421,7 @@ public class Chaperone extends TimerTask {
           System.out.println("==================================================");
 
           long start = System.nanoTime();
-          Chaperone chaperone = new Chaperone(mode, polling, osRate, jraplRate, readMemory, readJiffies, no_rapl);
+          Chaperone chaperone = new Chaperone(mode, polling, osRate, jraplRate, readMemory, readJiffies, no_rapl, gem5_cmdline_dumpstats);
           main.invoke(null, (Object)params.toArray(new String[params.size()]));
 
       	  System.out.println("==================================================");
