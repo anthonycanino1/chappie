@@ -26,4 +26,6 @@ fi
 echo 'Moving data to chappie.'${jar_name}
 mkdir chappie.$jar_name
 mv chappie.*.*.* chappie.$jar_name
-mv log.hpl chappie.$jar_name/log.0.hpl
+mv chappie.online.csv chappie.$jar_name/chappie.online.0.csv
+#mv log.hpl chappie.$jar_name/log.0.hpl
+mv log.hpl chappie.$jar_name/log.hpl

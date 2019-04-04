@@ -89,11 +89,14 @@ public class Chaperone extends TimerTask {
 
   private Timer timer;
   Attribution attrib;
+  private double dram_total = 0.0;
+  private double package_total = 0.0;
 
   //private Map<Integer, List<ThreadEnergyAttribution>> energyMap = new HashMap<Integer, List<ThreadEnergyAttribution>>();
   private List<String> energyList= new ArrayList<String>();
+  int epoch_len = 10;
 
-  public Chaperone(Mode mode, int polling, int osRate, int jraplRate, boolean memory, boolean readJiffies,boolean test_online_attribution) {
+  public Chaperone(Mode mode, int polling, int osRate, int jraplRate, boolean memory, boolean readJiffies,boolean test_online_attribution, int epoch_len) {
     this.mode = mode;
 
     this.polling = polling;
@@ -103,6 +106,7 @@ public class Chaperone extends TimerTask {
     this.readMemory = memory;
     this.readJiffies = readJiffies;
     this.test_online_attribution = test_online_attribution;
+    this.epoch_len = epoch_len;
 
     this.epoch = 0;
 
@@ -290,8 +294,8 @@ public class Chaperone extends TimerTask {
         epoch++;
 
         if(test_online_attribution) {
-          if(epoch%30==0 && epoch>0) {
-            int start_ep = epoch-30;
+          if(epoch%epoch_len==0 && epoch>0) {
+            int start_ep = epoch-epoch_len ;
             int end_ep = epoch;
             if(start_ep < end_ep) {
               System.out.println("Start:"+start_ep+":end:"+end_ep);
@@ -312,6 +316,9 @@ public class Chaperone extends TimerTask {
                   energyString.append(",");
                   energyString.append(tea.getTid());
                   energyList.add(new String(energyString));
+
+                  dram_total += tea.getDram_energy();
+                  package_total += tea.getPkg_energy();
                 }
               }
             }
@@ -338,6 +345,8 @@ public class Chaperone extends TimerTask {
       }
     }
     retire();
+    System.out.println("FINAL TOTAL PACKAGE = "+package_total);
+    System.out.println("FINAL TOTAL DRAM = "+dram_total);
   }
 
   private void retire() {
@@ -348,6 +357,7 @@ public class Chaperone extends TimerTask {
     PrintWriter log = null;
     String path = "chappie.runtime.csv";
     String message = "" + elapsedTime;
+    System.out.println("ELAPSED TIME: "+ elapsedTime);
     try {
       log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
     } catch (Exception io) {
@@ -440,12 +450,38 @@ public class Chaperone extends TimerTask {
         log.write(message);
       }
       log.close();
+      
+      //Online Attrib
+      path = "chappie.online.csv";
+      try{
+        log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
+      } catch(Exception io) {
+        System.err.println("Error: " + io.getMessage());
+      }
+
+      message = "epoch,core,dram,package,tid\n";
+      log.write(message);
+      for(String s : energyList){
+				message = s;
+				message += "\n";
+      	log.write(message);
+      }
+      log.close();
+
     }
   }
 
   public static void main(String[] args) throws IOException {
     GLIBC.getProcessId();
     GLIBC.getThreadId();
+
+		int epoch_len = 10;
+		try {
+      epoch_len = Integer.parseInt(System.getenv("EPOCH_LENGTH"));
+	  } catch(Exception exc) {
+
+  	}
+
 
     boolean test_online_attribution=true;
     try {
@@ -534,7 +570,7 @@ public class Chaperone extends TimerTask {
           System.out.println("==================================================");
 
           long start = System.nanoTime();
-          Chaperone chaperone = new Chaperone(mode, polling, osRate, jraplRate, readMemory, readJiffies,test_online_attribution);
+          Chaperone chaperone = new Chaperone(mode, polling, osRate, jraplRate, readMemory, readJiffies,test_online_attribution, epoch_len);
           main.invoke(null, (Object)params.toArray(new String[params.size()]));
 
           /*if(test_online_attribution) {

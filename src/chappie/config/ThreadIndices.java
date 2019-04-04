@@ -19,5 +19,7 @@ public class ThreadIndices {
 	public static int SOCKET = 9;
 	public static int OS_STATE = 10;
 	public static int D_EPOCH = 11;
+  public static int PACKAGE = 12;
+	public static int DRAM = 13;
 
 }

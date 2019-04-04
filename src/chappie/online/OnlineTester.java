@@ -8,6 +8,7 @@ public class OnlineTester implements Runnable {
 
     private Chaperone chappie;
     private int frequency;
+    Attribution attrib = new Attribution();
 
     @Override
     public void run() {
@@ -19,7 +20,7 @@ public class OnlineTester implements Runnable {
                 exc.printStackTrace();
             }
             int end = chappie.get_current_epoch();
-            Attribution.get_all_thread_attrib(start, end-1);
+            attrib.get_all_thread_attrib(start, end-1);
         }
     }
 
