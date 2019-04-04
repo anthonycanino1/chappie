@@ -27,6 +27,7 @@ public class Attribution {
   private Chaperone chappie;
   int start_epoch;
   int end_epoch;
+  int epoch_len;
 
   public void init_attribution(Chaperone chapp) {
     chappie =  chapp;
@@ -36,9 +37,10 @@ public class Attribution {
   //Attribution attrib = new Attribution();
 
 
-  public Map<Integer, List<ThreadEnergyAttribution>> get_all_thread_attrib(int start, int end) {
+  public Map<Integer, List<ThreadEnergyAttribution>> get_all_thread_attrib(int start, int end, int epoch_len) {
     start_epoch = start;
     end_epoch = end;
+    this.epoch_len = epoch_len; 
     double[][] os_report = get_os_activeness(start_epoch, end_epoch);
     /*for( double[] d : os_report){
       for(double b: d){
@@ -257,7 +259,7 @@ public class Attribution {
 
   static final int RAPL_WRAP_AROUND = 16384;
   static final int JRAPL_FACTOR = 2;
-  int epoch_len = 10;
+  //int epoch_len = 10;
     /*try {
       epoch_len = Integer.parseInt(System.getenv("EPOCH_LENGTH"));
     } catch(Exception exc) {
@@ -268,11 +270,11 @@ public class Attribution {
   public Map<Integer, List<ThreadEnergyAttribution>> attributeEnergy(List<List<Object>> raw_thread,
       List<List<Object>> raw_trace, double[][] jiffy_dfs) {
 
-	try {
+	/*try {
       epoch_len = Integer.parseInt(System.getenv("EPOCH_LENGTH"));
     } catch(Exception exc) {
       //System.out.print();
-    }
+    }*/
     /*for( double[] d : jiffy_dfs){
       for(double b: d){
       System.out.println(b+"From attributeEnergy");
@@ -292,7 +294,8 @@ public class Attribution {
     //double activity[][] = new double[(int)(raw_thread.get(raw_thread.size() - 1).get(TraceIndices.EPOCH)) / 2 + 1][2];
     double packageEnergy[][] = new double[epoch_len][2];
     double dramEnergy[][] = new double[epoch_len][2];
-    double activity[][] = new double[epoch_len/2][2];
+    int size = epoch_len%2 == 0 ? epoch_len/2 : epoch_len/2+1;
+    double activity[][] = new double[size][2];
 
     int init = -1;
     /*

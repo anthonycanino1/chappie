@@ -91,6 +91,7 @@ public class Chaperone extends TimerTask {
   Attribution attrib;
   private double dram_total = 0.0;
   private double package_total = 0.0;
+  private int lastEpoch = 0;
 
   //private Map<Integer, List<ThreadEnergyAttribution>> energyMap = new HashMap<Integer, List<ThreadEnergyAttribution>>();
   private List<String> energyList= new ArrayList<String>();
@@ -179,7 +180,7 @@ public class Chaperone extends TimerTask {
    */
   public List<List<Object>> application_jiffies(int start, int end) {
     //return application.subList(start,end+1);
-     int index_start = -1;
+    int index_start = -1;
     int index_end = 0;
     for(int i=0; i<threads.size(); i++){
       int current = (int)(threads.get(i)).get(0);
@@ -297,11 +298,12 @@ public class Chaperone extends TimerTask {
           if(epoch%epoch_len==0 && epoch>0) {
             int start_ep = epoch-epoch_len ;
             int end_ep = epoch;
+            lastEpoch = end_ep;
             if(start_ep < end_ep) {
-              System.out.println("Start:"+start_ep+":end:"+end_ep);
+              //System.out.println("Start:"+start_ep+":end:"+end_ep);
               Map<Integer, List<ThreadEnergyAttribution>> tempMap; // = new HashMap<Integer, List<ThreadEnergyAttribution>>();
-              tempMap = attrib.get_all_thread_attrib(start_ep, end_ep-1);
-							//test_online_attribution = false;
+              tempMap = attrib.get_all_thread_attrib(start_ep, end_ep-1, epoch_len);
+              //test_online_attribution = false;
               for(int i : tempMap.keySet()){
                 List<ThreadEnergyAttribution> teaList = tempMap.get(i);
                 for(ThreadEnergyAttribution tea : teaList){
@@ -336,6 +338,39 @@ public class Chaperone extends TimerTask {
     /*for(String s : energyList){
       System.out.println(s);
       }*/
+    int start_ep = lastEpoch ;
+    int end_ep = epoch;
+    int new_epoch_len = (end_ep - start_ep) ;
+    end_ep = new_epoch_len%2 == 0 ? new_epoch_len : new_epoch_len-1;
+    if(test_online_attribution){
+      if(start_ep < end_ep) {
+        //System.out.println("Start:"+start_ep+":end:"+end_ep);
+
+        Map<Integer, List<ThreadEnergyAttribution>> tempMap; // = new HashMap<Integer, List<ThreadEnergyAttribution>>();
+        tempMap = attrib.get_all_thread_attrib(start_ep, end_ep, new_epoch_len);
+        //test_online_attribution = false;
+        for(int i : tempMap.keySet()){
+          List<ThreadEnergyAttribution> teaList = tempMap.get(i);
+          for(ThreadEnergyAttribution tea : teaList){
+            StringBuilder energyString = new StringBuilder();
+            energyString.append(tea.getEpoch_no());
+            energyString.append(",");
+            energyString.append(tea.getCore_no());
+            energyString.append(",");
+            energyString.append(tea.getDram_energy());
+            energyString.append(",");
+            energyString.append(tea.getPkg_energy());
+            energyString.append(",");
+            energyString.append(tea.getTid());
+            energyList.add(new String(energyString));
+
+            dram_total += tea.getDram_energy();
+            package_total += tea.getPkg_energy();
+          }
+        }
+      }
+    }
+
     if (mode != Mode.NOP) {
       terminate = true;
       while(!terminated) {
@@ -450,7 +485,7 @@ public class Chaperone extends TimerTask {
         log.write(message);
       }
       log.close();
-      
+
       //Online Attrib
       path = "chappie.online.csv";
       try{
@@ -462,9 +497,9 @@ public class Chaperone extends TimerTask {
       message = "epoch,core,dram,package,tid\n";
       log.write(message);
       for(String s : energyList){
-				message = s;
-				message += "\n";
-      	log.write(message);
+        message = s;
+        message += "\n";
+        log.write(message);
       }
       log.close();
 
@@ -475,12 +510,12 @@ public class Chaperone extends TimerTask {
     GLIBC.getProcessId();
     GLIBC.getThreadId();
 
-		int epoch_len = 10;
-		try {
+    int epoch_len = 10;
+    try {
       epoch_len = Integer.parseInt(System.getenv("EPOCH_LENGTH"));
-	  } catch(Exception exc) {
+    } catch(Exception exc) {
 
-  	}
+    }
 
 
     boolean test_online_attribution=true;
