@@ -602,6 +602,7 @@ public class Chaperone extends TimerTask {
           System.out.println("Iteration " + (i + 1));
           System.out.println("Running " + args[1] + ".main");
           System.out.println("Arguments: " + params.toString());
+          System.out.println("Online Attribution: " + test_online_attribution);
           System.out.println("==================================================");
 
           long start = System.nanoTime();
