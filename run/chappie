@@ -12,11 +12,13 @@ case $1 in
   -b) benchmark=$2;;
 esac
 
+echo $CHAPPIE_PATH
+
 if [ $benchmark == "dacapo" ]; then
-  # $CHAPPIE_PATH/run/util/dacapo/single.sh -m NOP
-  # $CHAPPIE_PATH/run/util/dacapo/single.sh
-  $CHAPPIE_PATH/run/util/dacapo/coapp.sh -m NOP
-  $CHAPPIE_PATH/run/util/dacapo/coapp.sh
+  $CHAPPIE_PATH/run/util/dacapo/single.sh -m NOP
+  $CHAPPIE_PATH/run/util/dacapo/single.sh
+  # $CHAPPIE_PATH/run/util/dacapo/coapp.sh -m NOP
+  # $CHAPPIE_PATH/run/util/dacapo/coapp.sh
   # $CHAPPIE_PATH/run/util/dacapo/foreign.sh -m NOP
   # $CHAPPIE_PATH/run/util/dacapo/foreign.sh
 fi

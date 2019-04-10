@@ -3,7 +3,7 @@
 # expected inputs:
 # ./dacapo_callback_benchmark.sh -m <mode>
 
-export CHAPPIE_PATH=/home/timur/Projects/chappie
+# export CHAPPIE_PATH=/home/timur/Projects/chappie
 
 benchmarks=(
 # avrora
@@ -38,9 +38,9 @@ fi
 
 mkdir -p $path
 
-# for benchmark in "${benchmarks[@]}"; do
-#   $CHAPPIE_PATH/run/util/dacapo/dacapo.sh $benchmark -d $path/$benchmark
-# done
+for benchmark in "${benchmarks[@]}"; do
+  $CHAPPIE_PATH/run/util/dacapo/dacapo.sh $benchmark -d $path/$benchmark
+done
 
 echo "=================================================="
 echo "Processing"
