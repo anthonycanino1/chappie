@@ -143,7 +143,7 @@ public class JDK9Monitor {
     }
   }
 
-  public void dump(long start, List<Double> activeness) {
+  public void dump(long start, List<Double> activeness, int mainID) {
     // runtime stats
     PrintWriter log = null;
 
@@ -153,7 +153,8 @@ public class JDK9Monitor {
     } catch (Exception io) { }
 
     long runtime = System.nanoTime() - start;
-    String message = "name,value\nruntime," + runtime + "\nmain_id," + GLIBC.getThreadId();
+    String message = "name,value\nruntime," + runtime + "\nmain_id," + mainID;
+
     log.write(message);
     log.close();
 

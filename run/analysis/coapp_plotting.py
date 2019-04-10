@@ -51,7 +51,7 @@ if __name__ == '__main__':
 
         runtime[benchmark]['benchmark'] = benchmark
 
-    summary = pd.concat(summary.values()).sort_values(['Benchmark', 'Order']).sort_values('benchmark')
+    summary = pd.concat(summary.values()).sort_values(['Benchmark', 'Order'])
     print(summary)
 
     ax = None

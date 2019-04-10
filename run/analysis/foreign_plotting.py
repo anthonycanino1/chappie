@@ -47,9 +47,9 @@ if __name__ == '__main__':
         summary[benchmark] = summary[benchmark][-4:]
         summary[benchmark].index = summary[benchmark].index.str.title()
 
-        runtime[benchmark]['benchmark'] = benchmark
+        runtime[benchmark]['Benchmark'] = benchmark
 
-    summary = pd.concat(summary.values(), axis = 1).T.sort_values('benchmark')
+    summary = pd.concat(summary.values(), axis = 1).T.sort_values('Benchmark')
     print(summary)
 
     ax = None
@@ -92,7 +92,7 @@ if __name__ == '__main__':
 
     # overhead
     runtime = pd.concat(runtime.values())
-    runtime = runtime[runtime['experiment'] != 'reference'].sort_values('benchmark')[['benchmark', 'mean', 'std', 'overhead', 'error']]
+    runtime = runtime[runtime['experiment'] != 'reference'].sort_values('Benchmark')[['Benchmark', 'mean', 'std', 'overhead', 'error']]
     runtime.columns = ['benchmark', 'base runtime', 'deviation', 'overhead', 'error']
     runtime[['overhead', 'error']] *= 100
     runtime['overhead'] = runtime['overhead'].map('{:.2f}%'.format)

@@ -27,7 +27,7 @@ if __name__ == '__main__':
     if not os.path.exists(args.destination):
         os.mkdir(args.destination)
 
-    runtime = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'runtime' in f])
+    runtime = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'runtime' in f])[5:]
 
     for f in runtime:
         runtime = pd.read_csv(f)

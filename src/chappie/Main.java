@@ -19,7 +19,7 @@
 
 package chappie;
 
-import chappie.Chaperone.Mode;
+import chappie.Chaperone.ChappieMode;
 import chappie.util.GLIBC;
 
 import java.lang.reflect.Method;
@@ -34,9 +34,9 @@ import java.util.ArrayList;
 public class Main {
   public static void main(String[] args) throws IOException {
     // should be handled by highest level call (benchmark, grid search)
-    Mode mode = Mode.FULL;
+    ChappieMode mode = ChappieMode.FULL;
     try {
-      mode = Mode.valueOf(System.getenv("MODE"));
+      mode = ChappieMode.valueOf(System.getenv("MODE"));
     } catch(Exception e) { }
 
     int polling = 4;

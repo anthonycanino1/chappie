@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# expected inputs:
+# ./chappie -b <benchmark>
+
+dir=`dirname "$0"`
+
+export CHAPPIE_PATH=$dir/..
+export CHAPPIE_JAR=$CHAPPIE_PATH/chappie.jar
+
+case $1 in
+  -b) benchmark=$2;;
+esac
+
+if [ $benchmark == "dacapo" ]; then
+  # $CHAPPIE_PATH/run/util/dacapo/single.sh -m NOP
+  # $CHAPPIE_PATH/run/util/dacapo/single.sh
+  $CHAPPIE_PATH/run/util/dacapo/coapp.sh -m NOP
+  $CHAPPIE_PATH/run/util/dacapo/coapp.sh
+  # $CHAPPIE_PATH/run/util/dacapo/foreign.sh -m NOP
+  # $CHAPPIE_PATH/run/util/dacapo/foreign.sh
+fi

@@ -30,6 +30,7 @@ if __name__ == '__main__':
     for f in os.listdir(args.path):
         if f != 'summary':
             df = pd.read_csv(os.path.join(args.path, f, 'summary', 'chappie.component.csv')).drop(columns = ['other application package', 'other application dram'])
+            print(f)
             df['order'] = int(f.split('_')[-1])
             summary.append(df.drop(columns = ['total package', 'total dram']))
 

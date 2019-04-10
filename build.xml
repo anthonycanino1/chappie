@@ -10,13 +10,15 @@
   </target>
 
 	<target name="clean" depends="init" description="Remove build files created this scripts">
-    <exec executable="/usr/bin/make"><arg value="-C"/><arg value="src/async"/><arg value="clean"/></exec>
-		<exec executable="/usr/bin/make"><arg value="-C"/><arg value="vendor/jrapl-port"/><arg value="clean"/></exec>
-		<delete dir="${build.dir}" />
-		<delete file="chappie.jar" />
+    <!-- <exec executable="/usr/bin/make"><arg value="-C"/><arg value="src/async"/><arg value="clean"/></exec>
+		<exec executable="/usr/bin/make"><arg value="-C"/><arg value="vendor/jrapl-port"/><arg value="clean"/></exec> -->
+		<delete dir="${build.dir}"/>
+		<delete file="chappie.jar"/>
   </target>
 
 	<path id="project.class.path">
+		<pathelement path="vendor/dacapo-9.12-MR1-bach.jar"/>
+		<!-- <pathelement path="/home/timur/Projects/benchmark_jars/dacapo-9.12-bach.jar"/> -->
 		<pathelement path="vendor/jrapl-port/classes"/>
 		<pathelement path="vendor/jna-4.5.0.jar"/>
 		<pathelement path="vendor/jna-platform-4.5.0.jar"/>
@@ -24,27 +26,28 @@
 	</path>
 
 	<target name="compile" depends="init" description="Compile source">
-    <exec executable="/usr/bin/cmake"><arg value="src/async/CMakeLists.txt"/></exec>
+    <!-- <exec executable="/usr/bin/cmake"><arg value="src/async/CMakeLists.txt"/></exec>
     <exec executable="/usr/bin/make"><arg value="-C"/><arg value="src/async"/></exec>
-		<exec executable="/usr/bin/make"><arg value="-C"/><arg value="vendor/jrapl-port"/><arg value="jrapl"/></exec>
-		<mkdir dir="${build.classes.dir}" />
+		<exec executable="/usr/bin/make"><arg value="-C"/><arg value="vendor/jrapl-port"/><arg value="jrapl"/></exec> -->
+		<mkdir dir="${build.classes.dir}"/>
     <javac
       source="1.8" target="1.8"
       srcdir="${src.dir}"
       destdir="${build.classes.dir}"
-      debug="on"
 			classpathref="project.class.path">
     </javac>
 	</target>
 
   <target name="jar" depends="compile">
 		<jar jarfile="${runtime.jar}" manifest="manifest.txt">
+		<!-- <jar jarfile="${runtime.jar}"> -->
 			<fileset dir="src/" includes="chappie/**/*.so" />
 			<fileset dir="build/classes" includes="chappie/**/*.class" />
 			<fileset dir="build/classes" includes="*.class" />
 			<fileset dir="vendor/jrapl-port/classes" includes="jrapl/**/*.class" />
 			<fileset dir="vendor/jrapl-port/classes" includes="jrapl/**/*.so" />
 			<zipgroupfileset dir="vendor" includes="*.jar"/>
+			<!-- <zipgroupfileset dir="/home/timur/Projects/benchmark_jars" includes="dacapo-9.12-bach.jar"/> -->
 		</jar>
   </target>
 </project>

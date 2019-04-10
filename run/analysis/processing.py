@@ -49,15 +49,19 @@ if __name__ == '__main__':
     if not os.path.exists(args.destination):
         os.mkdir(args.destination)
 
-    runtime = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'runtime' in f])
+    runtime = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'runtime' in f])[5:]
 
-    threads = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'thread' in f])
-    ids = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'id' in f])
-    energies = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'energy' in f])
-    jiffies = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'system' in f])
-    stacks = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'stack' in f])
+    threads = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'thread' in f])[5:]
+    ids = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'id' in f])[5:]
+    energies = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'energy' in f])[5:]
+    jiffies = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'system' in f])[5:]
+    if os.path.exists(os.path.join(args.path, 'chappie.stack.csv')):
+        stacks = len(jiffies) * [os.path.join(args.path, 'chappie.stack.csv')]
+        # np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'stack' in f])
+    else:
+        stacks = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'stack' in f])[5:]
 
-    activeness = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'activeness' in f])
+    activeness = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'activeness' in f])[5:]
 
     for k, names in enumerate(zip(runtime, threads, ids, energies, jiffies, stacks, activeness)):
         runtime, thread, id, energy, jiffy, stack, activity = [pd.read_csv(f) if 'stack' not in f else pd.read_csv(f, header = None) for f in names]
@@ -161,6 +165,7 @@ if __name__ == '__main__':
         start = time()
 
         stack.columns = ['thread', 'timestamp', 'id', 'stack']
+        stack = stack[(stack['timestamp'] >= thread['timestamp'].min()) & (stack['timestamp'] <= thread['timestamp'].max())]
         df = pd.merge(thread, stack.reset_index(), on = 'thread', how = 'right', suffixes = ('', '_'))
         df['diff'] = abs(df['timestamp'] - df['timestamp_'])
         df = df.sort_values(['diff', 'index']).drop_duplicates(['epoch', 'thread']).drop_duplicates('index').sort_values('epoch')
@@ -185,6 +190,7 @@ if __name__ == '__main__':
         thread['deep'] = thread['stack'].str.split(';').map(filter_to_application)
 
         thread = thread.drop(columns = ['stack']).sort_values('epoch')
+        thread = thread.sort_values('epoch')
 
         print('{:.2f} seconds for methods'.format(time() - start))
 

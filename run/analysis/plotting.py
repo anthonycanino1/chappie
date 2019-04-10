@@ -44,58 +44,58 @@ if __name__ == '__main__':
     for benchmark in benchmarks:
         if not os.path.exists(os.path.join(args.destination, benchmark)):
             os.mkdir(os.path.join(args.destination, benchmark))
-        import matplotlib.pyplot as plt
-        for col in ('all', 'unfiltered', 'deep'):
-            col_df = method[benchmark][method[benchmark].type == col]
-
-            df = col_df[col_df.level == 'context']
-            df['method'] = df['name'].str.split(';').map(lambda x: x[0])
-            df['context'] = df['name'].str.split(';').map(lambda x: x[1] if len(x) > 1 else 'end')
-            top = df.groupby('method')['Energy'].sum().head(10)
-
-            for md, group in df.groupby('method'):
-                if md in top:
-                    group['Energy'] /= group['Energy'].sum()
-                    group['Energy'] = group['Energy'].fillna(1)
-                    group.plot(title = md, y = 'Energy', kind = 'pie', labels = None, figsize = (4, 4))
-                    plt.legend(labels = group['context'], prop = {'size': 9}, loc = 2)
-
-                    md = md.replace('<', '')
-                    md = md.replace('>', '')
-                    plt.savefig(os.path.join(args.destination, benchmark, '{}_{}_context.svg'.format(md, col)), bbox_inches = 'tight')
-                    plt.close()
-
-            for type in ('method', 'class', 'package'):
-                df = col_df[col_df.level == type].sort_values('Energy', ascending = False).head(10)
-
-                x = np.array(df['name'])
-                if type == 'method':
-                    ax = df.plot(kind='barh', x='name', y=['Energy','Time'], width=0.3, figsize=(6, 3.5))
-                else:
-                    ax = df.plot(kind='barh', x='name', y='Energy', width=0.3, color = 'tab:blue', figsize=(6, 3.5))
-
-                ax.set_yticklabels([])
-                ax.invert_yaxis()
-                ax.tick_params(
-                    axis='y', # changes apply to the x-axis
-                    which='both', # both major and minor ticks are affected
-                    bottom=False, # ticks along the bottom edge are off
-                    top=False, # ticks along the top edge are off
-                    labelbottom=False # labels along the bottom edge are off
-                )
-
-                for i, v in enumerate(x):
-                    try:
-                        ax.text(0, i - .20, str('  ' + v), color='black', fontsize = 8)
-                    except:
-                        pass
-
-                plt.ylabel('',fontsize=12)
-                plt.xlabel('',fontsize=12)
-                plt.tight_layout()
-
-                plt.savefig(os.path.join(args.destination, benchmark, '{}_{}_bar.svg'.format(col, type)), bbox_inches = 'tight')
-                plt.close()
+        # import matplotlib.pyplot as plt
+        # for col in ('all', 'unfiltered', 'deep'):
+        #     col_df = method[benchmark][method[benchmark].type == col]
+        #
+        #     df = col_df[col_df.level == 'context']
+        #     df['method'] = df['name'].str.split(';').map(lambda x: x[0])
+        #     df['context'] = df['name'].str.split(';').map(lambda x: x[1] if len(x) > 1 else 'end')
+        #     top = df.groupby('method')['Energy'].sum().head(10)
+        #
+        #     for md, group in df.groupby('method'):
+        #         if md in top:
+        #             group['Energy'] /= group['Energy'].sum()
+        #             group['Energy'] = group['Energy'].fillna(1)
+        #             group.plot(title = md, y = 'Energy', kind = 'pie', labels = None, figsize = (4, 4))
+        #             plt.legend(labels = group['context'], prop = {'size': 9}, loc = 2)
+        #
+        #             md = md.replace('<', '')
+        #             md = md.replace('>', '')
+        #             plt.savefig(os.path.join(args.destination, benchmark, '{}_{}_context.svg'.format(md, col)), bbox_inches = 'tight')
+        #             plt.close()
+        #
+        #     for type in ('method', 'class', 'package'):
+        #         df = col_df[col_df.level == type].sort_values('Energy', ascending = False).head(10)
+        #
+        #         x = np.array(df['name'])
+        #         if type == 'method':
+        #             ax = df.plot(kind='barh', x='name', y=['Energy','Time'], width=0.3, figsize=(6, 3.5))
+        #         else:
+        #             ax = df.plot(kind='barh', x='name', y='Energy', width=0.3, color = 'tab:blue', figsize=(6, 3.5))
+        #
+        #         ax.set_yticklabels([])
+        #         ax.invert_yaxis()
+        #         ax.tick_params(
+        #             axis='y', # changes apply to the x-axis
+        #             which='both', # both major and minor ticks are affected
+        #             bottom=False, # ticks along the bottom edge are off
+        #             top=False, # ticks along the top edge are off
+        #             labelbottom=False # labels along the bottom edge are off
+        #         )
+        #
+        #         for i, v in enumerate(x):
+        #             try:
+        #                 ax.text(0, i - .20, str('  ' + v), color='black', fontsize = 8)
+        #             except:
+        #                 pass
+        #
+        #         plt.ylabel('',fontsize=12)
+        #         plt.xlabel('',fontsize=12)
+        #         plt.tight_layout()
+        #
+        #         plt.savefig(os.path.join(args.destination, benchmark, '{}_{}_bar.svg'.format(col, type)), bbox_inches = 'tight')
+        #         plt.close()
 
         summary[benchmark] = summary[benchmark].drop(columns = ['total package', 'total dram']).rename(columns = {
             'other application package': 'other package',

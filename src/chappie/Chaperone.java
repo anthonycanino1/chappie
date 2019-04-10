@@ -28,12 +28,12 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 public class Chaperone extends TimerTask {
-  public enum Mode {NOP, NAIVE, FULL}
+  public enum ChappieMode {NOP, NAIVE, FULL}
 
   int mainID;
 
   // Chaperone Parameters
-  private Mode mode;
+  private ChappieMode mode;
   private int polling;
 
   // Metrics
@@ -47,13 +47,13 @@ public class Chaperone extends TimerTask {
   // this is the wrong name...what is it?
   private JDK9Monitor monitor = null;
 
-  public Chaperone(Mode mode, int polling) {
+  public Chaperone(ChappieMode mode, int polling) {
     mainID = GLIBC.getProcessId();
 
     this.mode = mode;
     this.polling = polling;
 
-    if (mode != Mode.NOP) {
+    if (mode != ChappieMode.NOP) {
       this.monitor = new JDK9Monitor();
       timer = new Timer("Chaperone");
       timer.scheduleAtFixedRate(this, 0, polling);
@@ -81,7 +81,7 @@ public class Chaperone extends TimerTask {
   public void run() {
     // Check if we need to stop
     if (!terminate) {
-      // set this epoch and cache last epoch's nano timestamp
+      // set this epoch and cache last epoch's ns timestamp
       long lastEpochTime = elapsedTime;
       elapsedTime = System.nanoTime() - start;
       lastEpochTime = elapsedTime - lastEpochTime;
@@ -95,6 +95,7 @@ public class Chaperone extends TimerTask {
       activeness.add((double)chappieReadingTime / lastEpochTime);
 
       epoch++;
+      // currentEpoch = epoch;
     } else {
       // stop ourselves before letting everything know we're done
       timer.cancel();
@@ -104,7 +105,7 @@ public class Chaperone extends TimerTask {
 
   @Override
   public boolean cancel() {
-    if (mode != Mode.NOP) {
+    if (mode != ChappieMode.NOP) {
       // use the double flag to kill the process from in here
       terminate = true;
       while(!terminated) {
@@ -116,7 +117,7 @@ public class Chaperone extends TimerTask {
 
     // write the output from the monitor
     if (monitor != null)
-      monitor.dump(start, activeness);
+      monitor.dump(start, activeness, mainID);
     else {
       NOPMonitor dummy = new NOPMonitor();
       dummy.dump(start, activeness);
