@@ -10,8 +10,8 @@
   </target>
 
 	<target name="clean" depends="init" description="Remove build files created this scripts">
-    <!-- <exec executable="/usr/bin/make"><arg value="-C"/><arg value="src/async"/><arg value="clean"/></exec>
-		<exec executable="/usr/bin/make"><arg value="-C"/><arg value="vendor/jrapl-port"/><arg value="clean"/></exec> -->
+    <exec executable="/usr/bin/make"><arg value="-C"/><arg value="src/async"/><arg value="clean"/></exec>
+		<exec executable="/usr/bin/make"><arg value="-C"/><arg value="vendor/jrapl-port"/><arg value="clean"/></exec>
 		<delete dir="${build.dir}"/>
 		<delete file="chappie.jar"/>
   </target>
@@ -26,9 +26,9 @@
 	</path>
 
 	<target name="compile" depends="init" description="Compile source">
-    <!-- <exec executable="/usr/bin/cmake"><arg value="src/async/CMakeLists.txt"/></exec>
+    <exec executable="/usr/bin/cmake"><arg value="src/async/CMakeLists.txt"/></exec>
     <exec executable="/usr/bin/make"><arg value="-C"/><arg value="src/async"/></exec>
-		<exec executable="/usr/bin/make"><arg value="-C"/><arg value="vendor/jrapl-port"/><arg value="jrapl"/></exec> -->
+		<exec executable="/usr/bin/make"><arg value="-C"/><arg value="vendor/jrapl-port"/><arg value="jrapl"/></exec>
 		<mkdir dir="${build.classes.dir}"/>
     <javac
       source="1.8" target="1.8"
