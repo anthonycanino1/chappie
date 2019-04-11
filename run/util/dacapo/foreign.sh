@@ -4,19 +4,19 @@
 # ./foreign_benchmark.sh -m <mode>
 
 benchmarks=(
-avrora
+# avrora
 # batik
 # eclipse
 # fop
 h2
-jython
+# jython
 # luindex
 # lusearch-fix
-pmd
-sunflow
-tradebeans
-tradesoap
-xalan
+# pmd
+# sunflow
+# tradebeans
+# tradesoap
+# xalan
 )
 
 export PARSECBIN=/david.cs.binghamton.edu/home/acanino1/Projects/parsec-3.0/bin
@@ -31,9 +31,9 @@ mkdir -p dacapo
 mkdir -p dacapo/reference
 
 if [ $MODE == NOP ]; then
-  path=dacapo/reference/coapp
+  path=dacapo/reference/foreign
 else
-  path=dacapo/coapp
+  path=dacapo/foreign
 fi
 
 mkdir $path

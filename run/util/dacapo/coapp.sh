@@ -4,13 +4,14 @@
 # ./coapp_callback_benchmark.sh -m <mode>
 
 benchmarks=(
-"avrora_avrora"
+# "avrora_avrora"
 "h2_h2"
-"jython_jython"
-"avrora_tradebeans"
-"h2_tradebeans"
-"avrora_tradesoap"
-"h2_tradesoap"
+# "jython_jython"
+# "avrora_tradebeans"
+# "h2_tradebeans"
+# "avrora_tradesoap"
+# "h2_tradesoap"
+# "tradebeans_tradebeans"
 )
 
 mode=FULL

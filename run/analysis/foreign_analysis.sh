@@ -16,4 +16,4 @@ for benchmark in $root/*; do
   $CHAPPIE_PATH/run/analysis/correlation.py -path $benchmark -reference $method_reference/${benchmark##*/}
 done
 
-foreign_plotting.py -path $path
+$CHAPPIE_PATH/run/analysis/foreign_plotting.py -path $path
