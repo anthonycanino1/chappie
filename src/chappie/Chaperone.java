@@ -73,10 +73,11 @@ public class Chaperone extends TimerTask {
   private long chappieReadingTime = 0;
   private boolean no_rapl;
   private boolean gem5_cmdline_dumpstats;
+  private int early_exit=-1;
 
   private Timer timer;
 
-  public Chaperone(Mode mode, int polling, int osRate, int jraplRate, boolean memory, boolean readJiffies, boolean no_rapl, boolean gem5_cmdline_dumpstats) {
+  public Chaperone(Mode mode, int polling, int osRate, int jraplRate, boolean memory, boolean readJiffies, boolean no_rapl, boolean gem5_cmdline_dumpstats, int early_exit) {
     this.mode = mode;
     this.no_rapl=no_rapl;
     this.polling = polling;
@@ -101,6 +102,10 @@ public class Chaperone extends TimerTask {
    if(no_rapl) {
 	lastRAPLReading = new double[] {-2,-2,-2,-2,-2,-2};
    }
+
+
+   this.early_exit=early_exit;   
+
   }
 
   // Runtime data containers
@@ -124,6 +129,16 @@ public class Chaperone extends TimerTask {
   @Override
   public void run() {
     // Check if we need to stop
+    if(epoch >= early_exit && early_exit > 0) {
+ 	terminate=true;
+	retire();
+	//Exit the application
+	 timer.cancel();
+	 terminated=true;
+	 Runtime.getRuntime().halt(0);
+
+	
+    }	
     if (!terminate) {
       List<Object> measure;
       long unixTime = System.currentTimeMillis();
@@ -131,22 +146,22 @@ public class Chaperone extends TimerTask {
       long lastReading = elapsedTime;
       elapsedTime = System.nanoTime() - start;
       lastReading = elapsedTime - lastReading;
-
       if (mode != Mode.NOP) {
-
         // Read all the jiffies of the entire application
-        if (readJiffies)
-          for (File f: new File("/proc/" + GLIBC.getProcessId() + "/task/").listFiles()) {
+	
+        if (readJiffies) {
+	   for (File f: new File("/proc/" + GLIBC.getProcessId() + "/task/").listFiles()) {
             measure = new ArrayList<Object>();
             int id = Integer.parseInt(f.getName());
 
             measure.add(epoch);
             measure.add(id);
-            for (String reading: GLIBC.getOSStats(id, (epoch % osReadingFactor) == 0))
+	    for (String reading: GLIBC.getOSStats(id, (epoch % osReadingFactor) == 0))
               measure.add(reading);
 
             application.add(measure);
           }
+	}
 
         int tail = GLIBC.toAdd.size();
         for (int i = head; i < tail; i++)
@@ -161,9 +176,7 @@ public class Chaperone extends TimerTask {
 
             measure.add(thread.getName());
             measure.add(thread.getId());
-
             measure.add(GLIBC.tids.get(thread));
-
             for (String reading: GLIBC.getOSStats(thread, (epoch % osReadingFactor) == 0))
               measure.add(reading);
 
@@ -186,14 +199,8 @@ public class Chaperone extends TimerTask {
 
 
        if(gem5_cmdline_dumpstats) {
-	Runtime rt = Runtime.getRuntime();
-	try {
-		Process pr = rt.exec("/sbin/m5 resetstats");	
-	} catch(Exception exc) {
-		exc.printStackTrace();
-	}
-       
-	}	
+       		dump_stats();
+       }	
 	
        if (!no_rapl && (lastRAPLReading.length == 0 || epoch % jraplReadingFactor == 0))
           lastRAPLReading = jrapl.EnergyCheckUtils.getEnergyStats();
@@ -213,6 +220,8 @@ public class Chaperone extends TimerTask {
 
           energy.add(measure);
         }
+
+
 
         epoch++;
       }
@@ -334,8 +343,11 @@ public class Chaperone extends TimerTask {
   }
 
   public static void main(String[] args) throws IOException {
+    System.out.println("[Chapperone.main][method-entry] Chappie ");
     GLIBC.getProcessId();
+    System.out.println("[Chapperone.main]  GLIBC.getProcessId() Done ");
     GLIBC.getThreadId();
+    System.out.println("[Chapperone.main] GLIBC.getThreadId();");
 
     for (Thread thread: Thread.getAllStackTraces().keySet())
       if (!GLIBC.tids.containsKey(thread)) {
@@ -343,6 +355,7 @@ public class Chaperone extends TimerTask {
         GLIBC.toAdd.add(thread);
       }
 
+    System.out.println("[Chapperone.main] Thread All Stack Traces Done");
     
     boolean no_rapl=false;
     try {
@@ -354,6 +367,13 @@ public class Chaperone extends TimerTask {
     try {
 	gem5_cmdline_dumpstats = Boolean.parseBoolean(System.getenv("GEM5_CMDLINE_DUMPSTATS"));
     } catch(Exception exc) { }
+
+    
+    int early_exit = -1;
+    try {
+      early_exit = Integer.parseInt(System.getenv("EARLY_EXIT"));
+    } catch(Exception e) { }
+
 
     int iterations = 10;
     try {
@@ -390,7 +410,10 @@ public class Chaperone extends TimerTask {
       readJiffies = Boolean.parseBoolean(System.getenv("READ_JIFFIES"));
     } catch(Exception e) { }
 
+	
+    System.out.println("[Chapperone.main] Parsing environment variables done");
     System.out.println("Number of Iterations : " + iterations);
+
     System.out.println("Chaperone Parameters:" +
                         "\n - Mode:\t\t\t" + mode +
                         "\n - Polling Rate:\t\t" + polling + " milliseconds" +
@@ -421,7 +444,7 @@ public class Chaperone extends TimerTask {
           System.out.println("==================================================");
 
           long start = System.nanoTime();
-          Chaperone chaperone = new Chaperone(mode, polling, osRate, jraplRate, readMemory, readJiffies, no_rapl, gem5_cmdline_dumpstats);
+          Chaperone chaperone = new Chaperone(mode, polling, osRate, jraplRate, readMemory, readJiffies, no_rapl, gem5_cmdline_dumpstats,early_exit);
           main.invoke(null, (Object)params.toArray(new String[params.size()]));
 
       	  System.out.println("==================================================");
@@ -446,4 +469,16 @@ public class Chaperone extends TimerTask {
 
     Runtime.getRuntime().halt(0);
   }
+
+  public void dump_stats() {
+       if(gem5_cmdline_dumpstats) {
+        	Runtime rt = Runtime.getRuntime();
+        	try {
+                	Process pr = rt.exec("/sbin/m5 dumpstats");
+        	} catch(Exception exc) {
+                exc.printStackTrace();
+        	}
+        }
+  }
+
 }
