@@ -8,17 +8,21 @@ dir=`dirname "$0"`
 export CHAPPIE_PATH=$dir/..
 export CHAPPIE_JAR=$CHAPPIE_PATH/chappie.jar
 
+export VM_POLLING=4
+export OS_POLLING=40
+export HP_POLLING=4
+
 case $1 in
   -b) benchmark=$2;;
 esac
 
 if [ $benchmark == "dacapo" ]; then
-  $CHAPPIE_PATH/run/util/dacapo/single.sh -m NOP
-  $CHAPPIE_PATH/run/util/dacapo/single.sh
+  # $CHAPPIE_PATH/run/util/dacapo/single.sh -m NOP
+  # $CHAPPIE_PATH/run/util/dacapo/single.sh
   $CHAPPIE_PATH/run/util/dacapo/coapp.sh -m NOP
   $CHAPPIE_PATH/run/util/dacapo/coapp.sh
-  $CHAPPIE_PATH/run/util/dacapo/foreign.sh -m NOP
-  $CHAPPIE_PATH/run/util/dacapo/foreign.sh
+  # $CHAPPIE_PATH/run/util/dacapo/foreign.sh -m NOP
+  # $CHAPPIE_PATH/run/util/dacapo/foreign.sh
 elif [ $benchmark == "oltp" ]
 then
   echo "not implemented"

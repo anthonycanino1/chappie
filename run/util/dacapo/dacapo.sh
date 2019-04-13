@@ -26,12 +26,12 @@ HP_LOG=$CHAPPIE_DIRECTORY/chappie.stack.csv
 
 if [ $MODE == NOP ]; then
   $JAVA9_PATH -cp $JARS Harness $benchmark -s small                               \
-    --iterations 20 --no-validation --scratch-directory $directory/scratch        \
+    --iterations 5 --no-validation --scratch-directory $directory/scratch        \
     --callback chappie.ChappieCallback
 else
-  $JAVA9_PATH -cp $JARS -agentpath:$HP_PATH=interval=4,logPath=$HP_LOG            \
+  $JAVA9_PATH -cp $JARS -agentpath:$HP_PATH=interval=${HP_POLLING},logPath=$HP_LOG            \
     Harness $benchmark -s small                                                   \
-    --iterations 20 --scratch-directory $directory/scratch                        \
+    --iterations 5 --scratch-directory $directory/scratch                        \
     --callback chappie.ChappieCallback
 fi
 rm -rf $directory/scratch

@@ -33,34 +33,36 @@ import jrapl.EnergyCheckUtils.*;
 
 public class JDK9Monitor {
   // params
-  private int threadInterval = 1;
-  private int jiffiesInterval = 1;
-  private int jraplInterval = 1;
+  int osPolling;
+  // private int threadInterval = 1;
+  // private int jiffiesInterval = 1;
+  // private int jraplInterval = 1;
 
   // file helpers
   private String directory;
   private String suffix;
 
-  public JDK9Monitor() {
+  public JDK9Monitor(int osPolling) {
     // should be handled by highest level call (grid search)
-    int threadInterval = 1;
-    try {
-      threadInterval = Integer.parseInt(System.getenv("THREAD_INTERVAL"));
-    } catch(Exception e) { }
-
-    int jiffiesInterval = 1;
-    try {
-      jiffiesInterval = Integer.parseInt(System.getenv("JIFFIES_INTERVAL"));
-    } catch(Exception e) { }
-
-    int jraplInterval = 1;
-    try {
-      jraplInterval = Integer.parseInt(System.getenv("JRAPL_INTERVAL"));
-    } catch(Exception e) { }
-
-    this.threadInterval = threadInterval;
-    this.jiffiesInterval = jiffiesInterval;
-    this.jraplInterval = jraplInterval;
+    this.osPolling = osPolling;
+    // int threadInterval = 1;
+    // try {
+    //   threadInterval = Integer.parseInt(System.getenv("THREAD_INTERVAL"));
+    // } catch(Exception e) { }
+    //
+    // int jiffiesInterval = 1;
+    // try {
+    //   jiffiesInterval = Integer.parseInt(System.getenv("JIFFIES_INTERVAL"));
+    // } catch(Exception e) { }
+    //
+    // int jraplInterval = 1;
+    // try {
+    //   jraplInterval = Integer.parseInt(System.getenv("JRAPL_INTERVAL"));
+    // } catch(Exception e) { }
+    //
+    // this.threadInterval = threadInterval;
+    // this.jiffiesInterval = jiffiesInterval;
+    // this.jraplInterval = jraplInterval;
 
     // definition handled by parent caller (./chappie_test.sh)
     // directory management HAS to be handled by bootstrapper (./run.sh)
@@ -85,7 +87,7 @@ public class JDK9Monitor {
     // needed for method alignment
     long unixTime = System.currentTimeMillis();
 
-    if (epoch % threadInterval == 0) {
+    if (epoch % osPolling == 0) {
       // Read jiffies of the application
       for (File f: new File("/proc/" + GLIBC.getProcessId() + "/task/").listFiles()) {
         measure = new ArrayList<Object>();
@@ -98,48 +100,49 @@ public class JDK9Monitor {
 
         threadData.add(measure);
       }
-
-      // Read the java ids of all live threads
-      ThreadGroup rootGroup = Thread.currentThread().getThreadGroup();
-      ThreadGroup parentGroup;
-      while ((parentGroup = rootGroup.getParent()) != null)
-          rootGroup = parentGroup;
-
-      Thread[] threads = new Thread[rootGroup.activeCount()];
-      while (rootGroup.enumerate(threads, true ) == threads.length)
-          threads = new Thread[threads.length * 2];
-
-      for (Thread thread: threads)
-        if (thread != null) {
-          measure = new ArrayList<Object>();
-
-          measure.add(epoch);
-          measure.add(thread.getName());
-          measure.add(thread.getId());
-
-          idData.add(measure);
-        }
     }
 
+    // Read the java ids of all live threads
+    ThreadGroup rootGroup = Thread.currentThread().getThreadGroup();
+    ThreadGroup parentGroup;
+    while ((parentGroup = rootGroup.getParent()) != null)
+        rootGroup = parentGroup;
+
+    Thread[] threads = new Thread[rootGroup.activeCount()];
+    while (rootGroup.enumerate(threads, true ) == threads.length)
+        threads = new Thread[threads.length * 2];
+
+    for (Thread thread: threads)
+      if (thread != null) {
+        measure = new ArrayList<Object>();
+
+        measure.add(epoch);
+        measure.add(thread.getName());
+        measure.add(thread.getId());
+        // measure.add(thread.getState());
+
+        idData.add(measure);
+      }
+
     // Read jiffies of system
-    if (epoch % jiffiesInterval == 0) {
+    if (epoch % osPolling == 0) {
       jiffiesData.add(GLIBC.readSystemJiffies());
     }
 
     // Read energy of system
-    if (epoch % jraplInterval == 0) {
-      double[] raplReading = jrapl.EnergyCheckUtils.getEnergyStats();
+    // if (epoch % jraplInterval == 0) {
+    double[] raplReading = jrapl.EnergyCheckUtils.getEnergyStats();
 
-      for (int i = 0; i < raplReading.length / 3; ++i) {
-        measure = new ArrayList<Object>();
+    for (int i = 0; i < raplReading.length / 3; ++i) {
+      measure = new ArrayList<Object>();
 
-        measure.add(epoch);
-        measure.add(i + 1);
-        measure.add(raplReading[3 * i + 2]);
-        measure.add(raplReading[3 * i]);
+      measure.add(epoch);
+      measure.add(i + 1);
+      measure.add(raplReading[3 * i + 2]);
+      measure.add(raplReading[3 * i]);
 
-        energyData.add(measure);
-      }
+      energyData.add(measure);
+      // }
     }
   }
 

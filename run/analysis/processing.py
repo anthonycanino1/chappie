@@ -49,21 +49,24 @@ if __name__ == '__main__':
     if not os.path.exists(args.destination):
         os.mkdir(args.destination)
 
-    runtime = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'runtime' in f])[5:]
+    runtime = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'runtime' in f])
 
-    threads = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'thread' in f])[5:]
-    ids = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'id' in f])[5:]
-    energies = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'energy' in f])[5:]
-    jiffies = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'system' in f])[5:]
+    threads = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'thread' in f])
+    ids = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'id' in f])
+    energies = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'energy' in f])
+    jiffies = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'system' in f])
     if os.path.exists(os.path.join(args.path, 'chappie.stack.csv')):
         stacks = len(jiffies) * [os.path.join(args.path, 'chappie.stack.csv')]
         # np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'stack' in f])
     else:
-        stacks = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'stack' in f])[5:]
+        stacks = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'stack' in f])
 
-    activeness = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'activeness' in f])[5:]
+    activeness = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'activeness' in f])
 
     for k, names in enumerate(zip(runtime, threads, ids, energies, jiffies, stacks, activeness)):
+        if k < len(runtime) / 4:
+            continue
+
         runtime, thread, id, energy, jiffy, stack, activity = [pd.read_csv(f) if 'stack' not in f else pd.read_csv(f, header = None) for f in names]
 
         # grab the runtime values
@@ -93,7 +96,7 @@ if __name__ == '__main__':
         jiffy = jiffy.str.split(' ')
         jiffy = jiffy.map(filter_cpu).values.tolist()
         jiffy = pd.DataFrame(jiffy, columns = ['core'] + ['jiffies{}'.format(i) for i in range(10)], dtype = int)
-        jiffy['epoch'] = [n for N in [[i] * 40 for i in range(len(jiffy)//40)] for n in N]
+        jiffy['epoch'] = [n for N in [[i * 40] * 40 for i in range(len(jiffy)//40)] for n in N]
         jiffy['socket'] = jiffy['core'].map(lambda x: 1 if x < 20 else 2)
 
         jiffy = jiffy.groupby(['epoch', 'socket']).sum().drop(columns = 'jiffies3')
@@ -134,7 +137,7 @@ if __name__ == '__main__':
         thread = df_diff(thread, 'tid', ['u_jiffies', 'k_jiffies'])
 
         # normalize the state
-        thread.loc[thread['thread'] == 'Chaperone', 'state'] = activity['activeness'].values
+        thread.loc[thread['thread'] == 'Chaperone', 'state'] = activity['activeness'][activity.epoch.isin(thread.epoch)].clip(upper = 1).values
         thread = pd.merge(thread, thread.groupby(['epoch', 'socket'])['state'].sum().reset_index(), on = ['epoch', 'socket'], suffixes = ('', '_sum'))
         thread['state'] = (thread['state'] / thread['state_sum']).fillna(0)
 

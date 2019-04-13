@@ -34,7 +34,8 @@ public class Chaperone extends TimerTask {
 
   // Chaperone Parameters
   private ChappieMode mode;
-  private int polling;
+  // private int vmPolling;
+  // private int osPolling;
 
   // Metrics
   private int epoch;
@@ -47,16 +48,17 @@ public class Chaperone extends TimerTask {
   // this is the wrong name...what is it?
   private JDK9Monitor monitor = null;
 
-  public Chaperone(ChappieMode mode, int polling) {
+  public Chaperone(ChappieMode mode, int vmPolling, int osPolling) {
     mainID = GLIBC.getProcessId();
 
     this.mode = mode;
-    this.polling = polling;
+    // this.vmPolling = vmPolling;
+    // this.osPolling = osPolling;
 
     if (mode != ChappieMode.NOP) {
-      this.monitor = new JDK9Monitor();
+      this.monitor = new JDK9Monitor(osPolling);
       timer = new Timer("Chaperone");
-      timer.scheduleAtFixedRate(this, 0, polling);
+      timer.scheduleAtFixedRate(this, 0, vmPolling);
     }
 
     epoch = 0;

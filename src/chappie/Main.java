@@ -39,16 +39,28 @@ public class Main {
       mode = ChappieMode.valueOf(System.getenv("MODE"));
     } catch(Exception e) { }
 
-    int polling = 4;
+    int vmPolling = 4;
     try {
-      polling = Integer.parseInt(System.getenv("POLLING_RATE"));
+      vmPolling = Integer.parseInt(System.getenv("VM_POLLING"));
+    } catch(Exception e) { }
+
+    int osPolling = 4;
+    try {
+      osPolling = Integer.parseInt(System.getenv("OS_POLLING"));
+    } catch(Exception e) { }
+
+    int hpPolling = 4;
+    try {
+      hpPolling = Integer.parseInt(System.getenv("HP_POLLING"));
     } catch(Exception e) { }
 
     // System.out.println("Number of Iterations : " + iterations);
     System.out.println("Chaperone Parameters:" +
                         "\n - Mode:\t\t\t" + mode +
-                        "\n - Polling Rate:\t\t" + polling + " milliseconds"
-                        );
+                        "\n - VM Polling Rate:\t\t" + vmPolling + " milliseconds" +
+                        "\n - OS Polling Rate:\t\t" + osPolling + " milliseconds" +
+                        "\n - HP Polling Rate:\t\t" + hpPolling + " milliseconds"
+                      );
 
     URLClassLoader loader;
 
@@ -71,7 +83,7 @@ public class Main {
         System.out.println("==================================================");
 
         long start = System.nanoTime();
-        Chaperone chaperone = new Chaperone(mode, polling);
+        Chaperone chaperone = new Chaperone(mode, vmPolling, osPolling);
         main.invoke(null, (Object)params.toArray(new String[params.size()]));
 
         System.out.println("==================================================");

@@ -9,11 +9,15 @@ import org.dacapo.harness.Callback;
 import org.dacapo.harness.CommandLineArgs;
 
 public class ChappieCallback extends Callback {
+  Chaperone chaperone;
+
   ChappieMode mode = ChappieMode.FULL;
-  int polling = 4;
+
+  int vmPolling = 4;
+  int osPolling = 4;
+  int hpPolling = 4;
 
   int iter = 0;
-  Chaperone chaperone;
 
   public ChappieCallback(CommandLineArgs args) {
     super(args);
@@ -22,14 +26,29 @@ public class ChappieCallback extends Callback {
     } catch(Exception e) { }
 
     try {
-      polling = Integer.parseInt(System.getenv("POLLING_RATE"));
+      vmPolling = Integer.parseInt(System.getenv("VM_POLLING"));
     } catch(Exception e) { }
+
+    try {
+      osPolling = Integer.parseInt(System.getenv("OS_POLLING"));
+    } catch(Exception e) { }
+
+    try {
+      hpPolling = Integer.parseInt(System.getenv("HP_POLLING"));
+    } catch(Exception e) { }
+
+    System.out.println("chappie Parameters:" +
+                        "\n - Mode:\t\t\t" + mode +
+                        "\n - VM Polling Rate:\t\t" + vmPolling + " milliseconds" +
+                        "\n - OS Polling Rate:\t\t" + osPolling + " milliseconds" +
+                        "\n - HP Polling Rate:\t\t" + hpPolling + " milliseconds"
+                      );
   }
 
   @Override
   public void start(String benchmark) {
     setEnv("CHAPPIE_SUFFIX", Integer.toString(iter++));
-    chaperone = new Chaperone(mode, polling);
+    chaperone = new Chaperone(mode, vmPolling, osPolling);
     super.start(benchmark);
   }
 
