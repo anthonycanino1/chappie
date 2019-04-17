@@ -4,7 +4,9 @@
 # ./dacapo.sh [benchmark] -d <directory>
 
 JARS="$CHAPPIE_PATH/chappie.jar:$CHAPPIE_PATH/util/chappie_callback.jar:$CHAPPIE_PATH/vendor/dacapo-9.12-MR1-bach.jar"
-JAVA9_PATH=/home/timur/Projects/dev/build/linux-x86_64-normal-server-release/jdk/bin/java
+echo $JARS
+JAVA9_PATH=/usr/lib/jvm/java-9-openjdk-amd64/bin/java
+echo "Number of Iterations $ITERATIONS"
 
 benchmark=$1
 echo "=================================================="
@@ -31,7 +33,7 @@ if [ $MODE == NOP ]; then
 else
   $JAVA9_PATH -cp $JARS -agentpath:$HP_PATH=interval=${HP_POLLING},logPath=$HP_LOG            \
     Harness $benchmark -s small                                                   \
-    --iterations 5 --scratch-directory $directory/scratch                        \
+    --iterations $ITERATIONS --scratch-directory $directory/scratch                        \
     --callback chappie.ChappieCallback
 fi
 rm -rf $directory/scratch

@@ -34,7 +34,7 @@ import java.util.ArrayList;
 public class Main {
   public static void main(String[] args) throws IOException {
     // should be handled by highest level call (benchmark, grid search)
-    
+    	System.out.println("Starting Chappie ... Stay tuned!");
 	int sockets_no = -1;
 	try {
 		sockets_no = Integer.parseInt(System.getenv("SOCKETS_NO"));

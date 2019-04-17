@@ -36,7 +36,7 @@ public class JDK9Monitor {
   int osPolling;
   private boolean no_rapl = false;
   private boolean dump_stats = false;
-  private int sockets_no = -1;
+  private int sockets_no = 0;
 
 	  // private int threadInterval = 1;
 	  // private int jiffiesInterval = 1;
@@ -53,8 +53,12 @@ public class JDK9Monitor {
 		this.no_rapl=no_rapl;
 		this.dump_stats=dump_stats;
 		this.sockets_no=sockets_no;
-		energy_readings = new double[3*sockets_no];
-		for(int i=0; i<3*sockets_no;i++) energy_readings[i] = -2;
+		int num_sockets = 3*sockets_no;
+		System.out.println("num_sockets:" + num_sockets);
+		if(no_rapl) {
+			energy_readings = new double[3*sockets_no];
+			for(int i=0; i<3*sockets_no;i++) energy_readings[i] = -2;
+		}
 	    // int threadInterval = 1;
 	    // try {
 	    //   threadInterval = Integer.parseInt(System.getenv("THREAD_INTERVAL"));
@@ -145,7 +149,7 @@ public class JDK9Monitor {
 	    // if (epoch % jraplInterval == 0) {
 	    
 		double[] raplReading;
-		if(no_rapl) {
+		if(!no_rapl) {
 			raplReading = jrapl.EnergyCheckUtils.getEnergyStats();
 		} else {
 			raplReading = energy_readings;
