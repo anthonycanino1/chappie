@@ -44,6 +44,7 @@ public class JDK9Monitor {
   // file helpers
   private String directory;
   private String suffix;
+  private int[] energy_readings;
 
   public JDK9Monitor(int osPolling, boolean no_rapl, boolean dump_stats, int sockets_no) {
     // should be handled by highest level call (grid search)
@@ -51,6 +52,8 @@ public class JDK9Monitor {
 	this.no_rapl=no_rapl;
 	this.dump_stats=dump_stats;
 	this.sockets_no=sockets_no;
+	energy_readings = new int[3*sockets_no];
+	for(int i=0; i<3*sockets_no;i++) energy_readings[i] = -2;
     // int threadInterval = 1;
     // try {
     //   threadInterval = Integer.parseInt(System.getenv("THREAD_INTERVAL"));
@@ -89,7 +92,9 @@ public class JDK9Monitor {
 
   public void read(int epoch) {
     ArrayList<Object> measure;
-
+    if(dumpstats) {
+       		dump_stats();
+    }	
     // needed for method alignment
     long unixTime = System.currentTimeMillis();
 
@@ -137,8 +142,14 @@ public class JDK9Monitor {
 
     // Read energy of system
     // if (epoch % jraplInterval == 0) {
-    double[] raplReading = jrapl.EnergyCheckUtils.getEnergyStats();
-
+    
+	double[] raplReading;
+	if(no_rapl) {
+		raplReading = jrapl.EnergyCheckUtils.getEnergyStats();
+	} else {
+		raplReading = energy_readings;
+	}
+		
     for (int i = 0; i < raplReading.length / 3; ++i) {
       measure = new ArrayList<Object>();
 
@@ -254,4 +265,16 @@ public class JDK9Monitor {
     }
     log.close();
   }
+  
+    public void dumpstats() {
+       if(gem5_cmdline_dumpstats) {
+        	Runtime rt = Runtime.getRuntime();
+        	try {
+                	Process pr = rt.exec("/sbin/m5 dumpstats");
+        	} catch(Exception exc) {
+                exc.printStackTrace();
+        	}
+        }
+  }
+  
 }
