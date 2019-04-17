@@ -90,11 +90,11 @@ public class Chaperone extends TimerTask {
   @Override
   public void run() {
     // Check if we need to stop
-	 boolean hang=false;
+	 boolean halt=false;
 	 if(epoch >= early_exit && early_exit > 0) {
 		terminate=true;
 		terminated=true;
-		hang=true;
+		halt=true;
 	 }
 	 
     if (!terminate) {

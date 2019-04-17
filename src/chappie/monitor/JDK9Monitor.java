@@ -36,245 +36,244 @@ public class JDK9Monitor {
   int osPolling;
   private boolean no_rapl = false;
   private boolean dump_stats = false;
-  private int sockets_no = false;
-  // private int threadInterval = 1;
-  // private int jiffiesInterval = 1;
-  // private int jraplInterval = 1;
+  private int sockets_no = -1;
 
-  // file helpers
-  private String directory;
-  private String suffix;
-  private int[] energy_readings;
+	  // private int threadInterval = 1;
+	  // private int jiffiesInterval = 1;
+	  // private int jraplInterval = 1;
 
-  public JDK9Monitor(int osPolling, boolean no_rapl, boolean dump_stats, int sockets_no) {
-    // should be handled by highest level call (grid search)
-    this.osPolling = osPolling;
-	this.no_rapl=no_rapl;
-	this.dump_stats=dump_stats;
-	this.sockets_no=sockets_no;
-	energy_readings = new int[3*sockets_no];
-	for(int i=0; i<3*sockets_no;i++) energy_readings[i] = -2;
-    // int threadInterval = 1;
-    // try {
-    //   threadInterval = Integer.parseInt(System.getenv("THREAD_INTERVAL"));
-    // } catch(Exception e) { }
-    //
-    // int jiffiesInterval = 1;
-    // try {
-    //   jiffiesInterval = Integer.parseInt(System.getenv("JIFFIES_INTERVAL"));
-    // } catch(Exception e) { }
-    //
-    // int jraplInterval = 1;
-    // try {
-    //   jraplInterval = Integer.parseInt(System.getenv("JRAPL_INTERVAL"));
-    // } catch(Exception e) { }
-    //
-    // this.threadInterval = threadInterval;
-    // this.jiffiesInterval = jiffiesInterval;
-    // this.jraplInterval = jraplInterval;
+	  // file helpers
+	  private String directory;
+	  private String suffix;
+	  private double[] energy_readings;
 
-    // definition handled by parent caller (./chappie_test.sh)
-    // directory management HAS to be handled by bootstrapper (./run.sh)
-    // because of honest profiler (log path)
-    directory = System.getenv("CHAPPIE_DIRECTORY");
-    directory = directory != null ? directory : "";
+	  public JDK9Monitor(int osPolling, boolean no_rapl, boolean dump_stats, int sockets_no) {
+	    // should be handled by highest level call (grid search)
+	    this.osPolling = osPolling;
+		this.no_rapl=no_rapl;
+		this.dump_stats=dump_stats;
+		this.sockets_no=sockets_no;
+		energy_readings = new int[3*sockets_no];
+		for(int i=0; i<3*sockets_no;i++) energy_readings[i] = -2;
+	    // int threadInterval = 1;
+	    // try {
+	    //   threadInterval = Integer.parseInt(System.getenv("THREAD_INTERVAL"));
+	    // } catch(Exception e) { }
+	    //
+	    // int jiffiesInterval = 1;
+	    // try {
+	    //   jiffiesInterval = Integer.parseInt(System.getenv("JIFFIES_INTERVAL"));
+	    // } catch(Exception e) { }
+	    //
+	    // int jraplInterval = 1;
+	    // try {
+	    //   jraplInterval = Integer.parseInt(System.getenv("JRAPL_INTERVAL"));
+	    // } catch(Exception e) { }
+	    //
+	    // this.threadInterval = threadInterval;
+	    // this.jiffiesInterval = jiffiesInterval;
+	    // this.jraplInterval = jraplInterval;
 
-    // helper due to the cold run problem we experienced around dacapo
-    suffix = System.getenv("CHAPPIE_SUFFIX");
-    suffix = suffix != null ? "." + suffix : "";
-  }
+	    // definition handled by parent caller (./chappie_test.sh)
+	    // directory management HAS to be handled by bootstrapper (./run.sh)
+	    // because of honest profiler (log path)
+	    directory = System.getenv("CHAPPIE_DIRECTORY");
+	    directory = directory != null ? directory : "";
 
-  // Runtime data containers
-  private ArrayList<ArrayList<Object>> threadData = new ArrayList<ArrayList<Object>>();
-  private ArrayList<ArrayList<Object>> idData = new ArrayList<ArrayList<Object>>();
-  private ArrayList<String> jiffiesData = new ArrayList<String>();
-  private ArrayList<ArrayList<Object>> energyData = new ArrayList<ArrayList<Object>>();
+	    // helper due to the cold run problem we experienced around dacapo
+	    suffix = System.getenv("CHAPPIE_SUFFIX");
+	    suffix = suffix != null ? "." + suffix : "";
+	  }
 
-  public void read(int epoch) {
-    ArrayList<Object> measure;
-    if(dumpstats) {
-       		dump_stats();
-    }	
-    // needed for method alignment
-    long unixTime = System.currentTimeMillis();
+	  // Runtime data containers
+	  private ArrayList<ArrayList<Object>> threadData = new ArrayList<ArrayList<Object>>();
+	  private ArrayList<ArrayList<Object>> idData = new ArrayList<ArrayList<Object>>();
+	  private ArrayList<String> jiffiesData = new ArrayList<String>();
+	  private ArrayList<ArrayList<Object>> energyData = new ArrayList<ArrayList<Object>>();
 
-    if (epoch % osPolling == 0) {
-      // Read jiffies of the application
-      for (File f: new File("/proc/" + GLIBC.getProcessId() + "/task/").listFiles()) {
-        measure = new ArrayList<Object>();
-        int tid = Integer.parseInt(f.getName());
+	  public void read(int epoch) {
+	    ArrayList<Object> measure;
+	    if(dump_stats) {
+			dumpstats();
+	    }	
+	    // needed for method alignment
+	    long unixTime = System.currentTimeMillis();
 
-        measure.add(epoch);
-        measure.add(tid);
-        measure.add(unixTime);
-        measure.add(GLIBC.readThread(tid));
+	    if (epoch % osPolling == 0) {
+	      // Read jiffies of the application
+	      for (File f: new File("/proc/" + GLIBC.getProcessId() + "/task/").listFiles()) {
+		measure = new ArrayList<Object>();
+		int tid = Integer.parseInt(f.getName());
 
-        threadData.add(measure);
-      }
-    }
+		measure.add(epoch);
+		measure.add(tid);
+		measure.add(unixTime);
+		measure.add(GLIBC.readThread(tid));
 
-    // Read the java ids of all live threads
-    ThreadGroup rootGroup = Thread.currentThread().getThreadGroup();
-    ThreadGroup parentGroup;
-    while ((parentGroup = rootGroup.getParent()) != null)
-        rootGroup = parentGroup;
+		threadData.add(measure);
+	      }
+	    }
 
-    Thread[] threads = new Thread[rootGroup.activeCount()];
-    while (rootGroup.enumerate(threads, true ) == threads.length)
-        threads = new Thread[threads.length * 2];
+	    // Read the java ids of all live threads
+	    ThreadGroup rootGroup = Thread.currentThread().getThreadGroup();
+	    ThreadGroup parentGroup;
+	    while ((parentGroup = rootGroup.getParent()) != null)
+		rootGroup = parentGroup;
 
-    for (Thread thread: threads)
-      if (thread != null) {
-        measure = new ArrayList<Object>();
+	    Thread[] threads = new Thread[rootGroup.activeCount()];
+	    while (rootGroup.enumerate(threads, true ) == threads.length)
+		threads = new Thread[threads.length * 2];
 
-        measure.add(epoch);
-        measure.add(thread.getName());
-        measure.add(thread.getId());
-        // measure.add(thread.getState());
+	    for (Thread thread: threads)
+	      if (thread != null) {
+		measure = new ArrayList<Object>();
 
-        idData.add(measure);
-      }
+		measure.add(epoch);
+		measure.add(thread.getName());
+		measure.add(thread.getId());
+		// measure.add(thread.getState());
 
-    // Read jiffies of system
-    if (epoch % osPolling == 0) {
-      jiffiesData.add(GLIBC.readSystemJiffies());
-    }
+		idData.add(measure);
+	      }
 
-    // Read energy of system
-    // if (epoch % jraplInterval == 0) {
-    
-	double[] raplReading;
-	if(no_rapl) {
-		raplReading = jrapl.EnergyCheckUtils.getEnergyStats();
-	} else {
-		raplReading = energy_readings;
-	}
-		
-    for (int i = 0; i < raplReading.length / 3; ++i) {
-      measure = new ArrayList<Object>();
+	    // Read jiffies of system
+	    if (epoch % osPolling == 0) {
+	      jiffiesData.add(GLIBC.readSystemJiffies());
+	    }
 
-      measure.add(epoch);
-      measure.add(i + 1);
-      measure.add(raplReading[3 * i + 2]);
-      measure.add(raplReading[3 * i]);
+	    // Read energy of system
+	    // if (epoch % jraplInterval == 0) {
+	    
+		double[] raplReading;
+		if(no_rapl) {
+			raplReading = jrapl.EnergyCheckUtils.getEnergyStats();
+		} else {
+			raplReading = energy_readings;
+		}
+			
+	    for (int i = 0; i < raplReading.length / 3; ++i) {
+	      measure = new ArrayList<Object>();
 
-      energyData.add(measure);
-      // }
-    }
-  }
+	      measure.add(epoch);
+	      measure.add(i + 1);
+	      measure.add(raplReading[3 * i + 2]);
+	      measure.add(raplReading[3 * i]);
 
-  public void dump(long start, List<Double> activeness, int mainID) {
-    // runtime stats
-    PrintWriter log = null;
+	      energyData.add(measure);
+	      // }
+	    }
+	  }
 
-    String path = Paths.get(directory, "chappie.runtime" + suffix + ".csv").toString();
-    try {
-      log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
-    } catch (Exception io) { }
+	  public void dump(long start, List<Double> activeness, int mainID) {
+	    // runtime stats
+	    PrintWriter log = null;
 
-    long runtime = System.nanoTime() - start;
-    String message = "name,value\nruntime," + runtime + "\nmain_id," + mainID;
+	    String path = Paths.get(directory, "chappie.runtime" + suffix + ".csv").toString();
+	    try {
+	      log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
+	    } catch (Exception io) { }
 
-    log.write(message);
-    log.close();
+	    long runtime = System.nanoTime() - start;
+	    String message = "name,value\nruntime," + runtime + "\nmain_id," + mainID;
 
-    // thread data
-    path = Paths.get(directory, "chappie.thread" + suffix + ".csv").toString();
-    try {
-      log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
-    } catch (Exception io) { }
+	    log.write(message);
+	    log.close();
 
-    message = "epoch,tid,timestamp,record\n";
-    log.write(message);
+	    // thread data
+	    path = Paths.get(directory, "chappie.thread" + suffix + ".csv").toString();
+	    try {
+	      log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
+	    } catch (Exception io) { }
 
-    for (List<Object> frame: threadData) {
-      message = "";
-      for (Object item: frame)
-        message += item.toString() + ",";
-      message = message.substring(0, message.length() - 1);
-      message += "\n";
-      log.write(message);
-    }
+	    message = "epoch,tid,timestamp,record\n";
+	    log.write(message);
 
-    log.close();
+	    for (List<Object> frame: threadData) {
+	      message = "";
+	      for (Object item: frame)
+		message += item.toString() + ",";
+	      message = message.substring(0, message.length() - 1);
+	      message += "\n";
+	      log.write(message);
+	    }
 
-    // id data
-    path = Paths.get(directory, "chappie.id" + suffix + ".csv").toString();
-    try {
-      log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
-    } catch (Exception io) { }
+	    log.close();
 
-    message = "epoch,thread,id\n";
-    log.write(message);
+	    // id data
+	    path = Paths.get(directory, "chappie.id" + suffix + ".csv").toString();
+	    try {
+	      log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
+	    } catch (Exception io) { }
 
-    for (List<Object> frame: idData) {
-      message = "";
-      for (Object item: frame)
-        message += item.toString() + ",";
-      message = message.substring(0, message.length() - 1);
-      message += "\n";
-      log.write(message);
-    }
+	    message = "epoch,thread,id\n";
+	    log.write(message);
 
-    log.close();
+	    for (List<Object> frame: idData) {
+	      message = "";
+	      for (Object item: frame)
+		message += item.toString() + ",";
+	      message = message.substring(0, message.length() - 1);
+	      message += "\n";
+	      log.write(message);
+	    }
 
-    // energy data
-    path = Paths.get(directory, "chappie.energy" + suffix + ".csv").toString();
-    try {
-      log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
-    } catch (Exception io) { }
+	    log.close();
 
-    message = "epoch,time,diff,socket,package,dram\n";
-    log.write("epoch,socket,package,dram\n");
+	    // energy data
+	    path = Paths.get(directory, "chappie.energy" + suffix + ".csv").toString();
+	    try {
+	      log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
+	    } catch (Exception io) { }
 
-    for (List<Object> frame: energyData) {
-      message = "";
-      for (Object item: frame)
-        message += item.toString() + ",";
-      message = message.substring(0, message.length() - 1);
-      message += "\n";
-      log.write(message);
-    }
+	    message = "epoch,time,diff,socket,package,dram\n";
+	    log.write("epoch,socket,package,dram\n");
 
-    log.close();
+	    for (List<Object> frame: energyData) {
+	      message = "";
+	      for (Object item: frame)
+		message += item.toString() + ",";
+	      message = message.substring(0, message.length() - 1);
+	      message += "\n";
+	      log.write(message);
+	    }
 
-    // system data
-    path = Paths.get(directory, "chappie.system" + suffix + ".csv").toString();
-    try {
-      log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
-    } catch (Exception io) { }
+	    log.close();
 
-    log.write("record\n");
+	    // system data
+	    path = Paths.get(directory, "chappie.system" + suffix + ".csv").toString();
+	    try {
+	      log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
+	    } catch (Exception io) { }
 
-	  for (String record : jiffiesData)
-      log.write(record + "\n");
+	    log.write("record\n");
 
-    log.close();
+		  for (String record : jiffiesData)
+	      log.write(record + "\n");
 
-    // activeness
-    path = Paths.get(directory, "chappie.activeness" + suffix + ".csv").toString();
-    try {
-      log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
-    } catch (Exception io) { }
+	    log.close();
 
-    log.write("epoch,activeness\n");
+	    // activeness
+	    path = Paths.get(directory, "chappie.activeness" + suffix + ".csv").toString();
+	    try {
+	      log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
+	    } catch (Exception io) { }
 
-    int epoch = 0;
-    for (Double activity : activeness) {
-      log.write(epoch++ + "," + activity + "\n");
-    }
-    log.close();
-  }
+	    log.write("epoch,activeness\n");
+
+	    int epoch = 0;
+	    for (Double activity : activeness) {
+	      log.write(epoch++ + "," + activity + "\n");
+	    }
+	    log.close();
+	  }
+	  
   
-    public void dumpstats() {
-       if(gem5_cmdline_dumpstats) {
-        	Runtime rt = Runtime.getRuntime();
-        	try {
-                	Process pr = rt.exec("/sbin/m5 dumpstats");
-        	} catch(Exception exc) {
-                exc.printStackTrace();
-        	}
-        }
-  }
-  
+	    public void dumpstats() {
+			Runtime rt = Runtime.getRuntime();
+			try {
+				Process pr = rt.exec("/sbin/m5 dumpstats");
+        		} catch(Exception exc) {
+                	exc.printStackTrace();
+        		}
+	  }
 }
