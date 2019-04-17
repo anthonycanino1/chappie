@@ -47,10 +47,16 @@ public class Chaperone extends TimerTask {
   // Polling Monitor
   // this is the wrong name...what is it?
   private JDK9Monitor monitor = null;
+  private boolean no_rapl;
+  private boolean gem5_cmdline_dumpstats;
+  private int early_exit=-1;
 
-  public Chaperone(ChappieMode mode, int vmPolling, int osPolling) {
+  public Chaperone(ChappieMode mode, int vmPolling, int osPolling,boolean no_rapl, boolean gem5_cmdline_dumpstats, int early_exit) {
     mainID = GLIBC.getProcessId();
-
+	this.no_rapl=no_rapl;
+	this.gem5_cmdline_dumpstats = gem5_cmdline_dumpstats;
+	this.early_exit=early_exit;
+	
     this.mode = mode;
     // this.vmPolling = vmPolling;
     // this.osPolling = osPolling;
@@ -82,6 +88,13 @@ public class Chaperone extends TimerTask {
   @Override
   public void run() {
     // Check if we need to stop
+	 boolean hang=false;
+	 if(epoch >= early_exit && early_exit > 0) {
+		terminate=true;
+		terminated=true;
+		hang=true;
+	 }
+	 
     if (!terminate) {
       // set this epoch and cache last epoch's ns timestamp
       long lastEpochTime = elapsedTime;
@@ -100,8 +113,8 @@ public class Chaperone extends TimerTask {
       // currentEpoch = epoch;
     } else {
       // stop ourselves before letting everything know we're done
-      timer.cancel();
-      terminated = true;
+	  terminated = true;  
+	  if(halt) Runtime.getRuntime().halt(0);
     }
   }
 

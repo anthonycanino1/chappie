@@ -34,7 +34,25 @@ import java.util.ArrayList;
 public class Main {
   public static void main(String[] args) throws IOException {
     // should be handled by highest level call (benchmark, grid search)
-    ChappieMode mode = ChappieMode.FULL;
+    
+	boolean no_rapl=false;
+    try {
+	no_rapl = Boolean.parseBoolean(System.getenv("NO_RAPL"));
+    } catch(Exception exc) { }
+
+
+    boolean gem5_cmdline_dumpstats=false;
+    try {
+	gem5_cmdline_dumpstats = Boolean.parseBoolean(System.getenv("GEM5_CMDLINE_DUMPSTATS"));
+    } catch(Exception exc) { }
+
+    
+    int early_exit = -1;
+    try {
+      early_exit = Integer.parseInt(System.getenv("EARLY_EXIT"));
+    } catch(Exception e) { }
+	
+	ChappieMode mode = ChappieMode.FULL;
     try {
       mode = ChappieMode.valueOf(System.getenv("MODE"));
     } catch(Exception e) { }
