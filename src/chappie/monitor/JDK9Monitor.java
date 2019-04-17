@@ -42,6 +42,8 @@ public class JDK9Monitor {
   private String directory;
   private String suffix;
 
+  private double[] initialRaplReading;
+
   public JDK9Monitor(int osPolling) {
     // should be handled by highest level call (grid search)
     this.osPolling = osPolling;
@@ -73,6 +75,8 @@ public class JDK9Monitor {
     // helper due to the cold run problem we experienced around dacapo
     suffix = System.getenv("CHAPPIE_SUFFIX");
     suffix = suffix != null ? "." + suffix : "";
+
+    initialRaplReading = jrapl.EnergyCheckUtils.getEnergyStats();
   }
 
   // Runtime data containers
@@ -156,7 +160,19 @@ public class JDK9Monitor {
     } catch (Exception io) { }
 
     long runtime = System.nanoTime() - start;
-    String message = "name,value\nruntime," + runtime + "\nmain_id," + mainID;
+    double[] raplReading = jrapl.EnergyCheckUtils.getEnergyStats();
+
+    double package1 = raplReading[2] - initialRaplReading[2];
+    double package2 = raplReading[5] - initialRaplReading[5];
+    double dram1 = raplReading[0] - initialRaplReading[0];
+    double dram2 = raplReading[3] - initialRaplReading[3];
+
+    String message = "name,value\nruntime," + runtime +
+                      "\nmain_id," + mainID +
+                      "\npackage1," + package1 +
+                      "\npackage2," + package2 +
+                      "\ndram1," + dram1 +
+                      "\ndram2," + dram2;
 
     log.write(message);
     log.close();

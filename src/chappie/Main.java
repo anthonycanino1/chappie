@@ -44,7 +44,7 @@ public class Main {
       vmPolling = Integer.parseInt(System.getenv("VM_POLLING"));
     } catch(Exception e) { }
 
-    int osPolling = 4;
+    int osPolling = 1;
     try {
       osPolling = Integer.parseInt(System.getenv("OS_POLLING"));
     } catch(Exception e) { }
