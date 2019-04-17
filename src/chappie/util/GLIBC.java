@@ -65,8 +65,6 @@ public abstract class GLIBC {
 
   public static void unmapThread() {
     Thread thread = Thread.currentThread();
-
-    tids.remove(thread);
   }
 
   private final static String[] DEFAULT_OS_READING = new String[] {"-1", "0", "0", "?", "?"};

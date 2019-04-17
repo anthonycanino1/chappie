@@ -115,7 +115,7 @@ public class Chaperone extends TimerTask {
       // currentEpoch = epoch;
     } else {
       // stop ourselves before letting everything know we're done
-	  terminated = true; 
+	  terminated = true;
 	  cancel();
 	  if(halt) Runtime.getRuntime().halt(0);
     }
