@@ -34,6 +34,9 @@ import jrapl.EnergyCheckUtils.*;
 public class JDK9Monitor {
   // params
   int osPolling;
+  private boolean no_rapl = false;
+  private boolean dump_stats = false;
+  private int sockets_no = false;
   // private int threadInterval = 1;
   // private int jiffiesInterval = 1;
   // private int jraplInterval = 1;
@@ -42,9 +45,12 @@ public class JDK9Monitor {
   private String directory;
   private String suffix;
 
-  public JDK9Monitor(int osPolling) {
+  public JDK9Monitor(int osPolling, boolean no_rapl, boolean dump_stats, int sockets_no) {
     // should be handled by highest level call (grid search)
     this.osPolling = osPolling;
+	this.no_rapl=no_rapl;
+	this.dump_stats=dump_stats;
+	this.sockets_no=sockets_no;
     // int threadInterval = 1;
     // try {
     //   threadInterval = Integer.parseInt(System.getenv("THREAD_INTERVAL"));

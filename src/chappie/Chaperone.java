@@ -50,19 +50,21 @@ public class Chaperone extends TimerTask {
   private boolean no_rapl;
   private boolean gem5_cmdline_dumpstats;
   private int early_exit=-1;
+  private int sockets_no;
 
-  public Chaperone(ChappieMode mode, int vmPolling, int osPolling,boolean no_rapl, boolean gem5_cmdline_dumpstats, int early_exit) {
+  public Chaperone(ChappieMode mode, int vmPolling, int osPolling,boolean no_rapl, boolean gem5_cmdline_dumpstats, int early_exit,int sockets_no) {
     mainID = GLIBC.getProcessId();
 	this.no_rapl=no_rapl;
 	this.gem5_cmdline_dumpstats = gem5_cmdline_dumpstats;
 	this.early_exit=early_exit;
+	this.sockets_no=sockets_no;
 	
     this.mode = mode;
     // this.vmPolling = vmPolling;
     // this.osPolling = osPolling;
 
     if (mode != ChappieMode.NOP) {
-      this.monitor = new JDK9Monitor(osPolling);
+      this.monitor = new JDK9Monitor(osPolling,no_rapl,gem5_cmdline_dumpstats,sockets_no);
       timer = new Timer("Chaperone");
       timer.scheduleAtFixedRate(this, 0, vmPolling);
     }
