@@ -38,7 +38,7 @@ public class Main {
 	int sockets_no = -1;
 	try {
 		sockets_no = Integer.parseInt(System.getenv("SOCKETS_NO"));
-	} catch(Exception exc);
+	} catch(Exception exc) {};
 	
 	boolean no_rapl=false;
     try {
@@ -111,7 +111,7 @@ public class Main {
         System.out.println("==================================================");
 
         long start = System.nanoTime();
-        Chaperone chaperone = new Chaperone(mode, vmPolling, osPolling,,no_rapl,gem5_cmdline_dumpstats,early_exit,sockets_no);
+        Chaperone chaperone = new Chaperone(mode, vmPolling, osPolling,no_rapl,gem5_cmdline_dumpstats,early_exit,sockets_no);
         main.invoke(null, (Object)params.toArray(new String[params.size()]));
 
         System.out.println("==================================================");
