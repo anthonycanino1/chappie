@@ -48,7 +48,7 @@ public class ChappieCallback extends Callback {
   @Override
   public void start(String benchmark) {
     setEnv("CHAPPIE_SUFFIX", Integer.toString(iter++));
-    chaperone = new Chaperone(mode, vmPolling, osPolling);
+    chaperone = new Chaperone(mode, vmPolling, osPolling, false, false, -1, -1);
     super.start(benchmark);
   }
 

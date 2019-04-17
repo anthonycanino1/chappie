@@ -53,7 +53,7 @@ public class JDK9Monitor {
 		this.no_rapl=no_rapl;
 		this.dump_stats=dump_stats;
 		this.sockets_no=sockets_no;
-		energy_readings = new int[3*sockets_no];
+		energy_readings = new double[3*sockets_no];
 		for(int i=0; i<3*sockets_no;i++) energy_readings[i] = -2;
 	    // int threadInterval = 1;
 	    // try {
