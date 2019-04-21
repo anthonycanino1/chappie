@@ -41,11 +41,12 @@ if __name__ == '__main__':
     energy = energy.reset_index().drop_duplicates(['level', 'type'])
     energy.columns = ['level', 'type', 'value', '', 'Correlation']
 
-    time_ = method.groupby(['level', 'type'])[['Time', 'Time Reference']].corr()
-    time_ = time_.reset_index().drop_duplicates(['level', 'type'])
-    time_.columns = ['level', 'type', 'value', '', 'Correlation']
+    # time_ = method.groupby(['level', 'type'])[['Time', 'Time Reference']].corr()
+    # time_ = time_.reset_index().drop_duplicates(['level', 'type'])
+    # time_.columns = ['level', 'type', 'value', '', 'Correlation']
 
-    corr = pd.concat([energy, time_]).drop(columns = '')
+    # corr = pd.concat([energy, time_]).drop(columns = '')
+    corr = energy.drop(columns = '')
     print(corr)
 
     corr.to_csv(os.path.join(args.destination, 'chappie.correlation.csv'), index = False)

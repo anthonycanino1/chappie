@@ -47,22 +47,30 @@ public class Chaperone extends TimerTask {
   // Polling Monitor
   // this is the wrong name...what is it?
   private JDK9Monitor monitor = null;
+  private boolean no_rapl;
+  private boolean gem5_cmdline_dumpstats;
+  private int early_exit=-1;
+  private int sockets_no;
 
-  public Chaperone(ChappieMode mode, int vmPolling, int osPolling) {
+  public Chaperone(ChappieMode mode, int vmPolling, int osPolling,boolean no_rapl, boolean gem5_cmdline_dumpstats, int early_exit,int sockets_no) {
     mainID = GLIBC.getProcessId();
+    this.no_rapl=no_rapl;
+    this.gem5_cmdline_dumpstats = gem5_cmdline_dumpstats;
+    this.early_exit=early_exit;
+    this.sockets_no=sockets_no;
 
     this.mode = mode;
     // this.vmPolling = vmPolling;
     // this.osPolling = osPolling;
 
     if (mode != ChappieMode.NOP) {
-      this.monitor = new JDK9Monitor(osPolling);
+      this.monitor = new JDK9Monitor(osPolling,no_rapl,gem5_cmdline_dumpstats,sockets_no);
       timer = new Timer("Chaperone");
       timer.scheduleAtFixedRate(this, 0, vmPolling);
     }
 
     epoch = 0;
-    start = System.nanoTime();
+    start = System.currentTimeMillis();
   }
 
   // Runtime data containers
@@ -82,10 +90,17 @@ public class Chaperone extends TimerTask {
   @Override
   public void run() {
     // Check if we need to stop
+    boolean halt=false;
+    if(epoch >= early_exit && early_exit > 0) {
+    terminate=true;
+    terminated=true;
+    halt=true;
+    }
+
     if (!terminate) {
-      // set this epoch and cache last epoch's ns timestamp
+      // set this epoch and cache last epoch's ms timestamp
       long lastEpochTime = elapsedTime;
-      elapsedTime = System.nanoTime() - start;
+      elapsedTime = System.currentTimeMillis() - start;
       lastEpochTime = elapsedTime - lastEpochTime;
 
       // this is how we actually read
@@ -93,15 +108,15 @@ public class Chaperone extends TimerTask {
 
       // estimate of chappie's machine time usage;
       // possible to use state to make better estimate
-      long chappieReadingTime = (System.nanoTime() - start) - elapsedTime;
+      long chappieReadingTime = (System.currentTimeMillis() - start) - elapsedTime;
       activeness.add((double)chappieReadingTime / lastEpochTime);
 
       epoch++;
       // currentEpoch = epoch;
     } else {
       // stop ourselves before letting everything know we're done
-      timer.cancel();
-      terminated = true;
+	  terminated = true;
+	  if(halt) Runtime.getRuntime().halt(0);
     }
   }
 

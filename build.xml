@@ -31,7 +31,7 @@
 		<exec executable="/usr/bin/make"><arg value="-C"/><arg value="vendor/jrapl-port"/><arg value="jrapl"/></exec>
 		<mkdir dir="${build.classes.dir}"/>
     <javac
-      source="1.8" target="1.8"
+      source="1.9" target="1.9"
       srcdir="${src.dir}"
       destdir="${build.classes.dir}"
 			classpathref="project.class.path">

@@ -4,14 +4,7 @@
 # ./coapp_callback_benchmark.sh -m <mode>
 
 benchmarks=(
-# "avrora_avrora"
-"h2_h2"
-# "jython_jython"
-# "avrora_tradebeans"
-# "h2_tradebeans"
-# "avrora_tradesoap"
-# "h2_tradesoap"
-# "tradebeans_tradebeans"
+"h2_oltp"
 )
 
 mode=FULL
@@ -31,7 +24,8 @@ fi
 
 mkdir $path
 
-command=$CHAPPIE_PATH/run/util/dacapo/dacapo.sh
+command1=$CHAPPIE_PATH/run/util/dacapo/dacapo.sh
+command2=$CHAPPIE_PATH/run/util/oltp/oltp.sh
 
 for benchmark in "${benchmarks[@]}"; do
   first="${benchmark%%_*}"; second="${benchmark#*_}"

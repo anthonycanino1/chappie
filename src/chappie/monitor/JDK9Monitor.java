@@ -34,9 +34,10 @@ import jrapl.EnergyCheckUtils.*;
 public class JDK9Monitor {
   // params
   int osPolling;
-  // private int threadInterval = 1;
-  // private int jiffiesInterval = 1;
-  // private int jraplInterval = 1;
+
+  private boolean no_rapl = false;
+  private boolean dump_stats = false;
+  private int sockets_no = -1;
 
   // file helpers
   private String directory;
@@ -44,27 +45,21 @@ public class JDK9Monitor {
 
   private double[] initialRaplReading;
 
-  public JDK9Monitor(int osPolling) {
+  public JDK9Monitor(int osPolling, boolean no_rapl, boolean dump_stats, int sockets_no) {
     // should be handled by highest level call (grid search)
     this.osPolling = osPolling;
-    // int threadInterval = 1;
-    // try {
-    //   threadInterval = Integer.parseInt(System.getenv("THREAD_INTERVAL"));
-    // } catch(Exception e) { }
-    //
-    // int jiffiesInterval = 1;
-    // try {
-    //   jiffiesInterval = Integer.parseInt(System.getenv("JIFFIES_INTERVAL"));
-    // } catch(Exception e) { }
-    //
-    // int jraplInterval = 1;
-    // try {
-    //   jraplInterval = Integer.parseInt(System.getenv("JRAPL_INTERVAL"));
-    // } catch(Exception e) { }
-    //
-    // this.threadInterval = threadInterval;
-    // this.jiffiesInterval = jiffiesInterval;
-    // this.jraplInterval = jraplInterval;
+
+    this.no_rapl=no_rapl;
+    if (no_rapl) {
+      this.sockets_no=sockets_no;
+      initialRaplReading = new double[3*sockets_no];
+      for(int i=0; i<3*sockets_no;i++)
+        initialRaplReading[i] = -2;
+    } else {
+      initialRaplReading = jrapl.EnergyCheckUtils.getEnergyStats();
+    }
+
+    this.dump_stats=dump_stats;
 
     // definition handled by parent caller (./chappie_test.sh)
     // directory management HAS to be handled by bootstrapper (./run.sh)
@@ -76,7 +71,6 @@ public class JDK9Monitor {
     suffix = System.getenv("CHAPPIE_SUFFIX");
     suffix = suffix != null ? "." + suffix : "";
 
-    initialRaplReading = jrapl.EnergyCheckUtils.getEnergyStats();
   }
 
   // Runtime data containers
@@ -123,7 +117,7 @@ public class JDK9Monitor {
         measure.add(epoch);
         measure.add(thread.getName());
         measure.add(thread.getId());
-        // measure.add(thread.getState());
+        measure.add(thread.getState());
 
         idData.add(measure);
       }
@@ -134,8 +128,13 @@ public class JDK9Monitor {
     }
 
     // Read energy of system
-    // if (epoch % jraplInterval == 0) {
-    double[] raplReading = jrapl.EnergyCheckUtils.getEnergyStats();
+    double[] raplReading = new double[0];
+
+		if(no_rapl) {
+			raplReading = jrapl.EnergyCheckUtils.getEnergyStats();
+		} else {
+			raplReading = initialRaplReading;
+		}
 
     for (int i = 0; i < raplReading.length / 3; ++i) {
       measure = new ArrayList<Object>();
@@ -159,7 +158,7 @@ public class JDK9Monitor {
       log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
     } catch (Exception io) { }
 
-    long runtime = System.nanoTime() - start;
+    long runtime = System.currentTimeMillis() - start;
     double[] raplReading = jrapl.EnergyCheckUtils.getEnergyStats();
 
     double package1 = raplReading[2] - initialRaplReading[2];
@@ -203,7 +202,7 @@ public class JDK9Monitor {
       log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
     } catch (Exception io) { }
 
-    message = "epoch,thread,id\n";
+    message = "epoch,thread,id,state\n";
     log.write(message);
 
     for (List<Object> frame: idData) {
@@ -263,5 +262,14 @@ public class JDK9Monitor {
       log.write(epoch++ + "," + activity + "\n");
     }
     log.close();
+  }
+
+  public void dumpstats() {
+    Runtime rt = Runtime.getRuntime();
+    try {
+      Process pr = rt.exec("/sbin/m5 dumpstats");
+    } catch(Exception exc) {
+      exc.printStackTrace();
+    }
   }
 }

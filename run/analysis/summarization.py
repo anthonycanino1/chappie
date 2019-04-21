@@ -2,6 +2,7 @@
 
 import argparse
 import os
+import sys
 
 from time import time
 
@@ -37,6 +38,9 @@ if __name__ == '__main__':
     parser.add_argument('-reference', default = "chappie_test")
     parser.add_argument('-destination', default = None)
     args = parser.parse_args()
+
+    if 'plot' in args.path:
+        sys.exit(0)
 
     # setup the paths
     if not os.path.exists(args.path):
@@ -75,6 +79,8 @@ if __name__ == '__main__':
     runtime.to_csv(os.path.join(args.destination, 'chappie.runtime.csv'))
 
     trace = pd.concat([pd.read_csv(os.path.join(args.path, f)) for f in os.listdir(args.path) if 'energy' in f])
+    trace['package'] = trace['package'].replace(np.inf, 0).replace(-np.inf, 0)
+    trace['dram'] = trace['dram'].replace(np.inf, 0).replace(-np.inf, 0)
     trace = trace.groupby(['socket'])[['package', 'dram']].sum() / size
     trace.columns = ['total ' + col for col in trace.columns]
 
@@ -117,6 +123,8 @@ if __name__ == '__main__':
 
     trace = trace[['total package', 'total dram', 'other application package', 'other application dram']]
     summary = pd.concat([trace, system_stats, jvm_stats, chappie_stats, application_stats], axis = 1)
+    for col in summary.columns:
+        summary[col] = summary[col].replace(np.inf, 0).replace(-np.inf, 0)
     summary.to_csv(os.path.join(args.destination, 'chappie.component.csv'))
 
     method['energy'] = method['package'] + method['dram']
@@ -138,28 +146,38 @@ if __name__ == '__main__':
         df['context'] = df[col].str.split(';').map(lambda x: x[:2])
         df['context'] = df['context'].map(lambda x: x[1] if isinstance(x, list) and len(x) > 1 else 'end')
 
-        tdf = df.groupby(['method', 'context'])['energy'].agg(('sum', 'count')).reset_index()
-        tdf['sum'] /= tdf['sum'].sum()
-        tdf['sum'] *= 100
-        tdf['count'] /= tdf['count'].sum()
-        tdf['count'] *= 100
-        tdf['Energy'] = tdf['sum']
-        tdf['Time'] = tdf['count']
+        # tdf = df.groupby(['method', 'context'])['energy'].agg(('sum', 'count')).reset_index()
+        tdf = df.groupby(['method', 'context'])['energy'].agg('sum').reset_index()
+
+        # print(tdf)
+        tdf['energy'] /= tdf['energy'].sum()
+        tdf['energy'] *= 100
+        tdf['Energy'] = tdf['energy']
+
+        # print(tdf)
+
+        # tdf['count'] /= tdf['count'].sum()
+        # tdf['count'] *= 100
+        # tdf['Time'] = tdf['count']
+
+        # print(tdf.describe())
 
         tdf['level'] = 'context'
         tdf['type'] = col
         tdf['name'] = tdf['context']
 
-        tdfs.append(tdf)
+        # tdfs.append(tdf)
 
         for type in ('method', 'class', 'package'):
-            tdf = df.groupby(type)['energy'].agg(('sum', 'count')).reset_index()
-            tdf['sum'] /= tdf['sum'].sum()
-            tdf['sum'] *= 100
-            tdf['count'] /= tdf['count'].sum()
-            tdf['count'] *= 100
-            tdf['Energy'] = tdf['sum']
-            tdf['Time'] = tdf['count']
+            # tdf = df.groupby(type)['energy'].agg(('sum', 'count')).reset_index()
+            tdf = df.groupby(type)['energy'].agg('sum').reset_index()
+            # print(tdf)
+            tdf['energy'] /= tdf['energy'].sum()
+            tdf['energy'] *= 100
+            tdf['Energy'] = tdf['energy']
+            # tdf['count'] /= tdf['count'].sum()
+            # tdf['count'] *= 100
+            # tdf['Time'] = tdf['count']
 
             tdf['level'] = type
             tdf['type'] = col
@@ -169,10 +187,11 @@ if __name__ == '__main__':
 
         df = pd.concat(tdfs, sort = True)
 
-        df = df[['level', 'name', 'type', 'Energy', 'Time']]
+        df = df[['level', 'name', 'type', 'Energy']] # , 'Time']]
         dfs.append(df)
 
-    method = pd.concat(dfs)
+    method = pd.concat(dfs).fillna(0)
+    # print(method)
 
     # filter away context pairs?
     # runtime['methods'] = method['name'].unique()

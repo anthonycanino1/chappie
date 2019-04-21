@@ -56,40 +56,40 @@ if __name__ == '__main__':
 
     ax = None
     first = True
-    for order, color, width in zip((1, 2), ('blue', 'orange'), (-0.25, 0.25)):
-        bench = summary[summary['Order'] == order][['Energy', 'Benchmark']]
-        ax = bench.plot.bar(
-            x = 'Benchmark',
-            stacked = True,
-            color = color,
-            edgecolor = 'black',
-            linewidth = 0.125,
-            align = 'edge',
-            width = width,
-            ax = ax,
-            figsize = (16, 9),
-            legend = False,
-        )
-
-        for patch, corr, height in zip(ax.patches, summary[summary['Order'] == order]['Correlation'], bench['Energy']):
-            ax.text(
-                patch.get_x() + (0.045 if order == 2 else -0.225),
-                height + 2,
-                '{:.2f}'.format(corr),
-                fontsize = 8
-            )
-
-    handles, labels = ax.get_legend_handles_labels()
-    plt.legend(handles, labels, loc = 'best', prop = {'size': 7})
-
-    max_tick = np.ceil(summary.drop(columns = ['Benchmark', 'Correlation']).sum(axis = 1).astype(int).max() / 100 + 1) * 100
-
-    plt.xticks(fontsize = 8, rotation = 30)
-    plt.yticks(ticks = np.arange(0, max_tick, 100), fontsize = 8)
-    plt.xlabel('Benchmarks', fontsize = 12)
-    plt.ylabel('Energy (J)', fontsize = 12)
-
-    plt.savefig(os.path.join(args.destination, 'attribution.svg'), bbox_inches = 'tight')
+    # for order, color, width in zip((1, 2), ('blue', 'orange'), (-0.25, 0.25)):
+    #     bench = summary[summary['Order'] == order][['Energy', 'Benchmark']]
+    #     ax = bench.plot.bar(
+    #         x = 'Benchmark',
+    #         stacked = True,
+    #         color = color,
+    #         edgecolor = 'black',
+    #         linewidth = 0.125,
+    #         align = 'edge',
+    #         width = width,
+    #         ax = ax,
+    #         figsize = (16, 9),
+    #         legend = False,
+    #     )
+    #
+    #     for patch, corr, height in zip(ax.patches, summary[summary['Order'] == order]['Correlation'], bench['Energy']):
+    #         ax.text(
+    #             patch.get_x() + (0.045 if order == 2 else -0.225),
+    #             height + 2,
+    #             '{:.2f}'.format(corr),
+    #             fontsize = 8
+    #         )
+    #
+    # handles, labels = ax.get_legend_handles_labels()
+    # plt.legend(handles, labels, loc = 'best', prop = {'size': 7})
+    #
+    # max_tick = np.ceil(summary.drop(columns = ['Benchmark', 'Correlation']).sum(axis = 1).astype(int).max() / 100 + 1) * 100
+    #
+    # plt.xticks(fontsize = 8, rotation = 30)
+    # plt.yticks(ticks = np.arange(0, max_tick, 100), fontsize = 8)
+    # plt.xlabel('Benchmarks', fontsize = 12)
+    # plt.ylabel('Energy (J)', fontsize = 12)
+    #
+    # plt.savefig(os.path.join(args.destination, 'attribution.svg'), bbox_inches = 'tight')
 
     # overhead
     runtime = pd.concat(runtime.values())

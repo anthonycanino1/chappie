@@ -6,19 +6,9 @@
 # export CHAPPIE_PATH=/home/timur/Projects/chappie
 
 benchmarks=(
-avrora
-# batik
-# eclipse
-# fop
-# h2
-# jython
-# luindex
-# lusearch-fix
-# pmd
-# sunflow
-# tradebeans
-# tradesoap
-# xalan
+Pagerank
+ConnectedComponents
+ALSMatrixFactorization
 )
 
 mode=FULL
@@ -27,19 +17,26 @@ case $1 in
 esac
 export MODE=$mode
 
-mkdir -p dacapo
-mkdir -p dacapo/reference
+mkdir -p graphchi
+mkdir -p graphchi/reference
 
 if [ $MODE == NOP ]; then
-  path=dacapo/reference/dacapo
+  path=graphchi/reference/graphchi
 else
-  path=dacapo/dacapo
+  path=graphchi/graphchi
 fi
 
 mkdir -p $path
 
 for benchmark in "${benchmarks[@]}"; do
-  $CHAPPIE_PATH/run/util/dacapo/dacapo.sh $benchmark -d $path/$benchmark
+  mkdir $path/$benchmark
+  for i in $(seq 0 0); do
+    echo "=================================================="
+    echo "Iteration $((i+1))/10"
+    echo "=================================================="
+    export CHAPPIE_SUFFIX=$i
+    $CHAPPIE_PATH/run/util/graphchi/graphchi.sh $benchmark -d $path/$benchmark
+  done
 done
 
 echo "=================================================="
@@ -48,8 +45,9 @@ echo "=================================================="
 if [ $MODE == NOP ]; then
   for benchmark in "${benchmarks[@]}"; do
     echo $benchmark
+    sudo rm -rf $path/$benchmark/processed
     $CHAPPIE_PATH/run/analysis/nop_processing.py -path $path/$benchmark
   done
 else
-  $CHAPPIE_PATH/run/analysis/analysis.sh $path dacapo/reference/dacapo
+  $CHAPPIE_PATH/run/analysis/analysis.sh $path graphchi/reference/graphchi
 fi

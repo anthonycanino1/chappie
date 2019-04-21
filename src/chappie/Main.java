@@ -34,7 +34,31 @@ import java.util.ArrayList;
 public class Main {
   public static void main(String[] args) throws IOException {
     // should be handled by highest level call (benchmark, grid search)
-    ChappieMode mode = ChappieMode.FULL;
+
+	int sockets_no = -1;
+	try {
+		sockets_no = Integer.parseInt(System.getenv("SOCKETS_NO"));
+	} catch(Exception exc) {};
+
+	boolean no_rapl=false;
+    try {
+	no_rapl = Boolean.parseBoolean(System.getenv("NO_RAPL"));
+    } catch(Exception exc) { }
+
+
+    boolean gem5_cmdline_dumpstats=false;
+    try {
+	gem5_cmdline_dumpstats = Boolean.parseBoolean(System.getenv("GEM5_CMDLINE_DUMPSTATS"));
+    } catch(Exception exc) { }
+
+
+    int early_exit = -1;
+    try {
+      early_exit = Integer.parseInt(System.getenv("EARLY_EXIT"));
+    } catch(Exception e) { }
+
+
+	ChappieMode mode = ChappieMode.FULL;
     try {
       mode = ChappieMode.valueOf(System.getenv("MODE"));
     } catch(Exception e) { }
@@ -59,7 +83,11 @@ public class Main {
                         "\n - Mode:\t\t\t" + mode +
                         "\n - VM Polling Rate:\t\t" + vmPolling + " milliseconds" +
                         "\n - OS Polling Rate:\t\t" + osPolling + " milliseconds" +
-                        "\n - HP Polling Rate:\t\t" + hpPolling + " milliseconds"
+                        "\n - HP Polling Rate:\t\t" + hpPolling + " milliseconds" +
+						"\n - No Rapl:\t\t" + no_rapl + " ." +
+						"\n - Dump Gem5 Stats:\t\t" + gem5_cmdline_dumpstats + " ." +
+						"\n - Early Exit:\t\t" + early_exit + " ." +
+						"\n - Number of Sockets:\t\t" + sockets_no
                       );
 
     URLClassLoader loader;
@@ -83,7 +111,7 @@ public class Main {
         System.out.println("==================================================");
 
         long start = System.nanoTime();
-        Chaperone chaperone = new Chaperone(mode, vmPolling, osPolling);
+        Chaperone chaperone = new Chaperone(mode, vmPolling, osPolling,no_rapl,gem5_cmdline_dumpstats,early_exit,sockets_no);
         main.invoke(null, (Object)params.toArray(new String[params.size()]));
 
         System.out.println("==================================================");
