@@ -8,28 +8,38 @@ dir=`dirname "$0"`
 export CHAPPIE_PATH=$dir/..
 export CHAPPIE_JAR=$CHAPPIE_PATH/chappie.jar
 
-export VM_POLLING=4
-export OS_POLLING=40
-export HP_POLLING=4
+# export POLLING=1
+export VM_POLLING=1
+export OS_POLLING=1
+export HP_POLLING=1
 
 case $1 in
   -b) benchmark=$2;;
 esac
 
 if [ $benchmark == "dacapo" ]; then
-  # $CHAPPIE_PATH/run/util/dacapo/single.sh -m NOP
-  # $CHAPPIE_PATH/run/util/dacapo/single.sh
-  $CHAPPIE_PATH/run/util/dacapo/coapp.sh -m NOP
-  $CHAPPIE_PATH/run/util/dacapo/coapp.sh
+  # echo ""
+  $CHAPPIE_PATH/run/util/dacapo/single.sh -m NOP
+  $CHAPPIE_PATH/run/util/dacapo/single.sh
+  # $CHAPPIE_PATH/run/util/dacapo/n_coapp.sh -m NOP
+  # $CHAPPIE_PATH/run/util/dacapo/n_coapp.sh
   # $CHAPPIE_PATH/run/util/dacapo/foreign.sh -m NOP
   # $CHAPPIE_PATH/run/util/dacapo/foreign.sh
 elif [ $benchmark == "oltp" ]
 then
-  echo "not implemented"
-  # $CHAPPIE_PATH/run/util/dacapo/single.sh -m NOP
-  # $CHAPPIE_PATH/run/util/dacapo/single.sh
+  echo ""
+  # $CHAPPIE_PATH/run/util/oltp/single.sh -m NOP
+  # $CHAPPIE_PATH/run/util/oltp/single.sh
   # $CHAPPIE_PATH/run/util/dacapo/coapp.sh -m NOP
   # $CHAPPIE_PATH/run/util/dacapo/coapp.sh
   # $CHAPPIE_PATH/run/util/dacapo/foreign.sh -m NOP
   # $CHAPPIE_PATH/run/util/dacapo/foreign.sh
+elif [ $benchmark == "graphchi" ]
+then
+  # $CHAPPIE_PATH/run/util/graphchi/single.sh -m NOP
+  $CHAPPIE_PATH/run/util/graphchi/single.sh
+elif [ $benchmark == "dacapo_oltp" ]
+then
+  $CHAPPIE_PATH/run/util/dacapo_oltp.sh -m NOP
+  $CHAPPIE_PATH/run/util/dacapo_oltp.sh
 fi
