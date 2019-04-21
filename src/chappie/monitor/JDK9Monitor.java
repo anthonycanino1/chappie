@@ -210,8 +210,9 @@ public class JDK9Monitor {
 
     for (List<Object> frame: idData) {
       message = "";
-      for (Object item: frame)
+      for (Object item: frame) {
         message += item.toString() + ",";
+      }
       message = message.substring(0, message.length() - 1);
       message += "\n";
       log.write(message);
