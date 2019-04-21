@@ -21,24 +21,38 @@ if [ $benchmark == "dacapo" ]; then
   # echo
   export MODE=NOP
   $CHAPPIE_PATH/run/util/dacapo/single.sh
+
   export MODE=FULL
   $CHAPPIE_PATH/run/util/dacapo/single.sh
-  # $CHAPPIE_PATH/run/util/dacapo/n_coapp.sh -m NOP
+
+  # export MODE=NOP
   # $CHAPPIE_PATH/run/util/dacapo/n_coapp.sh
+  #
+  # export MODE=FULL
+  # $CHAPPIE_PATH/run/util/dacapo/n_coapp.sh
+  #
+  # export MODE=NOP
   # $CHAPPIE_PATH/run/util/dacapo/foreign.sh -m NOP
+  #
+  # export MODE=FULL
   # $CHAPPIE_PATH/run/util/dacapo/foreign.sh
 elif [ $benchmark == "oltp" ]
 then
   echo ""
-  # $CHAPPIE_PATH/run/util/oltp/single.sh -m NOP
-  # $CHAPPIE_PATH/run/util/oltp/single.sh
+  export MODE=NOP
+  $CHAPPIE_PATH/run/util/oltp/single.sh -m NOP
+  export MODE=FULL
+  $CHAPPIE_PATH/run/util/oltp/single.sh
   # $CHAPPIE_PATH/run/util/dacapo/coapp.sh -m NOP
   # $CHAPPIE_PATH/run/util/dacapo/coapp.sh
   # $CHAPPIE_PATH/run/util/dacapo/foreign.sh -m NOP
   # $CHAPPIE_PATH/run/util/dacapo/foreign.sh
 elif [ $benchmark == "graphchi" ]
 then
-  # $CHAPPIE_PATH/run/util/graphchi/single.sh -m NOP
+  export MODE=NOP
+  $CHAPPIE_PATH/run/util/graphchi/single.sh
+
+  export MODE=FULL
   $CHAPPIE_PATH/run/util/graphchi/single.sh
 elif [ $benchmark == "dacapo_oltp" ]
 then

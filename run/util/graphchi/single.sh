@@ -7,15 +7,15 @@
 
 benchmarks=(
 Pagerank
-ConnectedComponents
-ALSMatrixFactorization
+# ConnectedComponents
+# ALSMatrixFactorization
 )
 
-mode=FULL
-case $1 in
-  -m) mode=$2;;
-esac
-export MODE=$mode
+# mode=FULL
+# case $1 in
+#   -m) mode=$2;;
+# esac
+# export MODE=$mode
 
 mkdir -p graphchi
 mkdir -p graphchi/reference
@@ -30,7 +30,7 @@ mkdir -p $path
 
 for benchmark in "${benchmarks[@]}"; do
   mkdir $path/$benchmark
-  for i in $(seq 0 0); do
+  for i in $(seq 0 9); do
     echo "=================================================="
     echo "Iteration $((i+1))/10"
     echo "=================================================="

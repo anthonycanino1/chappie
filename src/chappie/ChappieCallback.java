@@ -67,7 +67,7 @@ public class ChappieCallback extends Callback {
     System.out.println("Chaperone Parameters:" +
                         "\n - Mode:\t\t\t" + mode +
                         "\n - VM Polling Rate:\t\t" + vmPolling + " milliseconds" +
-                        "\n - OS Polling Rate:\t\t" + osPolling + " milliseconds" +
+                        "\n - OS Polling Rate:\t\t" + vmPolling * osPolling + " milliseconds" +
                         "\n - HP Polling Rate:\t\t" + hpPolling + " milliseconds" +
             						"\n - No Rapl:\t\t" + no_rapl + " ." +
             						"\n - Dump Gem5 Stats:\t\t" + gem5_cmdline_dumpstats + " ." +
