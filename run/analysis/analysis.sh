@@ -13,9 +13,9 @@ sudo rm -rf $root/plots
 
 for benchmark in $root/*; do
   echo $benchmark
-  # sudo rm -rf $benchmark/processed
+  sudo rm -rf $benchmark/processed
   sudo rm -rf $benchmark/summary
-  # python3 $CHAPPIE_PATH/run/analysis/processing.py -path $benchmark
+  python3 $CHAPPIE_PATH/run/analysis/processing.py -path $benchmark
   python3 $CHAPPIE_PATH/run/analysis/summarization.py -path $benchmark -reference $reference/${benchmark##*/}
 done
 

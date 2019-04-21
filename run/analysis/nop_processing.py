@@ -30,8 +30,8 @@ if __name__ == '__main__':
     runtime = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'runtime' in f])
 
     for k, f in enumerate(runtime):
-        if k < len(runtime) / 4:
-            continue
+        # if k < len(runtime) / 4:
+        #     continue
         runtime = pd.read_csv(f)
 
         # grab the runtime value

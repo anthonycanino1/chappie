@@ -92,9 +92,9 @@ public class Chaperone extends TimerTask {
     // Check if we need to stop
     boolean halt=false;
     if(epoch >= early_exit && early_exit > 0) {
-    terminate=true;
-    terminated=true;
-    halt=true;
+      terminate=true;
+      terminated=true;
+      halt=true;
     }
 
     if (!terminate) {

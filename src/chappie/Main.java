@@ -84,10 +84,10 @@ public class Main {
                         "\n - VM Polling Rate:\t\t" + vmPolling + " milliseconds" +
                         "\n - OS Polling Rate:\t\t" + osPolling + " milliseconds" +
                         "\n - HP Polling Rate:\t\t" + hpPolling + " milliseconds" +
-						"\n - No Rapl:\t\t" + no_rapl + " ." +
-						"\n - Dump Gem5 Stats:\t\t" + gem5_cmdline_dumpstats + " ." +
-						"\n - Early Exit:\t\t" + early_exit + " ." +
-						"\n - Number of Sockets:\t\t" + sockets_no
+            						"\n - No Rapl:\t\t" + no_rapl + " ." +
+            						"\n - Dump Gem5 Stats:\t\t" + gem5_cmdline_dumpstats + " ." +
+            						"\n - Early Exit:\t\t" + early_exit + " ." +
+            						"\n - Number of Sockets:\t\t" + sockets_no
                       );
 
     URLClassLoader loader;

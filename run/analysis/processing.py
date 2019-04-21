@@ -92,40 +92,15 @@ if __name__ == '__main__':
         # compute the differential energy
         start = time()
 
-        energy = df_diff(energy, 'socket', ['package', 'dram'])
+        energy['package'] = energy.groupby('socket')['package'].apply(pd.Series.diff).fillna(0)
+        energy['dram'] = energy.groupby('socket')['dram'].apply(pd.Series.diff).fillna(0)
 
         energy['package'] = energy['package'].map(lambda x: max(x + rapl_wrap_around, 0) if x < 0 else x)
         energy['dram'] = energy['dram'].map(lambda x: max(x + rapl_wrap_around, 0) if x < 0 else x)
 
         energy.to_csv(os.path.join(args.destination, 'chappie.energy.{}.csv'.format(k)), index = False)
 
-        energy['modulo'] = energy.epoch // 10
-        energy = energy.groupby(['socket', 'modulo']).agg({
-            'epoch': 'min',
-            'package': 'sum',
-            'dram': 'sum'
-        }).reset_index()
-
         print('{:.2f} seconds for energy'.format(time() - start))
-
-        ########## JIFFIES PROCESSING ##########
-        # separate each line into the desired pieces
-        start = time()
-        jiffy = jiffy['record'][jiffy['record'].str.contains(r'cpu\d+')]
-
-        jiffy = jiffy.str.replace('  ', ' ')
-        jiffy = jiffy.str.split(' ')
-        jiffy = jiffy.map(filter_cpu).values.tolist()
-        jiffy = pd.DataFrame(jiffy, columns = ['core'] + ['jiffies{}'.format(i) for i in range(10)], dtype = int)
-        jiffy['epoch'] = [i for i in range(len(jiffy))]
-        jiffy['socket'] = jiffy['core'].map(lambda x: 1 if x < 20 else 2)
-        jiffy = jiffy.drop(columns = 'jiffies3')
-        jiffy['jiffies'] = np.sum((jiffy[col] for col in jiffy.columns if 'jiffies' in col), axis = 1)
-
-        jiffy = jiffy.groupby(['epoch', 'socket'])['jiffies'].sum().reset_index()
-        jiffy = df_diff(jiffy, 'socket', ['jiffies'])[['epoch', 'socket', 'jiffies']]
-
-        print('{:.2f} seconds for jiffies'.format(time() - start))
 
         ########## TID/STAT PROCESSING ##########
         # extract the name (1), state (2), jiffies (13, 14), and core (38)
@@ -153,86 +128,76 @@ if __name__ == '__main__':
             thread_df.append(thread.drop(columns = 'record'))
 
         thread = pd.concat(thread_df)
-        df = pd.concat(df)
+        df = pd.concat(df).dropna()
 
         thread['thread'] = df.map(lambda x: x[0])
         thread['state'] = df.map(lambda x: x[1])
         thread['u_jiffies'] = df.map(lambda x: x[2])
         thread['k_jiffies'] = df.map(lambda x: x[3])
         thread['socket'] = df.map(lambda x: x[4])
-
-
-        # with StringIO() as record_data:
-        #     writer(record_data).writerows(list(thread_records.values))
-        #     record_data.seek(0)
-        #     thread_records = pd.read_csv(record_data, header = None)
-        #
-        # thread_records.columns = ['thread', 'state', 'u_jiffies', 'k_jiffies', 'socket']
-        # thread = pd.concat([thread, thread_records], axis = 1)
-        thread = thread[['epoch', 'timestamp', 'tid', 'thread', 'state', 'u_jiffies', 'k_jiffies', 'socket']]
         thread.loc[thread['tid'] == pid, 'thread'] = 'main'
+        print(thread[thread.thread == 'Chaperone'])
 
         # get differential jiffies
-        thread['u_jiffies'] = thread.groupby('tid')['u_jiffies'].transform(pd.Series.diff)
-        thread['k_jiffies'] = thread.groupby('tid')['u_jiffies'].transform(pd.Series.diff)
-        # thread = df_diff(thread, 'tid', ['u_jiffies', 'k_jiffies'])
-        # print(thread)
-
-        # normalize the state
-        thread.loc[thread['thread'] == 'Chaperone', 'state'] = activity['activeness'][activity.epoch.isin(thread.epoch)].clip(upper = 1).values
-        thread = pd.merge(thread, thread.groupby(['epoch', 'socket'])['state'].sum().reset_index(), on = ['epoch', 'socket'], suffixes = ('', '_sum'))
-        thread['state'] = (thread['state'] / thread['state_sum']).fillna(0)
-
-        # get the ratio of application and os jiffies
+        thread['u_jiffies'] = thread.groupby('tid')['u_jiffies'].apply(pd.Series.diff)
+        thread['k_jiffies'] = thread.groupby('tid')['k_jiffies'].apply(pd.Series.diff)
         thread['jiffies'] = thread['u_jiffies'] + thread['k_jiffies']
+        thread['jiffies'] = thread['jiffies'].fillna(0)
 
-        thread['modulo'] = thread.epoch // 10
-        thread = thread.groupby(['thread', 'modulo']).agg({
-            'thread': 'min',
-            'epoch': 'min',
-            'timestamp': 'min',
-            'tid': 'min',
-            'socket': 'mean',
-            'jiffies': 'sum',
-            'state': 'mean'
-        })
-        thread['socket'] = thread['socket'].round()
+        ########## JIFFIES PROCESSING ##########
+        # separate each line into the desired pieces
+        start = time()
 
-        os_state = pd.merge(jiffy, thread.groupby(['epoch', 'socket'])['jiffies'].sum().reset_index(), on = ['epoch', 'socket'], suffixes = ('_', ''))
+        core_count = 40
+        jiffy = jiffy['record'][jiffy['record'].str.contains(r'cpu\d+')]
+
+        jiffy = jiffy.str.replace('  ', ' ')
+        jiffy = jiffy.str.split(' ')
+        jiffy = jiffy.map(filter_cpu).values.tolist()
+        jiffy = pd.DataFrame(jiffy, columns = ['core'] + ['jiffies{}'.format(i) for i in range(10)], dtype = int)
+
+
+        epochs = [core_count * [i] for i in range(thread.epoch.max() + 1)]
+        jiffy['epoch'] = [e for epoch in epochs for e in epoch]
+        jiffy['socket'] = jiffy['core'].map(lambda x: 1 if x < 20 else 2)
+        jiffy = jiffy.drop(columns = 'jiffies3')
+        jiffy['jiffies'] = np.sum((jiffy[col] for col in jiffy.columns if 'jiffies' in col), axis = 1)
+
+        jiffy = jiffy.groupby(['epoch', 'socket'])['jiffies'].sum().reset_index()
+        jiffy = df_diff(jiffy, 'socket', ['jiffies'])[['epoch', 'socket', 'jiffies']]
+
+        print('{:.2f} seconds for jiffies'.format(time() - start))
+
+        os_state = pd.merge(jiffy, thread.groupby(['epoch', 'socket'])['jiffies'].sum().reset_index(), on = ['epoch', 'socket'], suffixes = ('_', ''), how = 'outer')
         os_state['os_state'] = (os_state['jiffies'] / os_state['jiffies_']).fillna(0).replace(np.inf, 0)
         os_state.loc[os_state['os_state'] > 1, 'os_state'] = 1
         os_state = os_state[['epoch', 'socket', 'os_state']]
 
-        thread = pd.merge(thread, os_state, on = ['epoch', 'socket'])
-        df = thread[['epoch', 'thread', 'state', 'os_state']]
-        thread['state'] *= thread['os_state']
-        thread['state'] = thread['state'].clip(upper = 1)
+        id = id[id['thread'] == id['thread']]
+        id['thread'] = id['thread'].map(lambda x: x[:15])
+        id['state'] = 1 * (id['state'] == 'RUNNABLE')
+        thread = pd.merge(id, thread, on = ['epoch', 'thread'], how = 'outer', suffixes = ('', '_'))
+        thread['state'] = thread['state'].fillna(thread['state_'])
+        activity = activity['activeness'][activity.epoch.isin(thread.epoch)].replace('Infinity', 1).astype(float)
+        thread.loc[thread['thread'] == 'Chaperone', 'state'] = activity.values
+
+        thread = pd.merge(thread, thread.groupby(['epoch', 'socket'])['state'].sum().reset_index(), on = ['epoch', 'socket'], suffixes = ('', '_sum'))
+        thread['state'] = (thread['state'] / thread['state_sum']).fillna(0)
+
+        # thread = pd.merge(thread, os_state, on = ['epoch', 'socket'], how = 'outer')
+        # thread['state'] *= thread['os_state']
 
         print('{:.2f} seconds for thread'.format(time() - start))
 
-        # stack.columns = ['thread', 'timestamp', 'id', 'stack']
-        # print(thread)
-        # print(stack)
-        #
-        # stack = stack[(stack['timestamp'] >= thread['timestamp'].min()) & (stack['timestamp'] <= thread['timestamp'].max())]
-        # df = pd.merge(thread, stack.reset_index(), on = 'thread', how = 'right', suffixes = ('', '_'))
-        # df['diff'] = abs(df['timestamp'] - df['timestamp_'])
-        # df = df.sort_values(['diff', 'index']).drop_duplicates(['epoch', 'thread']).drop_duplicates('index').sort_values('epoch')
-        # df = df[['epoch', 'thread', 'stack']]
-        # print(df)
-        # sys.exit(0)
-
         # compute the energy attribution
         thread = pd.merge(thread, energy, on = ['epoch', 'socket'])
+        print(thread.sum())
         thread['package'] *= thread['state']
-        thread['package'] = thread['package']
+        # thread['package'] = thread['package']
         thread['dram'] *= thread['state']
-        thread['dram'] = thread['dram']
+        # thread['dram'] = thread['dram']
         thread = thread[['epoch', 'timestamp', 'thread', 'tid', 'socket', 'package', 'dram']]
-
-        id = id[['thread', 'id']].drop_duplicates()
-        thread = pd.merge(thread, id, on = 'thread', how = 'left')[['epoch', 'timestamp', 'thread', 'tid', 'id', 'socket', 'package', 'dram']]
-        thread['id'] = thread['id'].fillna(-1).astype(int)
+        print(thread.sum())
 
         start = time()
 

@@ -9,17 +9,19 @@ export CHAPPIE_PATH=$dir/..
 export CHAPPIE_JAR=$CHAPPIE_PATH/chappie.jar
 
 # export POLLING=1
-export VM_POLLING=1
+export VM_POLLING=4
 export OS_POLLING=1
-export HP_POLLING=1
+export HP_POLLING=4
 
 case $1 in
   -b) benchmark=$2;;
 esac
 
 if [ $benchmark == "dacapo" ]; then
-  # echo ""
-  $CHAPPIE_PATH/run/util/dacapo/single.sh -m NOP
+  # echo
+  export MODE=NOP
+  $CHAPPIE_PATH/run/util/dacapo/single.sh
+  export MODE=FULL
   $CHAPPIE_PATH/run/util/dacapo/single.sh
   # $CHAPPIE_PATH/run/util/dacapo/n_coapp.sh -m NOP
   # $CHAPPIE_PATH/run/util/dacapo/n_coapp.sh
