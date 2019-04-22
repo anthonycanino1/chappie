@@ -47,7 +47,9 @@ do
 		echo "Benchmark Done ... Moving to Next One ..."
 		echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
 done
-
+os=40
+vm=4
+hp=4
 echo "Running Chappie CoApps"
 for coapp_bench_size in "${benchmarks[@]}"
 do
