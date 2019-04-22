@@ -8,10 +8,6 @@ dir=`dirname "$0"`
 export CHAPPIE_PATH=$dir/..
 export CHAPPIE_JAR=$CHAPPIE_PATH/chappie.jar
 
-# export POLLING=1
-export VM_POLLING=4
-export OS_POLLING=1
-export HP_POLLING=4
 
 case $1 in
   -b) benchmark=$2;;
