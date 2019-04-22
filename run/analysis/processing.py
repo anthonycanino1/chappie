@@ -136,7 +136,6 @@ if __name__ == '__main__':
         thread['k_jiffies'] = df.map(lambda x: x[3])
         thread['socket'] = df.map(lambda x: x[4])
         thread.loc[thread['tid'] == pid, 'thread'] = 'main'
-        print(thread[thread.thread == 'Chaperone'])
 
         # get differential jiffies
         thread['u_jiffies'] = thread.groupby('tid')['u_jiffies'].apply(pd.Series.diff)
@@ -156,12 +155,12 @@ if __name__ == '__main__':
         jiffy = jiffy.map(filter_cpu).values.tolist()
         jiffy = pd.DataFrame(jiffy, columns = ['core'] + ['jiffies{}'.format(i) for i in range(10)], dtype = int)
 
-
-        epochs = [core_count * [i] for i in range(thread.epoch.max() + 1)]
+        epochs = thread.epoch.unique()
+        epochs = [40 * [epoch] for epoch in epochs]
         jiffy['epoch'] = [e for epoch in epochs for e in epoch]
         jiffy['socket'] = jiffy['core'].map(lambda x: 1 if x < 20 else 2)
         jiffy = jiffy.drop(columns = 'jiffies3')
-        jiffy['jiffies'] = np.sum((jiffy[col] for col in jiffy.columns if 'jiffies' in col), axis = 1)
+        jiffy['jiffies'] = jiffy[[col for col in jiffy.columns if 'jiffies' in col]].sum(axis = 1)
 
         jiffy = jiffy.groupby(['epoch', 'socket'])['jiffies'].sum().reset_index()
         jiffy = df_diff(jiffy, 'socket', ['jiffies'])[['epoch', 'socket', 'jiffies']]
@@ -173,6 +172,10 @@ if __name__ == '__main__':
         os_state.loc[os_state['os_state'] > 1, 'os_state'] = 1
         os_state = os_state[['epoch', 'socket', 'os_state']]
 
+        thread = pd.merge(thread, os_state, on = ['epoch', 'socket'])
+
+        print('{:.2f} seconds for os-thread'.format(time() - start))
+
         id = id[id['thread'] == id['thread']]
         id['thread'] = id['thread'].map(lambda x: x[:15])
         id['state'] = 1 * (id['state'] == 'RUNNABLE')
@@ -182,22 +185,19 @@ if __name__ == '__main__':
         thread.loc[thread['thread'] == 'Chaperone', 'state'] = activity.values
 
         thread = pd.merge(thread, thread.groupby(['epoch', 'socket'])['state'].sum().reset_index(), on = ['epoch', 'socket'], suffixes = ('', '_sum'))
+        thread['os_state'] = thread['os_state'].fillna(method = 'bfill').fillna(0)
         thread['state'] = (thread['state'] / thread['state_sum']).fillna(0)
+        thread['state'] *= thread['os_state']
 
-        # thread = pd.merge(thread, os_state, on = ['epoch', 'socket'], how = 'outer')
-        # thread['state'] *= thread['os_state']
-
-        print('{:.2f} seconds for thread'.format(time() - start))
+        thread = thread[['epoch', 'timestamp', 'thread', 'id', 'tid', 'socket', 'state']]
 
         # compute the energy attribution
         thread = pd.merge(thread, energy, on = ['epoch', 'socket'])
-        print(thread.sum())
         thread['package'] *= thread['state']
-        # thread['package'] = thread['package']
         thread['dram'] *= thread['state']
-        # thread['dram'] = thread['dram']
-        thread = thread[['epoch', 'timestamp', 'thread', 'tid', 'socket', 'package', 'dram']]
-        print(thread.sum())
+        thread = thread[['epoch', 'timestamp', 'thread', 'id', 'tid', 'socket', 'package', 'dram']]
+
+        print('{:.2f} seconds for vm-thread'.format(time() - start))
 
         start = time()
 

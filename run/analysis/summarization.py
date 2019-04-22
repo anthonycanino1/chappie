@@ -73,8 +73,8 @@ if __name__ == '__main__':
     runtime['overhead'] = np.abs(runtime['mean'] - ref) / ref
     runtime['error'] = 1 - np.abs(runtime['mean'] - runtime['std']) / runtime['mean']
 
-    runtime.loc['experiment', 'mean'] = runtime.loc['reference', 'mean']
-    runtime.loc['experiment', 'std'] = runtime.loc['reference', 'std']
+    # runtime.loc['experiment', 'mean'] = runtime.loc['reference', 'mean']
+    # runtime.loc['experiment', 'std'] = runtime.loc['reference', 'std']
 
     runtime.to_csv(os.path.join(args.destination, 'chappie.runtime.csv'))
 
@@ -146,8 +146,9 @@ if __name__ == '__main__':
         df['context'] = df[col].str.split(';').map(lambda x: x[:2])
         df['context'] = df['context'].map(lambda x: x[1] if isinstance(x, list) and len(x) > 1 else 'end')
 
-        # tdf = df.groupby(['method', 'context'])['energy'].agg(('sum', 'count')).reset_index()
-        tdf = df.groupby(['method', 'context'])['energy'].agg('sum').reset_index()
+        tdf = df.groupby(['method', 'context'])['energy'].agg(('sum', 'count')).reset_index()
+        tdf['energy'] = tdf['sum']
+        # tdf = df.groupby(['method', 'context'])['energy'].agg('sum').reset_index()
 
         # print(tdf)
         tdf['energy'] /= tdf['energy'].sum()
@@ -156,9 +157,9 @@ if __name__ == '__main__':
 
         # print(tdf)
 
-        # tdf['count'] /= tdf['count'].sum()
-        # tdf['count'] *= 100
-        # tdf['Time'] = tdf['count']
+        tdf['count'] /= tdf['count'].sum()
+        tdf['count'] *= 100
+        tdf['Time'] = tdf['count']
 
         # print(tdf.describe())
 
@@ -166,18 +167,21 @@ if __name__ == '__main__':
         tdf['type'] = col
         tdf['name'] = tdf['context']
 
-        # tdfs.append(tdf)
+        print(tdf)
+
+        tdfs.append(tdf)
 
         for type in ('method', 'class', 'package'):
-            # tdf = df.groupby(type)['energy'].agg(('sum', 'count')).reset_index()
-            tdf = df.groupby(type)['energy'].agg('sum').reset_index()
+            tdf = df.groupby(type)['energy'].agg(('sum', 'count')).reset_index()
+            # tdf = df.groupby(type)['energy'].agg('sum').reset_index()
             # print(tdf)
+            tdf['energy'] = tdf['sum']
             tdf['energy'] /= tdf['energy'].sum()
             tdf['energy'] *= 100
             tdf['Energy'] = tdf['energy']
-            # tdf['count'] /= tdf['count'].sum()
-            # tdf['count'] *= 100
-            # tdf['Time'] = tdf['count']
+            tdf['count'] /= tdf['count'].sum()
+            tdf['count'] *= 100
+            tdf['Time'] = tdf['count']
 
             tdf['level'] = type
             tdf['type'] = col
@@ -187,7 +191,7 @@ if __name__ == '__main__':
 
         df = pd.concat(tdfs, sort = True)
 
-        df = df[['level', 'name', 'type', 'Energy']] # , 'Time']]
+        df = df[['level', 'name', 'type', 'Energy', 'Time']]
         dfs.append(df)
 
     method = pd.concat(dfs).fillna(0)
