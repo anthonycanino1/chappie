@@ -35,7 +35,7 @@ if [ $MODE == NOP ]; then
     --callback chappie.ChappieCallback
 else
   $JAVA9_PATH -cp $JARS -agentpath:$HP_PATH=interval=${HP_POLLING},logPath=$HP_LOG \
-    Harness $benchmark -s small                                                    \
+    Harness $benchmark -s ${DS}                                                    \
     --iterations 1 --scratch-directory $directory/scratch                         \
     --callback chappie.ChappieCallback
 fi
