@@ -54,7 +54,7 @@ public class NOPMonitor {
       log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
     } catch (Exception io) { }
 
-    long runtime = System.nanoTime() - start;
+    long runtime = System.currentTimeMillis() - start;
     String message = "name,value\nruntime," + runtime + "\nmain_id," + GLIBC.getThreadId();
     log.write(message);
     log.close();
