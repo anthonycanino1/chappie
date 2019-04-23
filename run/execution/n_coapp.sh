@@ -7,8 +7,7 @@ echo "=================================================="
 echo "Starting coapp with $iters processes"
 echo "=================================================="
 for iter in $(seq 1 $iters); do
-  echo $directory
-  $command -d $directory/benchmark_${iter} &
+  $command $iter&
   let id_${iter}=$!
 done
 

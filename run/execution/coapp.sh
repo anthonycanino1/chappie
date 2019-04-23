@@ -1,55 +1,15 @@
 #!/bin/bash
 
 # expected inputs:
-# ./coapp_callback_benchmark.sh -m <mode>
+# ./dacapo.sh [program 1] [program 2] -d <directory>
 
-benchmarks=(
-# "avrora_avrora"
-"h2_h2"
-# "jython_jython"
-# "avrora_tradebeans"
-# "h2_tradebeans"
-# "avrora_tradesoap"
-# "h2_tradesoap"
-# "tradebeans_tradebeans"
-)
 
-mode=FULL
-case $1 in
-  -m) mode=$2;;
-esac
-export MODE=$mode
+$1 &
+first_id=$!
 
-mkdir -p dacapo
-mkdir -p dacapo/reference
+$2 &
+second_id=$!
 
-if [ $MODE == NOP ]; then
-  path=dacapo/reference/coapp
-else
-  path=dacapo/coapp
-fi
+tail --pid=${first_id} -f /dev/null
+tail --pid=${second_id} -f /dev/null
 
-mkdir $path
-
-command=$CHAPPIE_PATH/run/util/dacapo/dacapo.sh
-
-for benchmark in "${benchmarks[@]}"; do
-  first="${benchmark%%_*}"; second="${benchmark#*_}"
-  $CHAPPIE_PATH/run/execution/coapp.sh "$command $first" "$command $second" -d $path
-
-  mkdir -p $path/$benchmark
-  mv $path/benchmark_1 $path/$benchmark/benchmark_1
-  mv $path/benchmark_2 $path/$benchmark/benchmark_2
-done
-
-echo "=================================================="
-echo "Processing"
-echo "=================================================="
-if [ $MODE == NOP ]; then
-  for benchmark in "${benchmarks[@]}"; do
-    $CHAPPIE_PATH/run/analysis/nop_processing.py -path $path/$benchmark/benchmark_1
-    $CHAPPIE_PATH/run/analysis/nop_processing.py -path $path/$benchmark/benchmark_2
-  done
-else
-  $CHAPPIE_PATH/run/analysis/coapp_analysis.sh $path ./dacapo/reference/coapp ./dacapo/dacapo
-fi

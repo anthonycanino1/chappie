@@ -1,11 +1,13 @@
 echo "Running Chappie Single Case - Dacapo"
 #benchmarks=(avrora.large h2.large jython.large sunflow.large tradebeans.large tradesoap.large xalan.large lusearch-fix.default luindex.default pmd.default)
 
-benchmarks=(h2.large)
+#benchmarks=(h2.small)
 
 #coapps=(avrora.large_avrora.large jython.large_jython.large xalan.large_xalan.large avrora.large_jython.large avrora.large_sunflow.large jython.large_sunflow.large h2.large_tradebeans.large h2.large_tradesoap.large)
 
-#ncoapps=(h2.large.5)
+#coapps=(avrora.large_h2.large)
+
+ncoapps=(h2.small.5)
 
 os=20
 bench_index=0
@@ -13,6 +15,7 @@ dir=`dirname "$0"`
 echo "Current Dir $dir"
 export CHAPPIE_PATH=$dir/..
 export CHAPPIE_JAR=$CHAPPIE_PATH/chappie.jar
+export no_iterations=1
 for bench_size in "${benchmarks[@]}"
 do	
   		bench="${bench_size%%.*}"; 
@@ -32,8 +35,10 @@ do
 				#mv $bench ${bench}_${size}_${vm}_${os}_${hp}_${MODE}
   				export MODE=FULL
 				echo "Executing $bench with VM=$vm, OS=$os, HP=$hp, dataset=$size, FULL"
-  				$CHAPPIE_PATH/run/util/dacapo/single.sh
-				mv $bench "${bench}_${vm}_${os}_${hp}"
+				rm -r "${vm}_${os}_${hp}"
+				mkdir -p "./$1/${vm}_${os}_${hp}/dacapo"
+  				$CHAPPIE_PATH/run/util/dacapo/single.sh $bench $size $bench
+				mv $bench "./$1/${vm}_${os}_${hp}/dacapo"
 			done
 		done
 		vm=4
@@ -48,8 +53,11 @@ do
   			#echo "$CHAPPIE_PATH/run/util/dacapo/single.sh"
   			export MODE=FULL
 			echo "Executing $bench with VM=$vm, OS=$os, HP=$hp, dataset=$size, FULL"
-  			$CHAPPIE_PATH/run/util/dacapo/single.sh
-			mv $bench "${bench}_${vm}_${os}_${hp}"
+			rm -r "${vm}_${os}_${hp}"
+			mkdir -p "./$1/${vm}_${os}_${hp}/dacapo"
+			$CHAPPIE_PATH/run/util/dacapo/single.sh $bench $size $bench
+			mv $bench "./$1/${vm}_${os}_${hp}/dacapo/"
+		
 		done
 		echo "Benchmark Done ... Moving to Next One ..."
 		echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
@@ -60,28 +68,59 @@ hp=4
 echo "Running Chappie CoApps"
 for coapp_bench_size in "${coapps[@]}"
 do
-	first_bench_size="${coapp_bench_size%%_*}";
-	second_bench_size="${bench_size#*_}"
+	first_bench_size=$(echo "${coapp_bench_size}" | cut -d '_' -f 1)
+	second_bench_size=$(echo "${coapp_bench_size}" | cut -d '_' -f 2)
 	first_bench="${first_bench_size%%.*}"
 	second_bench="${second_bench_size%%.*}"
+	mkdir -p "$1/dacapo/coapp/${first_bench}_${second_bench}"
+	mkdir -p "$1/dacapo/coapp_ref/${first_bench}_${second_bench}"
 	first_size="${first_bench_size#*.}"
 	second_size="${second_bench_size#*.}"
 	echo "Running $first_bench $first_size with $second_bench $second_size"
 	echo "VM=$vm, OS=$os, HP=$hp"
+	fcommand="${CHAPPIE_PATH}/run/util/dacapo/single.sh $first_bench  $first_size benchmark_1"
+	scommand="${CHAPPIE_PATH}/run/util/dacapo/single.sh $second_bench $second_size benchmark_2"
+	export MODE=FULL
+	${CHAPPIE_PATH}/run/execution/coapp.sh "$fcommand" "$scommand"
+	mv benchmark_1 "$1/dacapo/coapp/${first_bench}_${second_bench}"
+	mv benchmark_2 "$1/dacapo/coapp/${first_bench}_${second_bench}"
+	export MODE=NOP
+	${CHAPPIE_PATH}/run/execution/coapp.sh "$fcommand" "$scommand"
+	mv benchmark_1 "$1/dacapo/coapp_ref/${first_bench}_${second_bench}"
+	mv benchmark_2 "$1/dacapo/coapp_ref/${first_bench}_${second_bench}"
 done
 
-echo "Running No CoAPps"
+echo "Running N-CoApps"
+export vm=4
+export os=4
+export hp=40
 for ncoapp_info in "${ncoapps[@]}"
 do
+	
 	bench=$(echo $ncoapp_info | cut -d '.' -f 1)
 	size=$(echo $ncoapp_info | cut -d '.' -f 2)
 	instances=$(echo $ncoapp_info | cut -d '.' -f 3)
-	echo "Running $instances instances of $bench $size"
-	export command="$CHAPPIE_PATH/run/util/dacapo/single.sh"
 	export iters=$instances
+	mkdir -p "$1/dacapo/ncoapp-reference"
+	mkdir -p "$1/dacapo/ncoapp"
+	echo "Running $instances instances of $bench $size"
+	export command="$CHAPPIE_PATH/run/util/dacapo/single.sh $bench $size"
 	export MODE=NOP
-	echo "$CHAPPIE_PATH/run/execution/n_coapp.sh"
-	export directory="$1"
+	$CHAPPIE_PATH/run/execution/n_coapp.sh
+	for (( c=1; c<=$instances; c++ ))
+	do
+		mv $c "$1/dacapo/ncoapp-reference/"
+	done
 	export MODE=FULL
-	echo "$CHAPPIE_PATH/run/execution/n_coapp.sh"
+	$CHAPPIE_PATH/run/execution/n_coapp.sh
+	for (( c=1; c<=$instances; c++ ))
+	do
+		mv $c "$1/dacapo/ncoapp"
+	done
+
 done
+
+export benchmark=h2
+export size=large
+export MODE=NOP
+
