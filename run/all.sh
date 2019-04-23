@@ -1,13 +1,13 @@
 echo "Running Chappie Single Case - Dacapo"
 #benchmarks=(avrora.large h2.large jython.large sunflow.large tradebeans.large tradesoap.large xalan.large lusearch-fix.default luindex.default pmd.default)
 
-#benchmarks=(h2.small)
+benchmarks=(h2.small)
 
 #coapps=(avrora.large_avrora.large jython.large_jython.large xalan.large_xalan.large avrora.large_jython.large avrora.large_sunflow.large jython.large_sunflow.large h2.large_tradebeans.large h2.large_tradesoap.large)
 
 #coapps=(avrora.large_h2.large)
 
-ncoapps=(h2.small.5)
+ncoapps=(h2.large.2 h2.large.4 h2.large.8 h2.large.6)
 
 os=20
 bench_index=0
@@ -15,7 +15,7 @@ dir=`dirname "$0"`
 echo "Current Dir $dir"
 export CHAPPIE_PATH=$dir/..
 export CHAPPIE_JAR=$CHAPPIE_PATH/chappie.jar
-export no_iterations=1
+export no_iterations=10
 for bench_size in "${benchmarks[@]}"
 do	
   		bench="${bench_size%%.*}"; 
@@ -100,26 +100,24 @@ export os=4
 export hp=40
 for ncoapp_info in "${ncoapps[@]}"
 do
-	
 	bench=$(echo $ncoapp_info | cut -d '.' -f 1)
 	size=$(echo $ncoapp_info | cut -d '.' -f 2)
 	instances=$(echo $ncoapp_info | cut -d '.' -f 3)
 	export iters=$instances
-	mkdir -p "$1/dacapo/ncoapp-reference"
-	mkdir -p "$1/dacapo/ncoapp"
+	mkdir -p "$1/dacapo/ncoap-reference/$instances/"
+	mkdir -p "$1/dacapo/ncoapp/$instances"
 	echo "Running $instances instances of $bench $size"
 	export command="$CHAPPIE_PATH/run/util/dacapo/single.sh $bench $size"
 	export MODE=NOP
 	$CHAPPIE_PATH/run/execution/n_coapp.sh
 	for (( c=1; c<=$instances; c++ ))
 	do
-		mv $c "$1/dacapo/ncoapp-reference/"
+		mv $c "$1/dacapo/ncoapp-reference/$instances/"
 	done
 	export MODE=FULL
 	$CHAPPIE_PATH/run/execution/n_coapp.sh
 	for (( c=1; c<=$instances; c++ ))
 	do
-		mv $c "$1/dacapo/ncoapp"
+		mv $c "$1/dacapo/ncoapp/$instances"
 	done
-
 done
