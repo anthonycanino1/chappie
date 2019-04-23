@@ -21,6 +21,10 @@ do
   		bench="${bench_size%%.*}"; 
 		size="${bench_size#*.}"
 		export benchmark=$bench
+		mkdir -p "$1/reference"
+		export MODE=NOP
+		$CHAPPIE_PATH/run/util/dacapo/single.sh $bench $size $bench
+		mv $bench "$1/reference/"
 		for vm in 1 2 4 8
 		do	
 			for hp in 1 2 4 8
@@ -119,8 +123,3 @@ do
 	done
 
 done
-
-export benchmark=h2
-export size=large
-export MODE=NOP
-
