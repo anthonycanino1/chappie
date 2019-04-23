@@ -3,6 +3,8 @@ benchmarks=(avrora.large h2.large jython.large sunflow.large tradebeans.large tr
 
 coapps=(avrora.large_avrora.large jython.large_jython.large xalan.large_xalan.large avrora.large_jython.large avrora.large_sunflow.large jython.large_sunflow.large h2.large_tradebeans.large h2.large_tradesoap.large)
 
+ncoapps=(h2.large.5)
+
 os=20
 bench_index=0
 dir=`dirname "$0"`
@@ -51,7 +53,7 @@ os=40
 vm=4
 hp=4
 echo "Running Chappie CoApps"
-for coapp_bench_size in "${benchmarks[@]}"
+for coapp_bench_size in "${coapps[@]}"
 do
 	first_bench_size="${coapp_bench_size%%_*}";
 	second_bench_size="${bench_size#*_}"
@@ -63,5 +65,11 @@ do
 	echo "VM=$vm, OS=$os, HP=$hp"
 done
 
-
-
+echo "Running No CoAPps"
+for ncoapp_info in "${ncoapps[@]}"
+do
+	bench=$(echo $ncoapp_info | cut -d '.' -f 1)
+	size=$(echo $ncoapp_info | cut -d '.' -f 2)
+	instances=$(echo $ncoapp_info | cut -d '.' -f 3)
+	echo "Running $instances instances of $bench $size"
+done
