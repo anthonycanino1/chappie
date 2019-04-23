@@ -72,4 +72,11 @@ do
 	size=$(echo $ncoapp_info | cut -d '.' -f 2)
 	instances=$(echo $ncoapp_info | cut -d '.' -f 3)
 	echo "Running $instances instances of $bench $size"
+	export command="$CHAPPIE_PATH/run/util/dacapo/single.sh"
+	export iters=$instances
+	export MODE=NOP
+	echo "$CHAPPIE_PATH/run/execution/n_coapp.sh"
+	export directory="$1"
+	export MODE=FULL
+	echo "$CHAPPIE_PATH/run/execution/n_coapp.sh"
 done
