@@ -14,6 +14,6 @@ else
 fi
 
 mkdir -p $path
-$CHAPPIE_PATH/run/util/dacapo/dacapo.sh $benchmark -d $path/$benchmark
+$CHAPPIE_PATH/run/util/dacapo/dacapo.sh $benchmark
 sudo rm -rf $path/$benchmark/processed
 $CHAPPIE_PATH/run/analysis/nop_processing.py -path $path/$benchmark

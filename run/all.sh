@@ -1,9 +1,11 @@
 echo "Running Chappie Single Case - Dacapo"
-benchmarks=(avrora.large h2.large jython.large sunflow.large tradebeans.large tradesoap.large xalan.large lusearch-fix.default luindex.default pmd.default)
+#benchmarks=(avrora.large h2.large jython.large sunflow.large tradebeans.large tradesoap.large xalan.large lusearch-fix.default luindex.default pmd.default)
 
-coapps=(avrora.large_avrora.large jython.large_jython.large xalan.large_xalan.large avrora.large_jython.large avrora.large_sunflow.large jython.large_sunflow.large h2.large_tradebeans.large h2.large_tradesoap.large)
+benchmarks=(h2.large)
 
-ncoapps=(h2.large.5)
+#coapps=(avrora.large_avrora.large jython.large_jython.large xalan.large_xalan.large avrora.large_jython.large avrora.large_sunflow.large jython.large_sunflow.large h2.large_tradebeans.large h2.large_tradesoap.large)
+
+#ncoapps=(h2.large.5)
 
 os=20
 bench_index=0
@@ -24,12 +26,14 @@ do
 				export HP_POLLING=$hp
 				export OS_POLLING=$os
 				export DS=$size
-				export MODE=NOP
-				echo "Executing $bench with VM=$vm, OS=$os, HP=$hp, dataset=$size, NOP"
-  				echo "$CHAPPIE_PATH/run/util/dacapo/single.sh"
+				#export MODE=NOP
+				#echo "Executing $bench with VM=$vm, OS=$os, HP=$hp, dataset=$size, NOP"
+  				#$CHAPPIE_PATH/run/util/dacapo/single.sh
+				#mv $bench ${bench}_${size}_${vm}_${os}_${hp}_${MODE}
   				export MODE=FULL
 				echo "Executing $bench with VM=$vm, OS=$os, HP=$hp, dataset=$size, FULL"
-  				echo "$CHAPPIE_PATH/run/util/dacapo/single.sh"
+  				$CHAPPIE_PATH/run/util/dacapo/single.sh
+				mv $bench "${bench}_${vm}_${os}_${hp}"
 			done
 		done
 		vm=4
@@ -39,12 +43,13 @@ do
 		for os in 4 8 20 40 80
 		do
 			export OS_POLLING=$os
-			export MODE=NOP
-			echo "Executing $bench with VM=$vm, OS=$os, HP=$hp, dataset=$size, NOP"
-  			echo "$CHAPPIE_PATH/run/util/dacapo/single.sh"
+			#export MODE=NOP
+			#echo "Executing $bench with VM=$vm, OS=$os, HP=$hp, dataset=$size, NOP"
+  			#echo "$CHAPPIE_PATH/run/util/dacapo/single.sh"
   			export MODE=FULL
 			echo "Executing $bench with VM=$vm, OS=$os, HP=$hp, dataset=$size, FULL"
-  			echo "$CHAPPIE_PATH/run/util/dacapo/single.sh"
+  			$CHAPPIE_PATH/run/util/dacapo/single.sh
+			mv $bench "${bench}_${vm}_${os}_${hp}"
 		done
 		echo "Benchmark Done ... Moving to Next One ..."
 		echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"

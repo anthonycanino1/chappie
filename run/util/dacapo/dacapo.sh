@@ -9,21 +9,15 @@ JAVA9_PATH=/home/timur/Projects/dev/build/linux-x86_64-normal-server-release/jdk
 # JAVA9_PATH=/home/timur/Projects/java9/java
 # echo "Number of Iterations $ITERATIONS"
 
-benchmark=$1
 echo "=================================================="
 echo "Starting dacapo: $benchmark"
 echo "=================================================="
 
 directory=$benchmark
-case $2 in
-  -d) directory=$3;;
-esac
-
 rm -rf $directory/scratch
 mkdir -p $directory
 
 echo $directory
-
 export CHAPPIE_DIRECTORY=$directory
 
 HP_PATH=$CHAPPIE_PATH/src/async/build/liblagent.so
