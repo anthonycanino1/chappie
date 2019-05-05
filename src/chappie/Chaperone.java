@@ -19,63 +19,64 @@
 
 package chappie;
 
-import chappie.monitor.JDK9Monitor;
-import chappie.monitor.NOPMonitor;
+import chappie.input.Config;
+import chappie.input.Config.Mode;
+
+import chappie.monitor.ChappieMonitor;
+
+// import chappie.monitor.JDK9Monitor;
+// import chappie.monitor.NOPMonitor;
 import chappie.util.GLIBC;
+
+import java.io.*;
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
 
 public class Chaperone extends TimerTask {
-  public enum ChappieMode {NOP, NAIVE, FULL}
-
   int mainID;
-
-  // Chaperone Parameters
-  private ChappieMode mode;
-  // private int vmPolling;
-  // private int osPolling;
 
   // Metrics
   private int epoch;
   private long start;
+  private long lastScheduledTime;
+  private double[] initialRaplReading;
 
-  // Polling Driver
+  // Timer
   private Timer timer;
 
-  // Polling Monitor
-  // this is the wrong name...what is it?
-  private JDK9Monitor monitor = null;
-  private boolean no_rapl;
-  private boolean gem5_cmdline_dumpstats;
-  private int early_exit=-1;
-  private int sockets_no;
+  // Monitor
+  private Config config;
+  private ChappieMonitor monitor = null;
 
-  public Chaperone(ChappieMode mode, int vmPolling, int osPolling,boolean no_rapl, boolean gem5_cmdline_dumpstats, int early_exit,int sockets_no) {
+  public Chaperone(Config config) {
+    this.config = config;
+
+    if (this.config.mode != Mode.SAMPLE)
+      this.config.timerRate = -1;
+
     mainID = GLIBC.getProcessId();
-    this.no_rapl=no_rapl;
-    this.gem5_cmdline_dumpstats = gem5_cmdline_dumpstats;
-    this.early_exit=early_exit;
-    this.sockets_no=sockets_no;
 
-    this.mode = mode;
-    // this.vmPolling = vmPolling;
-    // this.osPolling = osPolling;
-
-    if (mode != ChappieMode.NOP) {
-      this.monitor = new JDK9Monitor(osPolling,no_rapl,gem5_cmdline_dumpstats,sockets_no);
-      timer = new Timer("Chaperone");
-      timer.scheduleAtFixedRate(this, 0, vmPolling);
-    }
+    this.monitor = new ChappieMonitor(config);
+    timer = new Timer("Chaperone");
+    if (this.config.timerRate > 0)
+      timer.scheduleAtFixedRate(this, 100, this.config.timerRate);
+    else
+      terminated = true;
 
     epoch = 0;
     start = System.currentTimeMillis();
+    lastChappieTime = start;
+    initialRaplReading = jrapl.EnergyCheckUtils.getEnergyStats();
   }
 
   // Runtime data containers
   // the other containers are in the monitor now
-  private ArrayList<Double> activeness = new ArrayList<Double>();
+  private ArrayList<ArrayList<Object>> activeness = new ArrayList<ArrayList<Object>>();
 
   // TIMER TASK CLASS METHODS
 
@@ -85,65 +86,127 @@ public class Chaperone extends TimerTask {
   private boolean terminate = false;
   private boolean terminated = false;
 
-  private long elapsedTime = 0;
+  private long lastChappieTime = 0;
 
   @Override
   public void run() {
-    // Check if we need to stop
-    boolean halt=false;
-    if(epoch >= early_exit && early_exit > 0) {
-      terminate=true;
-      terminated=true;
-      halt=true;
-    }
+    // // Check if we need to stop
+    // boolean halt=false;
+    //
+    // if(epoch >= early_exit && early_exit > 0) {
+    //   terminate=true;
+    //   terminated=true;
+    //   halt=true;
+    // }
 
     if (!terminate) {
       // set this epoch and cache last epoch's ms timestamp
-      long lastEpochTime = elapsedTime;
-      elapsedTime = System.currentTimeMillis() - start;
-      lastEpochTime = elapsedTime - lastEpochTime;
+      long currentEpochTime = System.currentTimeMillis();
+      long elapsedTime = scheduledExecutionTime() - lastScheduledTime;
+      lastScheduledTime = scheduledExecutionTime();
 
-      // this is how we actually read
+      if (epoch > 0) {
+        ArrayList<Object> record = new ArrayList<Object>();
+        record.add(epoch);
+        record.add(currentEpochTime);
+        record.add((double)(lastChappieTime) / elapsedTime);
+        activeness.add(record);
+      }
+
+      // read from the specific monitor
       monitor.read(epoch);
 
-      // estimate of chappie's machine time usage;
-      // possible to use state to make better estimate
-      long chappieReadingTime = (System.currentTimeMillis() - start) - elapsedTime;
-      activeness.add((double)chappieReadingTime / lastEpochTime);
+      // estimate of chappie's machine time usage based on runtime
+      lastChappieTime = System.currentTimeMillis() - currentEpochTime;
 
       epoch++;
-      // currentEpoch = epoch;
     } else {
-      // stop ourselves before letting everything know we're done
       terminated = true;
-      if(halt) {
-        cancel();
-        Runtime.getRuntime().halt(0);
-      }
+
+      // stop ourselves before letting everything know we're done
+      long currentEpochTime = System.currentTimeMillis();
+      long elapsedTime = scheduledExecutionTime() - lastScheduledTime;
+
+      ArrayList<Object> record = new ArrayList<Object>();
+      record.add(epoch);
+      record.add(currentEpochTime);
+      record.add((double)(lastChappieTime) / elapsedTime);
+      activeness.add(record);
+
+      // if(halt) {
+      //   cancel();
+      //   Runtime.getRuntime().halt(0);
+      // }
     }
   }
 
   @Override
   public boolean cancel() {
-    if (mode != ChappieMode.NOP) {
-      // use the double flag to kill the process from in here
-      terminate = true;
-      while(!terminated) {
-        try {
-          Thread.sleep(0, 100);
-        } catch(Exception e) { }
-      }
+    // use the double flag to kill the process from in here
+    terminate = true;
+    
+    while(!terminated) {
+      try {
+        Thread.sleep(0, 100);
+      } catch(Exception e) { }
     }
 
-    // write the output from the monitor
-    if (monitor != null)
-      monitor.dump(start, activeness, mainID);
-    else {
-      NOPMonitor dummy = new NOPMonitor();
-      dummy.dump(start, activeness);
-    }
+    dump();
+    monitor.dump();
     return true;
   }
 
-  // public read()
+  private void dump() {
+    String directory = config.workPath;
+    String suffix = "." + System.getenv("CHAPPIE_SUFFIX");
+    if (suffix == null)
+      suffix = "";
+
+    // runtime stats
+    PrintWriter log = null;
+
+    String path = Paths.get(directory, "chappie.runtime" + suffix + ".csv").toString();
+    try {
+      log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
+    } catch (Exception io) { }
+
+    long runtime = System.currentTimeMillis() - start;
+    double[] raplReading = jrapl.EnergyCheckUtils.getEnergyStats();
+
+    double package1 = raplReading[2] - initialRaplReading[2];
+    double package2 = raplReading[5] - initialRaplReading[5];
+    double dram1 = raplReading[0] - initialRaplReading[0];
+    double dram2 = raplReading[3] - initialRaplReading[3];
+
+    String message = "name,value\nruntime," + runtime +
+                      "\nmain_id," + mainID +
+                      "\npackage1," + package1 +
+                      "\npackage2," + package2 +
+                      "\ndram1," + dram1 +
+                      "\ndram2," + dram2;
+
+    log.write(message);
+    log.close();
+
+    // chappie activeness
+    if (config.timerRate > 0) {
+      path = Paths.get(directory, "chappie.activeness" + suffix + ".csv").toString();
+      try {
+        log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
+      } catch (Exception io) { }
+
+      log.write("epoch,timestamp,activeness\n");
+
+      int epoch = 0;
+      for (ArrayList<Object> frame : activeness) {
+        for (Object item: frame) {
+          message += item.toString() + ",";
+        }
+        message = message.substring(0, message.length() - 1);
+        message += "\n";
+        log.write(message);
+      }
+      log.close();
+    }
+  }
 }

@@ -1,0 +1,5 @@
+<config>
+  <workPath>test/reference</workPath>
+  <mode>NOP</mode>
+  <pollingRate>25</pollingRate>
+</config>

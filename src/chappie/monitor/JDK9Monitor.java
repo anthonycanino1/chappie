@@ -101,6 +101,8 @@ public class JDK9Monitor {
     }
 
     // Read the java ids of all live threads
+    long temp = System.currentTimeMillis();
+
     ThreadGroup rootGroup = Thread.currentThread().getThreadGroup();
     ThreadGroup parentGroup;
     while ((parentGroup = rootGroup.getParent()) != null)
@@ -109,6 +111,10 @@ public class JDK9Monitor {
     Thread[] threads = new Thread[rootGroup.activeCount()];
     while (rootGroup.enumerate(threads, true ) == threads.length)
         threads = new Thread[threads.length * 2];
+
+    System.out.println(System.currentTimeMillis() - temp);
+
+    temp = System.currentTimeMillis();
 
     for (Thread thread: threads)
       if (thread != null) {
@@ -122,6 +128,8 @@ public class JDK9Monitor {
 
         idData.add(measure);
       }
+
+    System.out.println(System.currentTimeMillis() - temp);
 
     // Read jiffies of system
     if (epoch % osPolling == 0) {

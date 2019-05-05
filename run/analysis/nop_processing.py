@@ -13,27 +13,19 @@ import pandas as pd
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-path', default = "chappie_test")
-    parser.add_argument('-destination', default = None)
+    parser.add_argument('-path')
+
     args = parser.parse_args()
 
     # setup the paths
     if not os.path.exists(args.path):
         raise FileNotFoundError('No directory at {}'.format(os.path.abspath(args.path)))
 
-    if args.destination is None:
-        args.destination = os.path.join(args.path, 'processed')
+    os.chdir(args.path)
+    if not os.path.exists('processed'):
+        os.mkdir('processed')
 
-    if not os.path.exists(args.destination):
-        os.mkdir(args.destination)
+    files = np.sort([f for f in os.listdir() if 'runtime' in f])
+    runtime = pd.concat([pd.read_csv(f) for f in files])
 
-    runtime = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'runtime' in f])
-
-    for k, f in enumerate(runtime):
-        # if k < len(runtime) / 4:
-        #     continue
-        runtime = pd.read_csv(f)
-
-        # grab the runtime value
-        application_runtime = runtime[runtime['name'] == 'runtime']['value']
-        application_runtime.to_csv(os.path.join(args.destination, 'chappie.runtime.csv'), mode = 'a', index = False, header = False)
+    runtime.to_csv(os.path.join('processed', 'chappie.runtime.csv'), index = False)

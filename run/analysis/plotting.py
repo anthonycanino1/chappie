@@ -49,12 +49,13 @@ if __name__ == '__main__':
             col_df = method[benchmark][method[benchmark].type == col]
 
             df = col_df[col_df.level == 'context']
-            df['method'] = df['name'].str.split(';').map(lambda x: x[0])
-            df['context'] = df['name'].str.split(';').map(lambda x: x[1] if len(x) > 1 else 'end')
+            df['method'] = df['name'] # .str.split(';').map(lambda x: x[0])
+            # df['context'] = df['name'].str.split(';').map(lambda x: x[1] if len(x) > 1 else 'end')
             top = df.groupby('method')['Energy'].sum().head(10)
 
             for md, group in df.groupby('method'):
                 if md in top:
+                    # print(group)
                     group['Energy'] /= group['Energy'].sum()
                     group['Energy'] = group['Energy'].fillna(1)
                     group.plot(title = md, y = 'Energy', kind = 'pie', labels = None, figsize = (4, 4))
@@ -109,7 +110,7 @@ if __name__ == '__main__':
         summary[benchmark]['benchmark'] = benchmark
 
         runtime[benchmark]['benchmark'] = benchmark
-        runtime[benchmark]['mean'] = runtime[benchmark]['mean'][runtime[benchmark]['experiment'] == 'reference'].max()
+        # runtime[benchmark]['mean'] = runtime[benchmark]['mean'][runtime[benchmark]['experiment'] == 'reference'].max()
 
     # energy summary
     socket_summary = pd.concat(summary).groupby(['benchmark', 'socket']).sum().reset_index().sort_values('benchmark')
@@ -152,15 +153,18 @@ if __name__ == '__main__':
     plt.savefig(os.path.join(args.destination, 'attribution.svg'.format(suite)), bbox_inches = 'tight')
 
     # overhead
+    print(runtime)
     runtime = pd.concat(runtime.values())
-    runtime = runtime[runtime['experiment'] != 'reference'].sort_values('benchmark')[['benchmark', 'mean', 'std', 'overhead', 'error']]
-    runtime.columns = ['benchmark', 'base runtime', 'deviation', 'overhead', 'error']
+    print(runtime)
+    # runtime = runtime[runtime['experiment'] != 'reference'].sort_values('benchmark')[['benchmark', 'mean', 'std', 'overhead', 'error']]
+    runtime = runtime.sort_values('benchmark')[['benchmark', 'mean', 'std', 'overhead', 'error']]
+    runtime.columns = ['benchmark', 'runtime', 'deviation', 'overhead', 'error']
     runtime[['overhead', 'error']] *= 100
     runtime['overhead'] = runtime['overhead'].map('{:.2f}%'.format)
     runtime['error'] = runtime['error'].transform('{:.2f}%'.format)
-    runtime['base runtime'] /= 10**9
-    runtime['base runtime'] = runtime['base runtime'].map('{:.2f} s'.format)
-    runtime['deviation'] /= 10**9
+    runtime['runtime'] /= 10**3
+    runtime['runtime'] = runtime['runtime'].map('{:.2f} s'.format)
+    runtime['deviation'] /= 10**3
     runtime['deviation'] = runtime['deviation'].map('{:.2f} s'.format)
     runtime.columns = runtime.columns.str.title()
     print(runtime)

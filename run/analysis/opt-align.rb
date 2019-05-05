@@ -49,7 +49,7 @@ def assign(options,ctmap,topmap,hkey,hts,stack,htname)
     else
       distance = (stamps[i][C_TIME].to_i-hts).abs()
       if closest.nil? or distance < closest then
-        closest = distance 
+        closest = distance
         closestind = i
       end
     end
@@ -65,7 +65,7 @@ def assign(options,ctmap,topmap,hkey,hts,stack,htname)
     return Assign::ASSIGNED
   else
     if options[:debug] and options[:verbose] then
-      puts "Could not assign #{htname} with time #{hts}" 
+      puts "Could not assign #{htname} with time #{hts}"
     end
     return Assign::MISSED_TS
   end
@@ -95,7 +95,7 @@ def analyze(options)
     ctrace << tok
 
     # Build a mapping for faster timestamp alignment
-    tname = tok[C_THREAD_NAME].split("#")[0] 
+    tname = tok[C_THREAD_NAME].split("#")[0]
     tid = tok[C_TID]
     tkey = if options[:usename] then tname else tid end
     unless ctmap.key?(tkey) then
@@ -132,7 +132,7 @@ def analyze(options)
     hname =  htrace[j][H_THREAD_NAME]
     ts = htrace[j][H_TIME].to_i
     stack = htrace[j][H_STACK]
-    
+
     if ctmap.key?(hkey) then
       r = assign(options,ctmap,topmap,hkey,ts,stack,hname)
       if (r == Assign::OUT_OF_TS or r == Assign::MISSED_TS) then
@@ -145,14 +145,14 @@ def analyze(options)
       end
       missed += 1
       next
-    end 
+    end
   end
 
   unless options[:debug] then
-    puts header 
+    puts header
     ctrace.each do |line|
       puts line.join(",")
-    end 
+    end
   else
     missedmap.each do |k,v|
       if v > 0 then
@@ -183,24 +183,23 @@ if __FILE__ == $0
 
     opts.on("-h", "=MANDATORY", "honest log") do |o|
       options[:infile2] = o.to_s
-    end 
+    end
 
     opts.on("-d", "turn on debugging") do |o|
       options[:debug] = true
-    end 
+    end
 
     opts.on("-v", "turn on verbose output") do |o|
       options[:verbose] = true
-    end 
+    end
 
     opts.on("-n", "use thread name instead of id for alignment") do |o|
       options[:usename] = true
-    end 
+    end
   end
 
   optparse.parse!
 
   analyze(options)
 
-  
-end 
+end

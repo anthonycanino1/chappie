@@ -3,59 +3,18 @@
 # expected inputs:
 # ./chappie -b <benchmark>
 
-dir=`dirname "$0"`
+export CHAPPIE_CONFIG=NOP.xml
+cmd=$(python3 ./parse_config.py -config dacapo_config.json -experiment NOP.xml 2>&1)
+$cmd
 
-export CHAPPIE_PATH=$dir/..
-export CHAPPIE_JAR=$CHAPPIE_PATH/chappie.jar
+export CHAPPIE_CONFIG=SAMPLE.xml
+cmd=$(python3 ./parse_config.py -config dacapo_config.json -experiment SAMPLE.xml 2>&1)
+$cmd
 
-# export POLLING=1
-export VM_POLLING=4
-export OS_POLLING=1
-export HP_POLLING=4
+reference=$(python3 ./parse_config.py -config dacapo_config.json -experiment SAMPLE.xml 2>&1)
+experiment=$(python3 ./parse_config.py -config dacapo_config.json -experiment SAMPLE.xml 2>&1)
+benchmark=$(python3 ./parse_config.py -config dacapo_config.json -experiment SAMPLE.xml 2>&1)
 
-case $1 in
-  -b) benchmark=$2;;
-esac
-
-if [ $benchmark == "dacapo" ]; then
-  # echo
-  export MODE=NOP
-  $CHAPPIE_PATH/run/util/dacapo/single.sh
-
-  export MODE=FULL
-  $CHAPPIE_PATH/run/util/dacapo/single.sh
-
-  # export MODE=NOP
-  # $CHAPPIE_PATH/run/util/dacapo/n_coapp.sh
-  #
-  # export MODE=FULL
-  # $CHAPPIE_PATH/run/util/dacapo/n_coapp.sh
-  #
-  # export MODE=NOP
-  # $CHAPPIE_PATH/run/util/dacapo/foreign.sh -m NOP
-  #
-  # export MODE=FULL
-  # $CHAPPIE_PATH/run/util/dacapo/foreign.sh
-elif [ $benchmark == "oltp" ]
-then
-  echo ""
-  export MODE=NOP
-  $CHAPPIE_PATH/run/util/oltp/single.sh -m NOP
-  export MODE=FULL
-  $CHAPPIE_PATH/run/util/oltp/single.sh
-  # $CHAPPIE_PATH/run/util/dacapo/coapp.sh -m NOP
-  # $CHAPPIE_PATH/run/util/dacapo/coapp.sh
-  # $CHAPPIE_PATH/run/util/dacapo/foreign.sh -m NOP
-  # $CHAPPIE_PATH/run/util/dacapo/foreign.sh
-elif [ $benchmark == "graphchi" ]
-then
-  export MODE=NOP
-  $CHAPPIE_PATH/run/util/graphchi/single.sh
-
-  export MODE=FULL
-  $CHAPPIE_PATH/run/util/graphchi/single.sh
-elif [ $benchmark == "dacapo_oltp" ]
-then
-  $CHAPPIE_PATH/run/util/dacapo_oltp.sh -m NOP
-  $CHAPPIE_PATH/run/util/dacapo_oltp.sh
-fi
+python3 ./analysis/nop_processing.py -path reference
+python3 ./analysis/processing.py -path experiment
+python3 ./analysis/summarization.py -path benchmark

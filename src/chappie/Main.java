@@ -19,8 +19,8 @@
 
 package chappie;
 
-import chappie.Chaperone.ChappieMode;
-import chappie.util.GLIBC;
+import chappie.input.Config;
+import chappie.Chaperone;
 
 import java.lang.reflect.Method;
 
@@ -33,6 +33,62 @@ import java.util.ArrayList;
 
 public class Main {
   public static void main(String[] args) throws IOException {
+    String configPath = args[0];
+    Config config = Config.readConfig(configPath);
+    System.out.println(config.toString());
+
+    String jarPath = args[0];
+    String mainClass = args[1];
+
+    if (config != null) {
+      URLClassLoader loader;
+
+      try {
+        System.out.println("Loading " + jarPath);
+
+        loader = new URLClassLoader(new URL[] {new URL(jarPath)});
+        Method main = loader.loadClass(args[1]).getMethod("main", String[].class);
+
+        try {
+          String jarArgs = args[2];
+          String[] jarParams = jarArgs.split(" ");
+          // new ArrayList<String>();
+          // for (int i = 2; i < args.length; ++i) {
+          //   String[] temp_params = args[i].split(" ", 100);
+          //   for (int k = 0; k < temp_params.length; ++k)
+          //     params.add(temp_params[k]);
+          // }
+
+          System.out.println("Running " + mainClass + ".main");
+          System.out.println("Arguments: " + jarParams.toString());
+          System.out.println("==================================================");
+
+          Chaperone chaperone = new Chaperone(config);
+          main.invoke(null, (Object)jarParams);
+
+          System.out.println("==================================================");
+          System.out.println("Dismissing the chaperone");
+          chaperone.cancel();
+
+        } catch(Exception e) {
+          System.out.println("Unable to bootstrap " + mainClass + ": " + e);
+          e.printStackTrace();
+        }
+      } catch(Exception e) {
+        System.out.println("Unable to load " + jarPath + ": " + e);
+        e.printStackTrace();
+      }
+
+      // We are using an agent to catch System.exit(),
+      // so we have to terminate with this,
+      // otherwise some threads may continue running
+      // and not become orphans.
+      Runtime.getRuntime().halt(0);
+    }
+
+    // chappie.input.Parser parser = new chappie.input.Parser(configPath);
+
+  /*
   // should be handled by highest level call (benchmark, grid search)
   System.out.println("Starting Chappie ... Stay tuned!");
 	int sockets_no = -1;
@@ -93,7 +149,7 @@ public class Main {
     URLClassLoader loader;
 
     try {
-      System.out.println("Loading " + args[0]);
+      System.out.println("Loading " + jarPath);
       loader = new URLClassLoader(new URL[] {new URL(args[0])});
       Method main = loader.loadClass(args[1]).getMethod("main", String[].class);
 
@@ -134,5 +190,6 @@ public class Main {
     // otherwise some threads may continue running
     // and not become orphans.
     Runtime.getRuntime().halt(0);
+    */
   }
 }

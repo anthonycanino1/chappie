@@ -1,0 +1,11 @@
+{
+  "java_path": "/home/timur/Projects/dev/build/linux-x86_64-normal-server-release/jdk/bin/java",
+  "chappie_path": "/home/timur/Projects/chappie",
+  "jar": "{chappie_path}/benchmark/dacapo/dacapo-9.12-MR1-bach.jar",
+  "agent": "{chappie_path}/build/liblagent.so=interval={hpRate},logPath=test/experiment/chappie.stack.csv",
+  "dargs": "",
+  "main": "Harness",
+  "benchmark": "sunflow",
+  "args": "{benchmark} --iterations {iters} --no-validation --scratch-directory {workPath}/scratch --callback chappie.ChappieCallback",
+  "warm_up_fraction": 3
+}

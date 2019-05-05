@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 
-
 import argparse
 import os
+import re
 import subprocess
 
 from csv import writer
@@ -11,20 +11,35 @@ from time import time
 
 import numpy as np
 import pandas as pd
-import scipy.stats as sps
 
-rapl_wrap_around = 16384
+from tqdm import tqdm
 
-filter_cpu = lambda s: [int(w.replace('cpu', '')) for w in s]
+rapl_wrap_around_value = 16384
 
-def df_diff(df, by, values):
-    df = pd.concat([
-        df.rename(columns = {value: value + '_' for value in values}),
-        df.groupby(by)[values].diff().fillna(0)
-    ], axis = 1)
-    df.drop(columns = [value + '_' for value in values])
+def rapl_wrap_around(x):
+    if x >= 0:
+        return x
+    else:
+        return max(x + rapl_wrap_around_value, 0)
 
-    return df
+def parse_stats_record(record):
+    # unix stat records have 52 items but
+    # both the items and java thread names
+    # are space delimited; therefore, we
+    # need to adjust our index to match
+    # the extra characters
+    name_length = len(record) - 52
+    idx = lambda x: x + name_length
+
+    name = ' '.join(record[1:idx(2)])[1:-1]
+    state = 1 if record[idx(2)] == 'R' else 0
+    jiffies = int(record[idx(13)]) + int(record[idx(14)])
+    core = 1 if int(record[idx(38)]) < 20 else 2
+
+    return [name, state, jiffies, core]
+
+method_align_file = os.path.realpath(os.path.join(os.path.dirname(__file__), 'opt-align.rb'))
+align_args = ["ruby", method_align_file, '-c', 'thread', '-h' , 'stack']
 
 def filter_to_application(l):
     if l == 'end':
@@ -40,187 +55,166 @@ def filter_to_application(l):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-path', default = "chappie_test")
-    parser.add_argument('-destination', default = None)
+    parser.add_argument('-path')
+
     args = parser.parse_args()
 
     # setup the paths
     if not os.path.exists(args.path):
         raise FileNotFoundError('No directory at {}'.format(os.path.abspath(args.path)))
 
-    if args.destination is None:
-        args.destination = os.path.join(args.path, 'processed')
+    os.chdir(args.path)
+    if not os.path.exists('processed'):
+        os.mkdir('processed')
 
-    if not os.path.exists(args.destination):
-        os.mkdir(args.destination)
+    iters = range(10)
+    # try:
+    #     iters = range(10) # range(max([int(re.search(r'\d+', f).group()) for f in os.listdir()]))
+    # except:
+    #     iters = ['']
 
-    runtime = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'runtime' in f])
+    runtime_summary = []
 
-    threads = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'thread' in f])
-    ids = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'id' in f])
-    energies = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'energy' in f])
-    jiffies = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'system' in f])
-    if os.path.exists(os.path.join(args.path, 'chappie.stack.csv')):
-        stacks = len(jiffies) * [os.path.join(args.path, 'chappie.stack.csv')]
-        # np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'stack' in f])
-    else:
-        stacks = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'stack' in f])
-
-    activeness = np.sort([os.path.join(args.path, f) for f in os.listdir(args.path) if 'activeness' in f])
-
-    # runtime_summary = []
-
-    # from tqdm import tqdm
-
-    for k, names in enumerate(zip(runtime, threads, ids, energies, jiffies, stacks, activeness)):
-        # if k < len(runtime) / 4:
-        #     continue
-
-        runtime, id, energy, jiffy, stack, activity = [pd.read_csv(f) if 'stack' not in f else pd.read_csv(f, header = None) for f in names if 'thread' not in f]
-
-        # grab the runtime values
-        application_runtime = runtime[runtime['name'] == 'runtime']['value']
-        pid = runtime[runtime['name'] == 'main_id']['value'].max()
-
-        # runtime_summary.append(runtime.pivot(columns = 'name', values = 'value'))
-        # print(runtime_summary[0])
-        # sys.exit(0)
-
-        application_runtime.to_csv(os.path.join(args.destination, 'chappie.runtime.csv'), mode = 'a', index = False, header = False)
-
-        ########## ENERGY PROCESSING ##########
-        # compute the differential energy
+    for i in iters:
         start = time()
 
-        energy['package'] = energy.groupby('socket')['package'].apply(pd.Series.diff).fillna(0)
-        energy['dram'] = energy.groupby('socket')['dram'].apply(pd.Series.diff).fillna(0)
+        data = {f.split(r'.')[1]: pd.read_csv(f) for f in os.listdir() if 'csv' in f and str(i) in f}
 
-        energy['package'] = energy['package'].map(lambda x: max(x + rapl_wrap_around, 0) if x < 0 else x)
-        energy['dram'] = energy['dram'].map(lambda x: max(x + rapl_wrap_around, 0) if x < 0 else x)
+        print('{:.2f} seconds for loading'.format(time() - start))
 
-        energy.to_csv(os.path.join(args.destination, 'chappie.energy.{}.csv'.format(k)), index = False)
+        # RUNTIME #
+        start = time()
+
+        runtime_summary.append(data['runtime'])
+        main_id = data['runtime'].set_index('name').to_dict()['value']['main_id']
+
+        print('{:.2f} seconds for runtime'.format(time() - start))
+
+        # ENERGY #
+        start = time()
+
+        energy = data['energy'].sort_values('epoch')
+
+        energy.package = energy.groupby('socket').package.diff()
+        energy.dram = energy.groupby('socket').dram.diff()
+
+        energy.package = energy.package.map(rapl_wrap_around)
+        energy.dram = energy.dram.map(rapl_wrap_around)
+        energy = energy.fillna(0)
 
         print('{:.2f} seconds for energy'.format(time() - start))
 
-        ########## TID/STAT PROCESSING ##########
-        # extract the name (1), state (2), jiffies (13, 14), and core (38)
-        def parse_stats_records(records):
-            name_size = len(records) - 52
-            name = ' '.join(records[1:(name_size + 2)])[1:-1]
-            state = 1 if records[2 + name_size] == 'R' else 0
-            u_jiffies = int(records[13 + name_size])
-            k_jiffies = int(records[14 + name_size])
-            core = 1 if int(records[38 + name_size]) < 20 else 2
+        start = time()
 
-            return [name, state, u_jiffies, k_jiffies, core]
+        os_thread = data['thread'].sort_values('epoch')
+
+        os_thread = os_thread.dropna(subset = ['record'])
+        records = os_thread.record.str.split(' ').map(parse_stats_record)
+
+        os_thread.loc[:, 'thread'] = records.map(lambda x: x[0])
+        os_thread.loc[:, 'state'] = records.map(lambda x: x[1])
+        os_thread.loc[:, 'jiffies'] = records.map(lambda x: x[2])
+        os_thread.loc[:, 'socket'] = records.map(lambda x: x[3])
+        os_thread.pop('record')
+
+        os_thread.jiffies = os_thread.groupby('tid').jiffies.diff().fillna(0)
+
+        os_thread.loc[os_thread.tid == main_id, 'thread'] = 'main'
+
+        print('{:.2f} seconds for os threads'.format(time() - start))
 
         start = time()
 
-        threads = pd.read_csv(names[1], chunksize = 750000)
+        vm_thread = data['id'].copy(deep = True)
 
-        df = []
-        thread_df = []
-        for thread in threads:
-            thread = thread.dropna(subset = ['record']).reset_index(drop = True)
-            thread_records = thread['record'].str.split(' ').map(parse_stats_records)
-            df.append(thread_records)
+        vm_thread.thread = vm_thread.thread.map(lambda x: x[:15])
+        vm_thread.state = vm_thread.state.astype(float)
 
-            thread_df.append(thread.drop(columns = 'record'))
+        chappie = data['activeness']
 
-        thread = pd.concat(thread_df)
-        df = pd.concat(df).dropna()
+        vm_thread.loc[vm_thread.thread == 'Chaperone', 'state'] = chappie.loc[chappie.epoch.isin(vm_thread.epoch), 'activeness']
 
-        thread['thread'] = df.map(lambda x: x[0])
-        thread['state'] = df.map(lambda x: x[1])
-        thread['u_jiffies'] = df.map(lambda x: x[2])
-        thread['k_jiffies'] = df.map(lambda x: x[3])
-        thread['socket'] = df.map(lambda x: x[4])
-        thread.loc[thread['tid'] == pid, 'thread'] = 'main'
+        print('{:.2f} seconds for vm threads'.format(time() - start))
 
-        # get differential jiffies
-        thread['u_jiffies'] = thread.groupby('tid')['u_jiffies'].apply(pd.Series.diff)
-        thread['k_jiffies'] = thread.groupby('tid')['k_jiffies'].apply(pd.Series.diff)
-        thread['jiffies'] = thread['u_jiffies'] + thread['k_jiffies']
-        thread['jiffies'] = thread['jiffies'].fillna(0)
-
-        ########## JIFFIES PROCESSING ##########
-        # separate each line into the desired pieces
         start = time()
 
-        core_count = 40
-        jiffy = jiffy['record'][jiffy['record'].str.contains(r'cpu\d+')]
+        system = data['system']
+        system = system.record[system.record.str.contains(r'cpu\d+')]
 
-        jiffy = jiffy.str.replace('  ', ' ')
-        jiffy = jiffy.str.split(' ')
-        jiffy = jiffy.map(filter_cpu).values.tolist()
-        jiffy = pd.DataFrame(jiffy, columns = ['core'] + ['jiffies{}'.format(i) for i in range(10)], dtype = int)
+        system = system.str.replace('  ', ' ')
+        system = system.str.split(' ')
+        system = system.values.tolist()
+        system = pd.DataFrame(system, columns = ['core'] + ['jiffies{}'.format(i) for i in range(len(system[0]) - 1)], dtype = int)
 
-        epochs = thread.epoch.unique()
-        epochs = [40 * [epoch] for epoch in epochs]
-        jiffy['epoch'] = [e for epoch in epochs for e in epoch]
-        jiffy['socket'] = jiffy['core'].map(lambda x: 1 if x < 20 else 2)
-        jiffy = jiffy.drop(columns = 'jiffies3')
-        jiffy['jiffies'] = jiffy[[col for col in jiffy.columns if 'jiffies' in col]].sum(axis = 1)
+        system.core = system.core.str.replace('cpu', '')
+        system = system.astype(int)
+        system['socket'] = system.core.map(lambda c: 1 if c < 20 else 2)
+        system.pop('jiffies3')
 
-        jiffy = jiffy.groupby(['epoch', 'socket'])['jiffies'].sum().reset_index()
-        jiffy = df_diff(jiffy, 'socket', ['jiffies'])[['epoch', 'socket', 'jiffies']]
+        system['jiffies'] = system[[col for col in system.columns if 'core' not in col]].sum(axis = 1).astype(int)
 
-        print('{:.2f} seconds for jiffies'.format(time() - start))
+        cores = len(system.core.unique())
+        epochs = data['thread'].epoch.unique()
+        epochs = [cores * [epoch] for epoch in epochs]
+        l1 = len(system)
+        l2 = len([e for epoch in epochs for e in epoch])
+        system['epoch'] = [e for epoch in epochs for e in epoch]#[:(l1 - l2)]
 
-        os_state = pd.merge(jiffy, thread.groupby(['epoch', 'socket'])['jiffies'].sum().reset_index(), on = ['epoch', 'socket'], suffixes = ('_', ''), how = 'outer')
-        os_state['os_state'] = (os_state['jiffies'] / os_state['jiffies_']).fillna(0).replace(np.inf, 0)
-        os_state.loc[os_state['os_state'] > 1, 'os_state'] = 1
-        os_state = os_state[['epoch', 'socket', 'os_state']]
+        system = system.groupby(['epoch', 'socket']).sum().reset_index()
+        system['jiffies'] = system[[col for col in system.columns if 'jiffies' in col]].sum(axis = 1)
+        system.jiffies = system.groupby(['socket']).jiffies.diff().fillna(0)
 
-        thread = pd.merge(thread, os_state, on = ['epoch', 'socket'])
+        print('{:.2f} seconds for system'.format(time() - start))
 
-        print('{:.2f} seconds for os-thread'.format(time() - start))
+        start = time()
 
-        id = id[id['thread'] == id['thread']]
-        id['thread'] = id['thread'].map(lambda x: x[:15])
-        id['state'] = 1 * (id['state'] == 'RUNNABLE')
-        thread = pd.merge(id, thread, on = ['epoch', 'thread'], how = 'outer', suffixes = ('', '_'))
-        thread['state'] = thread['state'].fillna(thread['state_'])
-        activity = activity['activeness'][activity.epoch.isin(thread.epoch)].replace('Infinity', 1).astype(float)
-        thread.loc[thread['thread'] == 'Chaperone', 'state'] = activity.values
+        thread = os_thread.groupby(['epoch', 'socket']).jiffies.sum()
+        os_state = pd.merge(system, thread, on = ['epoch', 'socket'], suffixes = ('_', ''), how = 'outer')
+        os_state['state'] = os_state.jiffies / os_state.jiffies_
+        os_state.state = os_state.state.replace(np.inf, 0).fillna(0)
+        os_state = os_state.drop(columns = [col for col in os_state.columns if '_' in col])
 
-        thread = pd.merge(thread, thread.groupby(['epoch', 'socket'])['state'].sum().reset_index(), on = ['epoch', 'socket'], suffixes = ('', '_sum'))
-        thread['os_state'] = thread['os_state'].fillna(method = 'bfill').fillna(0)
-        thread['state'] = (thread['state'] / thread['state_sum']).fillna(0)
-        thread['state'] *= thread['os_state']
+        print('{:.2f} seconds for os state'.format(time() - start))
 
-        thread = thread[['epoch', 'timestamp', 'thread', 'id', 'tid', 'socket', 'state']]
+        start = time()
 
-        # compute the energy attribution
-        thread = pd.merge(thread, energy, on = ['epoch', 'socket'])
-        thread['package'] *= thread['state']
-        thread['dram'] *= thread['state']
+        vm_state = pd.merge(os_thread, vm_thread.drop(columns = 'timestamp'), on = ['epoch', 'thread'], suffixes = ('_', ''), how = 'outer')
+        vm_state.id = vm_state.id.fillna(-1).astype(int)
+        vm_state.state = vm_state.state.fillna(vm_state.state_)
+
+        vm_state = pd.merge(vm_state, vm_state.groupby(['epoch', 'socket']).state.sum(), on = ['epoch', 'socket'], suffixes = ('', '_sum'))
+        vm_state.state = (vm_state.state / vm_state.state_sum).fillna(0)
+
+        vm_state = vm_state.drop(columns = [col for col in vm_state.columns if '_' in col])
+
+        print('{:.2f} seconds for vm state'.format(time() - start))
+
+        start = time()
+
+        thread = pd.merge(vm_state, os_state, on = ['epoch', 'socket'], how = 'outer', suffixes = ('', '_'))
+        thread.state *= thread.state_
+
+        thread = thread.drop(columns = [col for col in thread.columns if '_' in col])
+
+        print('{:.2f} seconds for total state'.format(time() - start))
+
+        start = time()
+
+        thread = pd.merge(thread, energy, on = ['epoch', 'socket'], how = 'outer', suffixes = ('', '_'))
+        thread.package *= thread.state
+        thread.dram *= thread.state
+
         thread = thread[['epoch', 'timestamp', 'thread', 'id', 'tid', 'socket', 'package', 'dram']]
 
-        print('{:.2f} seconds for vm-thread'.format(time() - start))
+        print('{:.2f} seconds for attribution'.format(time() - start))
 
         start = time()
 
-        stack.columns = ['thread', 'timestamp', 'id', 'stack']
-        stack = stack[(stack['timestamp'] >= thread['timestamp'].min()) & (stack['timestamp'] <= thread['timestamp'].max())]
-        df = pd.merge(thread, stack.reset_index(), on = 'thread', how = 'right', suffixes = ('', '_'))
-        df['diff'] = abs(df['timestamp'] - df['timestamp_'])
-        df = df.sort_values(['diff', 'index']).drop_duplicates(['epoch', 'thread']).drop_duplicates('index').sort_values('epoch')
-        df = df[['epoch', 'thread', 'stack']]
+        thread.to_csv('thread', index = False)
+        data['stack'].to_csv('stack', index = False)
 
-        thread = pd.merge(thread, df, on = ['epoch', 'thread'], how = 'left')
-        thread['stack'] = thread['stack'].fillna('end').astype(str)
-
-        ## this is still having issues
-        # thread_path = os.path.join(args.destination, 'chappie.thread.{}.csv'.format(k))
-        # thread.to_csv(thread_path, index = False)
-        #
-        # method_path = names[4]
-        #
-        # ruby_args = ['-c', thread_path , '-h' , method_path]
-        #
-        # thread = subprocess.check_output(['./analysis/opt-align.rb'] + ruby_args)
-        # thread = pd.read_csv(BytesIO(thread))
+        thread = subprocess.check_output(align_args)
+        thread = pd.read_csv(BytesIO(thread))
 
         thread['all'] = thread['stack'].str.split(';').map(lambda x: 'end' if 'java' in x[0] else ';'.join(x))
         thread['unfiltered'] = thread['stack']
@@ -229,10 +223,16 @@ if __name__ == '__main__':
         thread = thread.drop(columns = ['stack']).sort_values('epoch')
         thread = thread.sort_values('epoch')
 
-        print('{:.2f} seconds for methods'.format(time() - start))
+        print('{:.2f} seconds for method alignment'.format(time() - start))
 
-        thread_path = os.path.join(args.destination, 'chappie.thread.{}.csv'.format(k))
-        thread.to_csv(thread_path, index = False)
+        start = time()
 
-    # runtime_summary = pd.concat(runtime_summary)
-    # runtime_summary.to_csv(os.path.join(args.destination, 'chappie.runtime.csv'.format(k)))
+        thread.to_csv(os.path.join('processed', 'chappie.thread.{}.csv'.format(i)), index = False)
+
+        print('{:.2f} seconds for writing'.format(time() - start))
+
+    os.remove('thread')
+    os.remove('stack')
+
+    runtime_summary = pd.concat(runtime_summary)
+    runtime_summary.to_csv(os.path.join('processed', 'chappie.runtime.csv'), index = False)
