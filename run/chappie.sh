@@ -18,6 +18,7 @@ done
 python3 ./analysis/nop_processing.py -benchmark $benchmark -config $path/config/NOP.xml
 for config in $path/config/*; do
   if [ $config != $path/config/NOP.xml ]; then
+    echo $config
     python3 ./analysis/processing.py -benchmark $benchmark -config $config
     python3 ./analysis/summarization.py -benchmark $benchmark -config $config -reference $path/config/NOP.xml
   fi

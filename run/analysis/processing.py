@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import argparse
+import json
 import os
 import re
 import subprocess
@@ -8,11 +9,31 @@ import subprocess
 from csv import writer
 from io import BytesIO, StringIO
 from time import time
+import xml.etree.ElementTree as ET
 
 import numpy as np
 import pandas as pd
 
 from tqdm import tqdm
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-benchmark')
+    parser.add_argument('-config')
+
+    return parser.parse_args()
+
+def parse_config(benchmark, config):
+    benchmark = json.load(open(benchmark, 'r'))
+
+    root = ET.parse(config).getroot()
+    for child in root:
+        try:
+            benchmark[child.tag] = int(child.text)
+        except:
+            benchmark[child.tag] = child.text
+
+    return benchmark
 
 rapl_wrap_around_value = 16384
 
@@ -54,10 +75,15 @@ def filter_to_application(l):
         return ';'.join(l)
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-path')
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument('-path')
+    #
+    # args = parser.parse_args()
 
-    args = parser.parse_args()
+    args = parse_args()
+    config = parse_config(args.benchmark, args.config)
+
+    args.path = config['workPath']
 
     # setup the paths
     if not os.path.exists(args.path):
@@ -67,7 +93,10 @@ if __name__ == '__main__':
     if not os.path.exists('processed'):
         os.mkdir('processed')
 
-    iters = range(10)
+    iters = range(config['iters'] // config['warm_up_fraction'], config['iters'])
+    stack = None
+    if os.path.exists('chappie.stack.csv'):
+        stack = pd.read_csv('chappie.stack.csv')
     # try:
     #     iters = range(10) # range(max([int(re.search(r'\d+', f).group()) for f in os.listdir()]))
     # except:
@@ -78,7 +107,11 @@ if __name__ == '__main__':
     for i in iters:
         start = time()
 
-        data = {f.split(r'.')[1]: pd.read_csv(f) for f in os.listdir() if 'csv' in f and str(i) in f}
+        # for f in os.listdir():
+            # if 'csv' in f and '.{}.'.format(i) in f:
+                # print(f)
+                # pd.read_csv(f)
+        data = {f.split(r'.')[1]: pd.read_csv(f) for f in os.listdir() if 'csv' in f and '.{}.'.format(i) in f}
 
         print('{:.2f} seconds for loading'.format(time() - start))
 
@@ -101,6 +134,8 @@ if __name__ == '__main__':
         energy.package = energy.package.map(rapl_wrap_around)
         energy.dram = energy.dram.map(rapl_wrap_around)
         energy = energy.fillna(0)
+
+        energy.to_csv(os.path.join('processed', 'chappie.energy.{}.csv'.format(i)), index = False)
 
         print('{:.2f} seconds for energy'.format(time() - start))
 
@@ -158,7 +193,7 @@ if __name__ == '__main__':
         epochs = [cores * [epoch] for epoch in epochs]
         l1 = len(system)
         l2 = len([e for epoch in epochs for e in epoch])
-        system['epoch'] = [e for epoch in epochs for e in epoch]#[:(l1 - l2)]
+        system['epoch'] = [e for epoch in epochs for e in epoch] #[:(l1 - l2)]
 
         system = system.groupby(['epoch', 'socket']).sum().reset_index()
         system['jiffies'] = system[[col for col in system.columns if 'jiffies' in col]].sum(axis = 1)
@@ -200,7 +235,7 @@ if __name__ == '__main__':
 
         start = time()
 
-        thread = pd.merge(thread, energy, on = ['epoch', 'socket'], how = 'outer', suffixes = ('', '_'))
+        thread = pd.merge(thread, energy, on = ['epoch', 'socket'], how = 'outer', suffixes = ('', '_')).dropna()
         thread.package *= thread.state
         thread.dram *= thread.state
 
@@ -210,7 +245,11 @@ if __name__ == '__main__':
 
         start = time()
 
+        thread['id'] = thread['id'].astype(int)
+
         thread.to_csv('thread', index = False)
+        if stack is not None:
+            data['stack'] = stack
         data['stack'].to_csv('stack', index = False)
 
         thread = subprocess.check_output(align_args)
@@ -234,5 +273,9 @@ if __name__ == '__main__':
     os.remove('thread')
     os.remove('stack')
 
+    start = time()
+
     runtime_summary = pd.concat(runtime_summary)
     runtime_summary.to_csv(os.path.join('processed', 'chappie.runtime.csv'), index = False)
+
+    print('{:.2f} seconds for writing runtime'.format(time() - start))

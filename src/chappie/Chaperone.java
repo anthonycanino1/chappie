@@ -101,23 +101,24 @@ public class Chaperone extends TimerTask {
     // }
 
     long currentEpochTime = System.currentTimeMillis();
-    long elapsedTime = scheduledExecutionTime() - lastScheduledTime;
-    System.out.println(elapsedTime);
+    long elapsedTime = currentEpochTime - lastScheduledTime;
     if (!terminate) {
       if(elapsedTime >= config.timerRate) {
         // cache last epoch's ms timestamp
-        lastScheduledTime = scheduledExecutionTime();
+        lastScheduledTime = currentEpochTime;
 
         if (epoch > 0) {
           ArrayList<Object> record = new ArrayList<Object>();
+
           record.add(epoch);
           record.add(currentEpochTime);
           record.add((double)(lastChappieTime) / elapsedTime);
+
           activeness.add(record);
         }
 
         // read from the specific monitor
-        monitor.read(epoch);
+        monitor.read(epoch, currentEpochTime);
 
         // estimate of chappie's machine time usage based on runtime
         lastChappieTime = System.currentTimeMillis() - currentEpochTime;
@@ -126,7 +127,7 @@ public class Chaperone extends TimerTask {
 
         record.add(epoch);
         record.add(currentEpochTime);
-        record.add(elapsedTime);
+        record.add(currentEpochTime - lastScheduledTime);
 
         misses.add(record);
       }
@@ -135,9 +136,11 @@ public class Chaperone extends TimerTask {
       terminated = true;
 
       ArrayList<Object> record = new ArrayList<Object>();
+
       record.add(epoch);
       record.add(currentEpochTime);
       record.add((double)(lastChappieTime) / elapsedTime);
+
       activeness.add(record);
 
       // if(halt) {
@@ -208,8 +211,8 @@ public class Chaperone extends TimerTask {
 
       log.write("epoch,timestamp,activeness\n");
 
-      message = "";
       for (ArrayList<Object> frame : activeness) {
+        message = "";
         for (Object item: frame) {
           message += item.toString() + ",";
         }
@@ -224,10 +227,10 @@ public class Chaperone extends TimerTask {
         log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
       } catch (Exception io) { }
 
-      log.write("epoch,timestamp,tardiness\n");
+      log.write("epoch,timestamp,scheduled,tardiness\n");
 
-      message = "";
       for (ArrayList<Object> frame : misses) {
+        message = "";
         for (Object item: frame) {
           message += item.toString() + ",";
         }

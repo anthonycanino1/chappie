@@ -1,9 +1,11 @@
 #!/usr/bin/python3
 
 import argparse
+import json
 import os
 
 from time import time
+import xml.etree.ElementTree as ET
 
 import matplotlib
 matplotlib.use('Agg')
@@ -11,74 +13,68 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
 
 from latex import build_pdf
 from tabulate import tabulate
 
-if __name__ == '__main__':
+def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-path')
+    parser.add_argument('-config')
 
-    args = parser.parse_args()
+    return parser.parse_args()
 
-    path = args.path
+def parse_configs(config):
+    configs = []
+    for case in os.listdir(config):
+        if 'NOP' not in case:
+            configs.append({})
+            root = ET.parse(os.path.join(args.config, case)).getroot()
+            for child in root:
+                try:
+                    configs[-1][child.tag] = int(child.text)
+                except:
+                    configs[-1][child.tag] = child.text
 
-    runs = [experiment for experiment in os.listdir(path) if experiment != 'reference' and experiment != 'config']
+    return configs
 
-    runtime = pd.concat([
-        pd.read_csv(os.path.join(path, run, 'summary', 'chappie.runtime.csv')) for run in runs
-    ])
+if __name__ == '__main__':
+    args = parse_args()
+    configs = parse_configs(args.config)
 
-    # runtime = pd.concat([
-    #     pd.concat([
-    #         pd.read_csv(os.path.join(path, run, '1', 'sunflow', str(i), 'summary', 'chappie.runtime.csv')) for i in range(1,2)
-    #         ]).groupby('experiment').mean().reset_index()
-    #     for run in runs
-    # ])
+    path = os.path.dirname(args.config)
 
-    # names = [[name, name] for name in runs]
-    # runtime['experiment'] = [name for name in names]
+    runtime = []
+    for config in configs:
+        df = pd.read_csv(os.path.join(config['workPath'], 'summary', 'chappie.runtime.csv')).head(1)
 
-    # runtime = runtime.sort_values('experiment')
+        df['rate'] = config['timerRate']
+        df['vm'] = config['timerRate'] * config['vmFactor']
+        df['os'] = config['osFactor']
+        # df['vm'] = config['timerRate'] * config['vmFactor']
+        # df['hp'] = config['timerRate'] * config['hpFactor']
+        df['case'] = config['workPath'].split(os.sep)[-1]
 
-    # print(runtime)
-    # runtime = runtime.sort_values('mean').drop_duplicates(subset = ['experiment']).sort_values('experiment')
-    # runtime = runtime.sort_index(ascending = False)
-    # print(runtime)
+        runtime.append(df)
 
-    # runtime.columns = ['experiment', 'runtime', 'deviation', 'overhead', 'error']
+    runtime = pd.concat(runtime)
 
-    # runtime2 = runtime[runtime['experiment'] != 'reference']
-    runtime2 = runtime[runtime.index == 0]
-    runtime2['experiment'] = runs # [name for name in runs]
-    runtime2 = runtime2.sort_values('experiment')
+    runtime_grid = runtime.pivot(index = 'os', columns = 'vm', values = 'time_overhead').sort_index(ascending = False)
+    runtime_grid.index.name = 'vm rate (ms)'
+    runtime_grid.columns.name = 'os factor'
 
-    # print(runtime2.experiment.map(lambda x: x.split('_')[0]))
-    runtime2['vm'] = runtime2.experiment.map(lambda x: x.split('_')[0]).map(lambda x: x[-1]).astype(int) * 25
-    runtime2['os'] = runtime2.experiment.map(lambda x: x.split('_')[1]).map(lambda x: x[-1]).astype(int) * 25
-    # runtime2['hp'] = runtime2.experiment.map(lambda x: x.split('_')[2]).astype(int)
-    # runtime2 = runtime2[runtime2['vm'] == runtime2['hp']]
-    # runtime2['os'] *= runtime2['vm']
-    # runtime2['os'] = runtime2['os'].map(lambda x: 20 if x == 16 else x)
-    # print(runtime2)
-    # print(runtime_grid)
-
-    runtime_grid = runtime2.pivot(index = 'vm', columns = 'os', values = 'time_overhead').sort_index(ascending = False)
-
-    import seaborn as sns
     sns.heatmap(runtime_grid, cmap = 'Reds')
     plt.savefig(os.path.join(path, 'runtime_map.svg'), bbox_inches = 'tight')
+    # plt.xticks(os_rates)
 
-    runtime2['energy'] = runtime2['dram'] + runtime2['package']
-    runtime2['energy_reference'] = runtime2['dram_reference'] + runtime2['package_reference']
-    runtime2['energy_overhead'] = runtime2['dram_overhead'] + runtime2['package_overhead']
-    runtime2['energy_overhead'] = (runtime2['energy'] - runtime2['energy_reference']) / runtime2['energy_reference']
-    energy_grid = runtime2.pivot(index = 'vm', columns = 'os', values = 'energy_overhead').sort_index(ascending = False)
-
-    import seaborn as sns
     plt.figure()
-    sns.heatmap(energy_grid, cmap = 'Reds')
+    energy_grid = runtime.pivot(index = 'os', columns = 'vm', values = 'energy_overhead').sort_index(ascending = False)
+    energy_grid.index.name = 'vm rate (ms)'
+    energy_grid.columns.name = 'os factor'
+
+    sns.heatmap(energy_grid, cmap = 'Greens')
     plt.savefig(os.path.join(path, 'energy_map.svg'), bbox_inches = 'tight')
+    # plt.xticks(os_rates)
 
     # runtime[['overhead', 'error']] *= 100
     # runtime['overhead'] = runtime['overhead'].map('{:.2f}%'.format)
@@ -153,38 +149,38 @@ if __name__ == '__main__':
     #
     # plt.figure()
 
-    methods = [
-        pd.concat([
-            pd.read_csv(os.path.join(path, run, 'summary', 'chappie.method.csv'))
-        ]).rename(columns = {'Energy': run}) for run in runs
-    ]
+    methods = []
+    for config in configs:
+        df = pd.read_csv(os.path.join(config['workPath'], 'summary', 'chappie.method.csv'))
 
-    # methods = [pd.read_csv(os.path.join(path, run, 'dacapo', 'h2', 'summary', 'chappie.method.csv')).rename(columns = {'Energy': run}) for run in runs]
-    df = methods[0]
-    df = df[(df['level'] == 'method') & (df['type'] == 'all')].drop(columns = ['level', 'type', 'context', 'Time']).groupby('name').mean().reset_index()
-    for m in methods[1:]:
-        m = m[(m['level'] == 'method') & (m['type'] == 'all')].drop(columns = ['level', 'type', 'context', 'Time']).groupby('name').mean().reset_index()
-        df = pd.merge(df, m, on = 'name', how = 'outer')
+        df['rate'] = config['timerRate']
+        df['vm'] = config['timerRate'] * config['vmFactor']
+        df['os'] = config['osFactor']
+        # df['os'] = config['timerRate'] * config['osFactor']
+        df['hp'] = config['timerRate'] * config['hpFactor']
+        df['case'] = config['workPath'].split(os.sep)[-1]
+        methods.append(df)
 
-    corrs = df.corr()[['1_1_1']]
-    corrs2 = corrs.sort_index().reset_index()
-    print(corrs2)
+    methods = pd.concat(methods)
+    methods = methods[(methods['level'] == 'method') & (methods['type'] == 'all')]
+    methods = methods.pivot_table(
+        index = 'name',
+        values = 'Energy',
+        columns = ['os', 'vm'],
+    ).corr()
+    methods = methods[methods.columns[0]]
+    methods.name = 'Correlation'
+    methods = methods.reset_index()
 
-    corrs2['vm'] = corrs2['index'].map(lambda x: x.split('_')[0]).astype(int)
-    corrs2['os'] = corrs2['index'].map(lambda x: x.split('_')[1]).astype(int)
-    corrs2['hp'] = corrs2['index'].map(lambda x: x.split('_')[2]).astype(int)
-    corrs2 = corrs2[corrs2['vm'] == corrs2['hp']]
-    corrs2['os'] *= corrs2['vm']
-    corrs2['os'] = corrs2['os'].map(lambda x: 20 if x == 16 else x)
-    # print(corrs2)
-
-    # print(corrs2.sort_values(['vm', 'os']))
-    corrs_grid = corrs2.pivot(index = 'vm', columns = 'os', values = '1_1_1').sort_index(ascending = False)
+    corrs_grid = methods.pivot(index = 'os', columns = 'vm', values = 'Correlation').sort_index(ascending = False)
+    corrs_grid.index.name = 'vm rate (ms)'
+    corrs_grid.columns.name = 'os factor'
 
     import seaborn as sns
     plt.figure()
     sns.heatmap(corrs_grid, cmap = 'Blues_r')
     plt.savefig(os.path.join(path, 'correlation_map.svg'), bbox_inches = 'tight')
+    # plt.xticks(os_rates)
 
     # corrs.name = 'Correlation'
     # corrs.index.name = 'Experiment'

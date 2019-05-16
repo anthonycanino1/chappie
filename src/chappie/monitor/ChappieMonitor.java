@@ -63,11 +63,11 @@ public class ChappieMonitor {
   private ArrayList<ArrayList<Object>> jiffiesData = new ArrayList<ArrayList<Object>>();
   private ArrayList<ArrayList<Object>> energyData = new ArrayList<ArrayList<Object>>();
 
-  public void read(int epoch) {
+  public void read(int epoch, long unixTime) {
     ArrayList<Object> record;
 
     // needed for method alignment
-    long unixTime = System.currentTimeMillis();
+    // long unixTime = System.currentTimeMillis();
 
     // read vm state
     if (epoch % config.vmFactor == 0) {
@@ -93,15 +93,17 @@ public class ChappieMonitor {
     if (epoch % config.osFactor == 0) {
       for (File f: new File("/proc/" + GLIBC.getProcessId() + "/task/").listFiles()) {
         int tid = Integer.parseInt(f.getName());
+        String threadRecord = GLIBC.readThread(tid);
+        if (threadRecord.length() > 0) {
+          record = new ArrayList<Object>();
 
-        record = new ArrayList<Object>();
+          record.add(epoch);
+          record.add(tid);
+          record.add(unixTime);
+          record.add(threadRecord);
 
-        record.add(epoch);
-        record.add(tid);
-        record.add(unixTime);
-        record.add(GLIBC.readThread(tid));
-
-        threadData.add(record);
+          threadData.add(record);
+        }
       }
 
       record = new ArrayList<Object>();
