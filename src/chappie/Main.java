@@ -33,7 +33,11 @@ import java.util.ArrayList;
 
 public class Main {
   public static void main(String[] args) throws IOException {
-    String configPath = args[0];
+    String configPath = System.getProperty("chappie.config", null);
+    if (configPath == null) {
+      System.out.println("no config found");
+      System.exit(0);
+    }
     Config config = Config.readConfig(configPath);
     System.out.println(config.toString());
 
@@ -52,12 +56,6 @@ public class Main {
         try {
           String jarArgs = args[2];
           String[] jarParams = jarArgs.split(" ");
-          // new ArrayList<String>();
-          // for (int i = 2; i < args.length; ++i) {
-          //   String[] temp_params = args[i].split(" ", 100);
-          //   for (int k = 0; k < temp_params.length; ++k)
-          //     params.add(temp_params[k]);
-          // }
 
           System.out.println("Running " + mainClass + ".main");
           System.out.println("Arguments: " + jarParams.toString());

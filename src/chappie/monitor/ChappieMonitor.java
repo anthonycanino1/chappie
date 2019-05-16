@@ -35,16 +35,9 @@ import jrapl.EnergyCheckUtils.*;
 
 public class ChappieMonitor {
   Config config;
-  // params
-  // int osPolling;
-  //
   // private boolean no_rapl = false;
   // private boolean dump_stats = false;
   // private int sockets_no = 0;
-
-  // file helpers
-  // private String directory;
-  // private String suffix;
 
   private double[] initialRaplReading;
 
@@ -53,42 +46,21 @@ public class ChappieMonitor {
   public ChappieMonitor(Config config) {
     this.config = config;
 
-    initialRaplReading = jrapl.EnergyCheckUtils.getEnergyStats();
+    if (config.raplFactor > 0)
+      initialRaplReading = jrapl.EnergyCheckUtils.getEnergyStats();
+    else
+      initialRaplReading = new double[] {0, 0, 0, 0, 0, 0};
+
     rootGroup = Thread.currentThread().getThreadGroup();
     ThreadGroup parentGroup;
     while ((parentGroup = rootGroup.getParent()) != null)
         rootGroup = parentGroup;
-
-    // should be handled by highest level call (grid search)
-    // this.osPolling = osPolling;
-
-    // this.no_rapl=no_rapl;
-    // if (no_rapl) {
-    //   this.sockets_no=sockets_no;
-    //   initialRaplReading = new double[3*sockets_no];
-    //   for(int i=0; i<3*sockets_no;i++)
-    //     initialRaplReading[i] = -2;
-    // } else {
-    // }
-
-    // this.dump_stats=dump_stats;
-
-    // definition handled by parent caller (./chappie_test.sh)
-    // directory management HAS to be handled by bootstrapper (./run.sh)
-    // because of honest profiler (log path)
-    // directory = System.getenv("CHAPPIE_DIRECTORY");
-    // directory = directory != null ? directory : "";
-
-    // helper due to the cold run problem we experienced around dacapo
-    // suffix = System.getenv("CHAPPIE_SUFFIX");
-    // suffix = suffix != null ? "." + suffix : "";
-
   }
 
   // Runtime data containers
   private ArrayList<ArrayList<Object>> threadData = new ArrayList<ArrayList<Object>>();
   private ArrayList<ArrayList<Object>> idData = new ArrayList<ArrayList<Object>>();
-  private ArrayList<String> jiffiesData = new ArrayList<String>();
+  private ArrayList<ArrayList<Object>> jiffiesData = new ArrayList<ArrayList<Object>>();
   private ArrayList<ArrayList<Object>> energyData = new ArrayList<ArrayList<Object>>();
 
   public void read(int epoch) {
@@ -97,11 +69,32 @@ public class ChappieMonitor {
     // needed for method alignment
     long unixTime = System.currentTimeMillis();
 
-    // if (epoch % osPolling == 0) {
-      // Read jiffies of the application
+    // read vm state
+    if (epoch % config.vmFactor == 0) {
+      Thread[] threads = new Thread[rootGroup.activeCount()];
+      while (rootGroup.enumerate(threads, true) == threads.length)
+          threads = new Thread[threads.length * 2];
+
+      for (Thread thread: threads)
+        if (thread != null) {
+          record = new ArrayList<Object>();
+
+          record.add(epoch);
+          record.add(unixTime);
+          record.add(thread.getName());
+          record.add(thread.getId());
+          record.add(thread.getState() == Thread.State.RUNNABLE);
+
+          idData.add(record);
+        }
+    }
+
+    // read os state
+    if (epoch % config.osFactor == 0) {
       for (File f: new File("/proc/" + GLIBC.getProcessId() + "/task/").listFiles()) {
-        record = new ArrayList<Object>();
         int tid = Integer.parseInt(f.getName());
+
+        record = new ArrayList<Object>();
 
         record.add(epoch);
         record.add(tid);
@@ -110,98 +103,40 @@ public class ChappieMonitor {
 
         threadData.add(record);
       }
-    // }
 
-    // Read the java ids of all live threads
-    // long temp = System.currentTimeMillis();
+      record = new ArrayList<Object>();
+      // record.add(epoch);
+      // record.add(unixTime);
+      record.add(GLIBC.readSystemJiffies());
 
-    // ThreadGroup rootGroup = Thread.currentThread().getThreadGroup();
-    // ThreadGroup parentGroup;
-    // while ((parentGroup = rootGroup.getParent()) != null)
-    //     rootGroup = parentGroup;
+      jiffiesData.add(record);
+    }
 
-    Thread[] threads = new Thread[rootGroup.activeCount()];
-    while (rootGroup.enumerate(threads, true) == threads.length)
-        threads = new Thread[threads.length * 2];
+    // read energy
+    if (epoch % config.raplFactor == 0) {
+      double[] raplReading = jrapl.EnergyCheckUtils.getEnergyStats();
 
-    // System.out.println(System.currentTimeMillis() - temp);
-
-    // temp = System.currentTimeMillis();
-
-    for (Thread thread: threads)
-      if (thread != null) {
+      for (int i = 0; i < raplReading.length / 3; ++i) {
         record = new ArrayList<Object>();
 
         record.add(epoch);
-        record.add(unixTime);
-        record.add(thread.getName());
-        record.add(thread.getId());
-        record.add(thread.getState() == Thread.State.RUNNABLE);
+        record.add(i + 1);
+        record.add(raplReading[3 * i + 2]);
+        record.add(raplReading[3 * i]);
 
-        idData.add(record);
+        energyData.add(record);
       }
-
-    // System.out.println(System.currentTimeMillis() - temp);
-
-    // Read jiffies of system
-    // if (epoch % osPolling == 0) {
-      jiffiesData.add(GLIBC.readSystemJiffies());
-    // }
-
-    // Read energy of system
-    double[] raplReading = new double[0];
-
-		// if(no_rapl) {
-    //   raplReading = initialRaplReading;
-		// } else {
-      raplReading = jrapl.EnergyCheckUtils.getEnergyStats();
-		// }
-
-    for (int i = 0; i < raplReading.length / 3; ++i) {
-      record = new ArrayList<Object>();
-
-      record.add(epoch);
-      record.add(i + 1);
-      record.add(raplReading[3 * i + 2]);
-      record.add(raplReading[3 * i]);
-
-      energyData.add(record);
-      // }
     }
   }
 
   public void dump() {
     String directory = config.workPath;
-    String suffix = "." + System.getenv("CHAPPIE_SUFFIX");
-    if (suffix == null)
-      suffix = "";
+    String suffix = System.getProperty("chappie.suffix", "");
+    if (suffix != "")
+      suffix = "." + suffix;
 
-    // runtime stats
-    PrintWriter log = null;
-
-    // String path = Paths.get(directory, "chappie.runtime" + suffix + ".csv").toString();
-    // try {
-    //   log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
-    // } catch (Exception io) { }
-    //
-    // long runtime = System.currentTimeMillis() - start;
-    // double[] raplReading = jrapl.EnergyCheckUtils.getEnergyStats();
-    //
-    // double package1 = raplReading[2] - initialRaplReading[2];
-    // double package2 = raplReading[5] - initialRaplReading[5];
-    // double dram1 = raplReading[0] - initialRaplReading[0];
-    // double dram2 = raplReading[3] - initialRaplReading[3];
-    //
     String message;
-     // = "name,value\nruntime," + runtime +
-    //                   "\nmain_id," + mainID +
-    //                   "\npackage1," + package1 +
-    //                   "\npackage2," + package2 +
-    //                   "\ndram1," + dram1 +
-    //                   "\ndram2," + dram2;
-    //
-    // log.write(message);
-    // log.close();
+    PrintWriter log = null;
 
     if (config.timerRate > 0) {
       // thread data
@@ -276,40 +211,17 @@ public class ChappieMonitor {
 
       log.write("record\n");
 
-  	  for (String record : jiffiesData)
-        log.write(record + "\n");
+  	  for (ArrayList<Object> frame : jiffiesData) {
+        message = "";
+        for (Object item: frame) {
+          message += item.toString() + ",";
+        }
+        message = message.substring(0, message.length() - 1);
+        message += "\n";
+        log.write(message);
+      }
 
       log.close();
-
-      // // activeness
-      // path = Paths.get(directory, "chappie.activeness" + suffix + ".csv").toString();
-      // try {
-      //   log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
-      // } catch (Exception io) { }
-      //
-      // log.write("epoch,activeness\n");
-      //
-      // int epoch = 0;
-      // for (Double activity : activeness) {
-      //   log.write(epoch++ + "," + activity + "\n");
-      // }
-      // log.close();
-
-      // path = Paths.get(directory, "chappie.thread" + suffix + ".csv").toString();
-      // File file = new File(path);
-      //
-      // BufferedReader reader = null;
-      //
-      // try {
-      //   reader = new BufferedReader(new FileReader(file));
-      //
-      //   String text = null;
-      //   while ((text = reader.readLine()) != null) {
-      //     System.out.println(text);
-      //   }
-      //
-      //   reader.close();
-      // } catch (Exception e) { }
     }
   }
 

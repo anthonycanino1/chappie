@@ -25,20 +25,36 @@ public class Config {
   public enum Mode {NOP, SAMPLE}
 
   public String workPath;
-  public Mode mode;
-  public int timerRate;
-  public int vmFactor;
-  public int hpFactor;
-  public int osFactor;
+  public Mode mode = Mode.NOP;
+  public int timerRate = -1;
+  public boolean skipMisses = true;
+  public int vmFactor = 1;
+  public int hpFactor = 1;
+  public int osFactor = 1;
+  public int raplFactor = 1;
 
-  Config(String workPath, Mode mode, int timerRate, int vmFactor, int hpFactor, int osFactor) {
+  Config(String workPath) { this.workPath = workPath; }
+
+  Config(String workPath, Mode mode, int timerRate, int vmFactor, int hpFactor, int osFactor, int raplFactor) {
     this.workPath = workPath;
     this.mode = mode;
     this.timerRate = timerRate;
     this.vmFactor = vmFactor;
     this.hpFactor = hpFactor;
     this.osFactor = osFactor;
+    this.raplFactor = raplFactor;
   }
+
+  // Config(String workPath, Mode mode, int timerRate, boolean skipMisses, int vmFactor, int hpFactor, int osFactor, int raplFactor) {
+  //   this.workPath = workPath;
+  //   this.mode = mode;
+  //   this.timerRate = timerRate;
+  //   this.skipMisses = skipMisses;
+  //   this.vmFactor = vmFactor;
+  //   this.hpFactor = hpFactor;
+  //   this.osFactor = osFactor;
+  //   this.raplFactor = raplFactor;
+  // }
 
   public String toString() {
     String message = "\tChaperone Parameters:";
@@ -47,6 +63,7 @@ public class Config {
       message += "\n\t - VM Polling Rate:\t\t" + vmFactor * timerRate + " milliseconds";
       message += "\n\t - HP Polling Rate:\t\t" + hpFactor * timerRate + " milliseconds";
       message += "\n\t - OS Polling Rate:\t\t" + osFactor * timerRate + " milliseconds";
+      message += "\n\t - RAPL Polling Rate:\t\t" + raplFactor * timerRate + " milliseconds";
     }
     return message;
   }

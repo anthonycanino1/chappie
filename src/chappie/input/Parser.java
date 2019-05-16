@@ -41,12 +41,17 @@ public class Parser {
       // Grab the chappie values and make a config
       String workPath = root.getElementsByTagName("workPath").item(0).getTextContent();
       Mode mode = Mode.valueOf(root.getElementsByTagName("mode").item(0).getTextContent());
-      int timerRate = Integer.parseInt(root.getElementsByTagName("timerRate").item(0).getTextContent());
-      int vmFactor = Integer.parseInt(root.getElementsByTagName("vmFactor").item(0).getTextContent());
-      int hpFactor = Integer.parseInt(root.getElementsByTagName("hpFactor").item(0).getTextContent());
-      int osFactor = Integer.parseInt(root.getElementsByTagName("osFactor").item(0).getTextContent());
+      if (mode != Mode.NOP) {
+        int timerRate = Integer.parseInt(root.getElementsByTagName("timerRate").item(0).getTextContent());
+        int vmFactor = Integer.parseInt(root.getElementsByTagName("vmFactor").item(0).getTextContent());
+        int hpFactor = Integer.parseInt(root.getElementsByTagName("hpFactor").item(0).getTextContent());
+        int osFactor = Integer.parseInt(root.getElementsByTagName("osFactor").item(0).getTextContent());
+        int raplFactor = Integer.parseInt(root.getElementsByTagName("raplFactor").item(0).getTextContent());
+        config = new Config(workPath, mode, timerRate, vmFactor, hpFactor, osFactor, raplFactor);
+      } else {
+        config = new Config(workPath);
+      }
 
-      config = new Config(workPath, mode, timerRate, vmFactor, hpFactor, osFactor);
     } catch(Exception e) {
       System.out.println("Couldn't parse " + configPath + ":");
       e.printStackTrace();

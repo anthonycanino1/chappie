@@ -77,6 +77,7 @@ public class Chaperone extends TimerTask {
   // Runtime data containers
   // the other containers are in the monitor now
   private ArrayList<ArrayList<Object>> activeness = new ArrayList<ArrayList<Object>>();
+  private ArrayList<ArrayList<Object>> misses = new ArrayList<ArrayList<Object>>();
 
   // TIMER TASK CLASS METHODS
 
@@ -99,33 +100,39 @@ public class Chaperone extends TimerTask {
     //   halt=true;
     // }
 
+    long currentEpochTime = System.currentTimeMillis();
+    long elapsedTime = scheduledExecutionTime() - lastScheduledTime;
+    System.out.println(elapsedTime);
     if (!terminate) {
-      // set this epoch and cache last epoch's ms timestamp
-      long currentEpochTime = System.currentTimeMillis();
-      long elapsedTime = scheduledExecutionTime() - lastScheduledTime;
-      lastScheduledTime = scheduledExecutionTime();
+      if(elapsedTime >= config.timerRate) {
+        // cache last epoch's ms timestamp
+        lastScheduledTime = scheduledExecutionTime();
 
-      if (epoch > 0) {
+        if (epoch > 0) {
+          ArrayList<Object> record = new ArrayList<Object>();
+          record.add(epoch);
+          record.add(currentEpochTime);
+          record.add((double)(lastChappieTime) / elapsedTime);
+          activeness.add(record);
+        }
+
+        // read from the specific monitor
+        monitor.read(epoch);
+
+        // estimate of chappie's machine time usage based on runtime
+        lastChappieTime = System.currentTimeMillis() - currentEpochTime;
+      } else {
         ArrayList<Object> record = new ArrayList<Object>();
+
         record.add(epoch);
         record.add(currentEpochTime);
-        record.add((double)(lastChappieTime) / elapsedTime);
-        activeness.add(record);
+        record.add(elapsedTime);
+
+        misses.add(record);
       }
-
-      // read from the specific monitor
-      monitor.read(epoch);
-
-      // estimate of chappie's machine time usage based on runtime
-      lastChappieTime = System.currentTimeMillis() - currentEpochTime;
-
-      epoch++;
     } else {
-      terminated = true;
-
       // stop ourselves before letting everything know we're done
-      long currentEpochTime = System.currentTimeMillis();
-      long elapsedTime = scheduledExecutionTime() - lastScheduledTime;
+      terminated = true;
 
       ArrayList<Object> record = new ArrayList<Object>();
       record.add(epoch);
@@ -138,18 +145,22 @@ public class Chaperone extends TimerTask {
       //   Runtime.getRuntime().halt(0);
       // }
     }
+
+    epoch++;
   }
 
   @Override
   public boolean cancel() {
     // use the double flag to kill the process from in here
     terminate = true;
-    
+
     while(!terminated) {
       try {
         Thread.sleep(0, 100);
       } catch(Exception e) { }
     }
+    super.cancel();
+    timer.cancel();
 
     dump();
     monitor.dump();
@@ -158,9 +169,9 @@ public class Chaperone extends TimerTask {
 
   private void dump() {
     String directory = config.workPath;
-    String suffix = "." + System.getenv("CHAPPIE_SUFFIX");
-    if (suffix == null)
-      suffix = "";
+    String suffix = System.getProperty("chappie.suffix", "");
+    if (suffix != "")
+      suffix = "." + suffix;
 
     // runtime stats
     PrintWriter log = null;
@@ -197,8 +208,26 @@ public class Chaperone extends TimerTask {
 
       log.write("epoch,timestamp,activeness\n");
 
-      int epoch = 0;
+      message = "";
       for (ArrayList<Object> frame : activeness) {
+        for (Object item: frame) {
+          message += item.toString() + ",";
+        }
+        message = message.substring(0, message.length() - 1);
+        message += "\n";
+        log.write(message);
+      }
+      log.close();
+
+      path = Paths.get(directory, "chappie.misses" + suffix + ".csv").toString();
+      try {
+        log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
+      } catch (Exception io) { }
+
+      log.write("epoch,timestamp,tardiness\n");
+
+      message = "";
+      for (ArrayList<Object> frame : misses) {
         for (Object item: frame) {
           message += item.toString() + ",";
         }

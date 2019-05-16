@@ -18,7 +18,12 @@ public class ChappieCallback extends Callback {
   public ChappieCallback(CommandLineArgs args) {
     super(args);
 
-    String configPath = System.getenv("CHAPPIE_CONFIG");
+    String configPath = System.getProperty("chappie.config", null);
+    if (configPath == null) {
+      System.out.println("no config found");
+      System.exit(0);
+    }
+
     config = Config.readConfig(configPath);
     System.out.println(config.toString());
   }
@@ -26,7 +31,7 @@ public class ChappieCallback extends Callback {
   int iter = 0;
   @Override
   public void start(String benchmark) {
-    setEnv("CHAPPIE_SUFFIX", Integer.toString(iter++));
+    System.setProperty("chappie.suffix", Integer.toString(iter++));
     chaperone = new Chaperone(config);
     super.start(benchmark);
   }
@@ -35,18 +40,5 @@ public class ChappieCallback extends Callback {
   public void complete(String benchmark, boolean valid) {
     super.complete(benchmark, valid);
     chaperone.cancel();
-  };
-
-  public static void setEnv(String key, String value) {
-    try {
-        Map<String, String> env = System.getenv();
-        Class<?> cl = env.getClass();
-        Field field = cl.getDeclaredField("m");
-        field.setAccessible(true);
-        Map<String, String> writableEnv = (Map<String, String>) field.get(env);
-        writableEnv.put(key, value);
-    } catch (Exception e) {
-        throw new IllegalStateException("Failed to set environment variable", e);
-    }
   }
 }
