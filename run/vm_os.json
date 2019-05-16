@@ -1,5 +1,5 @@
 {
-  "workDir": "sunflow",
+  "workDir": "skip_testing",
   "benchmark": {
       "config_path": "{root}/benchmark/dacapo.json",
       "java_path": "/home/timur/Projects/dev/build/linux-x86_64-normal-server-release/jdk/bin/java",

@@ -4,6 +4,7 @@
 # ./chappie experiment.json
 
 experiment=$1
+rm -rf sunflow
 
 path=$(python3 ./parser/parse_experiment.py -experiment $experiment)
 benchmark="${path}/benchmark/benchmark.json"

@@ -103,6 +103,9 @@ public class Chaperone extends TimerTask {
     long currentEpochTime = System.currentTimeMillis();
     long elapsedTime = currentEpochTime - lastScheduledTime;
     if (!terminate) {
+      // System.out.print(elapsedTime);
+      // System.out.print(" , ");
+      // System.out.println(elapsedTime >= config.timerRate);
       if(elapsedTime >= config.timerRate) {
         // cache last epoch's ms timestamp
         lastScheduledTime = currentEpochTime;
@@ -131,25 +134,29 @@ public class Chaperone extends TimerTask {
 
         misses.add(record);
       }
+      epoch++;
     } else {
       // stop ourselves before letting everything know we're done
-      terminated = true;
+      // we also have to block everyone else
+      synchronized (this) {
+        if (!terminated) {
+          terminated = true;
 
-      ArrayList<Object> record = new ArrayList<Object>();
+          ArrayList<Object> record = new ArrayList<Object>();
 
-      record.add(epoch);
-      record.add(currentEpochTime);
-      record.add((double)(lastChappieTime) / elapsedTime);
+          record.add(epoch);
+          record.add(currentEpochTime);
+          record.add((double)(lastChappieTime) / elapsedTime);
 
-      activeness.add(record);
+          activeness.add(record);
 
-      // if(halt) {
-      //   cancel();
-      //   Runtime.getRuntime().halt(0);
-      // }
+          // if(halt) {
+          //   cancel();
+          //   Runtime.getRuntime().halt(0);
+          // }
+        }
+      }
     }
-
-    epoch++;
   }
 
   @Override
