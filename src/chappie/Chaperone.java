@@ -24,8 +24,6 @@ import chappie.input.Config.Mode;
 
 import chappie.monitor.ChappieMonitor;
 
-// import chappie.monitor.JDK9Monitor;
-// import chappie.monitor.NOPMonitor;
 import chappie.util.GLIBC;
 
 import java.io.*;
@@ -91,21 +89,9 @@ public class Chaperone extends TimerTask {
 
   @Override
   public void run() {
-    // // Check if we need to stop
-    // boolean halt=false;
-    //
-    // if(epoch >= early_exit && early_exit > 0) {
-    //   terminate=true;
-    //   terminated=true;
-    //   halt=true;
-    // }
-
     long currentEpochTime = System.currentTimeMillis();
     long elapsedTime = currentEpochTime - lastScheduledTime;
     if (!terminate) {
-      // System.out.print(elapsedTime);
-      // System.out.print(" , ");
-      // System.out.println(elapsedTime >= config.timerRate);
       if(elapsedTime >= config.timerRate) {
         // cache last epoch's ms timestamp
         lastScheduledTime = currentEpochTime;
@@ -149,11 +135,6 @@ public class Chaperone extends TimerTask {
           record.add((double)(lastChappieTime) / elapsedTime);
 
           activeness.add(record);
-
-          // if(halt) {
-          //   cancel();
-          //   Runtime.getRuntime().halt(0);
-          // }
         }
       }
     }
@@ -210,7 +191,7 @@ public class Chaperone extends TimerTask {
     log.close();
 
     // chappie activeness
-    if (config.timerRate > 0) {
+    if (config.mode == Mode.POLL || config.mode == Mode.SAMPLE) {
       path = Paths.get(directory, "chappie.activeness" + suffix + ".csv").toString();
       try {
         log = new PrintWriter(new BufferedWriter(new FileWriter(path)));

@@ -22,11 +22,11 @@ package chappie.input;
 import chappie.input.Parser;
 
 public class Config {
-  public enum Mode {NOP, SAMPLE}
+  public enum Mode {NOP, SLEEP, POLL, SAMPLE}
 
   public String workPath;
   public Mode mode = Mode.NOP;
-  public int timerRate = -1;
+  public int timerRate = 1;
   public boolean skipMisses = true;
   public int vmFactor = 1;
   public int hpFactor = 1;
@@ -34,7 +34,7 @@ public class Config {
   public int raplFactor = 1;
 
   Config(String workPath) { this.workPath = workPath; }
-
+  Config(String workPath, int timerRate) { this.workPath = workPath; this.mode = Mode.SLEEP; this.timerRate = timerRate; }
   Config(String workPath, Mode mode, int timerRate, int vmFactor, int hpFactor, int osFactor, int raplFactor) {
     this.workPath = workPath;
     this.mode = mode;
@@ -45,21 +45,12 @@ public class Config {
     this.raplFactor = raplFactor;
   }
 
-  // Config(String workPath, Mode mode, int timerRate, boolean skipMisses, int vmFactor, int hpFactor, int osFactor, int raplFactor) {
-  //   this.workPath = workPath;
-  //   this.mode = mode;
-  //   this.timerRate = timerRate;
-  //   this.skipMisses = skipMisses;
-  //   this.vmFactor = vmFactor;
-  //   this.hpFactor = hpFactor;
-  //   this.osFactor = osFactor;
-  //   this.raplFactor = raplFactor;
-  // }
-
   public String toString() {
     String message = "\tChaperone Parameters:";
     message += "\n\t - Mode:\t\t\t" + mode;
-    if (mode != Mode.NOP) {
+    if (mode == Mode.SLEEP) {
+      message += "\n\t - Sleep Rate:\t\t" + timerRate + " milliseconds";
+    } else if (mode == Mode.POLL || mode == Mode.SAMPLE) {
       message += "\n\t - VM Polling Rate:\t\t" + vmFactor * timerRate + " milliseconds";
       message += "\n\t - HP Polling Rate:\t\t" + hpFactor * timerRate + " milliseconds";
       message += "\n\t - OS Polling Rate:\t\t" + osFactor * timerRate + " milliseconds";
@@ -68,7 +59,7 @@ public class Config {
     return message;
   }
 
-  public static Config readConfig(String configPath) {
-    return new Parser(configPath).getConfig();
+  public static Config readConfig(String configPath, String workDir) {
+    return new Parser(configPath, workDir).getConfig();
   }
 }

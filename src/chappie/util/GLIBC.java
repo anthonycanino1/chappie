@@ -19,6 +19,7 @@
 
 package chappie.util;
 
+import java.io.*;
 import java.io.BufferedReader;
 import java.io.FileReader;
 
@@ -28,7 +29,6 @@ import java.nio.file.Paths;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.concurrent.ConcurrentHashMap;
 
 import com.sun.jna.Library;
 import com.sun.jna.Native;
@@ -36,10 +36,22 @@ import com.sun.jna.Native;
 interface GLIBCLibrary extends Library {
   static GLIBCLibrary glibc = (GLIBCLibrary)Native.loadLibrary("c", GLIBCLibrary.class);
 
+  int getpid();
+  int gettid();
+  int sched_getcpu();
+  long get_jiffies_64();
+  int time();
+
   int syscall(int number, Object... args);
 }
 
 public abstract class GLIBC {
+  public static int get_pid() { return GLIBCLibrary.glibc.getpid(); }
+  public static int get_tid() { return GLIBCLibrary.glibc.gettid(); }
+  public static int sched_getcpu() { return GLIBCLibrary.glibc.sched_getcpu(); }
+  public static long get_jiffies_64() { return GLIBCLibrary.glibc.get_jiffies_64(); }
+  public static int time() { return GLIBCLibrary.glibc.time(); }
+
   // OS pid helpers
   static int getpid() { return GLIBCLibrary.glibc.syscall(39); }
 
@@ -48,24 +60,18 @@ public abstract class GLIBC {
 
   static int gettid() { return GLIBCLibrary.glibc.syscall(186); }
 
-  public static Thread main = Thread.currentThread();
+  // public static Thread main = Thread.currentThread();
   public static ArrayList<Thread> toAdd = new ArrayList<Thread>();
-  public static ConcurrentHashMap<Thread, Integer> tids = new ConcurrentHashMap<Thread, Integer>();
+  public static HashMap<Thread, Integer> tids = new HashMap<Thread, Integer>();
 
-  public static int getThreadId() {
+  public static void getThreadId() {
     Thread thread = Thread.currentThread();
-
-    if (!tids.containsKey(thread) || thread != main) {
-      toAdd.add(thread);
-      tids.put(thread, gettid());
-    }
-
-    return tids.get(thread);
+    tids.put(thread, gettid());
   }
 
-  public static void unmapThread() {
-    Thread thread = Thread.currentThread();
-  }
+  // public static void unmapThread() {
+  //   Thread thread = Thread.currentThread();
+  // }
 
   private final static String[] DEFAULT_OS_READING = new String[] {"-1", "0", "0", "?", "?"};
 
@@ -112,6 +118,33 @@ public abstract class GLIBC {
       return "";
     }
   }
+
+  public static String readThread2(int tid) {
+    try {
+      String path = "/proc/" + pid + "/task/" + tid + "/stat";
+      return slurpFromInputStream(new FileInputStream(path));
+    } catch(Exception e) {
+      return "";
+    }
+  }
+
+  public static String slurpFromInputStream(InputStream stream) throws IOException {
+       if (stream == null) {
+           return null;
+       }
+       StringWriter sw = new StringWriter();
+       String line;
+       try {
+           BufferedReader reader = new BufferedReader(new InputStreamReader(stream, "UTF-8"));
+           while ((line = reader.readLine()) != null) {
+               sw.write(line);
+               sw.write('\n');
+           }
+       } finally {
+           stream.close();
+       }
+       return sw.toString();
+   }
 
   public static String readSystemJiffies() {
     try {

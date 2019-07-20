@@ -1,13 +1,15 @@
 {
-  "java_path": "/home/timur/Projects/dev/build/linux-x86_64-normal-server-release/jdk/bin/java",
+  "java_path": "java",
   "chappie_path": "/home/timur/Projects/chappie",
-  "agent": "{chappie_path}/src/async/build/liblagent.so=interval={hpRate},logPath={workPath}/chappie.stack.csv",
-  "dargs": "-Dchappie.config={config}",
-  "jar": "{chappie_path}/benchmark/dacapo/dacapo-9.12-MR1-bach.jar",
+  "agent_args": "{chappie_path}/chappie.jar",
+  "agent": "{chappie_path}/src/async/build/liblagent.so=interval={hpRate},logPath={work_dir}/chappie.stack.csv",
+  "vm_options": "",
+  "jar": "{chappie_path}/benchmark/dacapo/dacapo-evaluation-git+8b7a2dc-java8.jar:{chappie_path}/benchmark/chappie-util.jar:/usr/lib/jvm/java-8-oracle/jre/lib/rt.jar",
   "main": "Harness",
-  "benchmark": "sunflow",
+  "benchmark": "tradebeans",
   "size": "default",
-  "iters": 5,
-  "warm_up_fraction": 1,
-  "args": "{benchmark} --size {size} --iterations {iters} --no-validation --scratch-directory {workPath}/scratch --callback chappie.ChappieCallback"
+  "iters": 1,
+  "warm_up_fraction": 5,
+  "dargs": "",
+  "args": "{benchmark} --size {size} --iterations {iters} --no-validation --scratch-directory {work_dir}/scratch --callback chappie_util.dacapo.ChappieCallback"
 }

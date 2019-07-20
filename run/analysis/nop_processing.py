@@ -47,6 +47,6 @@ if __name__ == '__main__':
         os.mkdir('processed')
 
     files = np.sort([f for f in os.listdir() if 'runtime' in f])
-    runtime = pd.concat([pd.read_csv(f) for f in files])
+    runtime = pd.concat([pd.read_csv(f) for f in files]).sort_values('name')
 
     runtime.to_csv(os.path.join('processed', 'chappie.runtime.csv'), index = False)

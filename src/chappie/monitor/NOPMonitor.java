@@ -46,17 +46,17 @@ public class NOPMonitor {
   }
 
   public void dump(long start, List<Double> activeness) {
-    // runtime stats
-    PrintWriter log = null;
-
-    String path = Paths.get(directory, "chappie.runtime" + suffix + ".csv").toString();
-    try {
-      log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
-    } catch (Exception io) { }
-
-    long runtime = System.currentTimeMillis() - start;
-    String message = "name,value\nruntime," + runtime + "\nmain_id," + GLIBC.getThreadId();
-    log.write(message);
-    log.close();
+    // // runtime stats
+    // PrintWriter log = null;
+    //
+    // String path = Paths.get(directory, "chappie.runtime" + suffix + ".csv").toString();
+    // try {
+    //   log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
+    // } catch (Exception io) { }
+    //
+    // long runtime = System.currentTimeMillis() - start;
+    // String message = "name,value\nruntime," + runtime + "\nmain_id," + GLIBC.getThreadId();
+    // log.write(message);
+    // log.close();
   }
 }

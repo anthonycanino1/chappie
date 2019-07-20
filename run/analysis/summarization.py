@@ -57,7 +57,7 @@ def parse_config(benchmark, config):
 if __name__ == '__main__':
     args = parse_args()
     config = parse_config(args.benchmark, args.config)
-    
+
     args.path = config['workPath']
 
     # setup the paths
@@ -70,6 +70,10 @@ if __name__ == '__main__':
         os.mkdir('summary')
 
     runtime = pd.read_csv(os.path.join('processed', 'chappie.runtime.csv'))
+    epoch = runtime[runtime['name'].isin(['active', 'missed'])]
+    epoch.groupby('name').sum().to_csv(os.path.join('summary', 'chappie.epoch.csv'))
+    import sys
+    sys.exit()
     runtime['name'] = runtime['name'].map({
         'package1': 'package',
         'package2': 'package',
@@ -113,6 +117,30 @@ if __name__ == '__main__':
 
     runtime = runtime.T.sort_index().T
     runtime.to_csv(os.path.join('summary', 'chappie.runtime.csv'))
+
+    df = pd.concat([pd.read_csv(os.path.join('processed', f)) for f in os.listdir('processed') if 'frame' in f]).astype(int)
+    df.set_index('epoch').to_csv(os.path.join('summary', 'chappie.frame.csv'))
+    sys.exit()
+
+    # df = pd.concat([pd.read_csv(os.path.join('processed', f)) for f in os.listdir('processed') if 'miss.epoch' in f]).astype(int)
+    # df.columns = ['epoch', 'count']
+    # df = df.groupby('epoch').sum()
+    # df.to_csv(os.path.join('summary', 'chappie.miss.epoch.csv'))
+    #
+    # df = pd.concat([pd.read_csv(os.path.join('processed', f)) for f in os.listdir('processed') if 'miss.timestamp' in f]).astype(int)
+    # df.columns = ['timestamp', 'count']
+    # df = df.groupby('timestamp').sum()
+    # df.to_csv(os.path.join('summary', 'chappie.miss.timestamp.csv'))
+    #
+    # df = pd.concat([pd.read_csv(os.path.join('processed', f)) for f in os.listdir('processed') if 'active.epoch' in f]).astype(int)
+    # df.columns = ['epoch', 'count']
+    # df = df.groupby('epoch').sum()
+    # df.to_csv(os.path.join('summary', 'chappie.active.epoch.csv'))
+    #
+    # df = pd.concat([pd.read_csv(os.path.join('processed', f)) for f in os.listdir('processed') if 'active.timestamp' in f]).astype(int)
+    # df.columns = ['timestamp', 'count']
+    # df = df.groupby('timestamp').sum()
+    # df.to_csv(os.path.join('summary', 'chappie.active.timestamp.csv'))
 
     # runtime['runtime_error'] = (runtime['runtime'] - runtime['reference']) / runtime['reference']
 

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="chappie-util" default="jar">
+	<target name="init">
+    <property name="package.dir" value="chappie-util"/>
+    <property name="src.dir" value="src" />
+    <property name="build.dir" value="build" />
+    <property name="build.classes.dir" value="${build.dir}/classes" />
+	  <property name="chappie-util.libs" value="" />
+    <property name="runtime.jar" location="chappie-util.jar"/>
+  </target>
+
+	<target name="clean" depends="init" description="Remove build files created this scripts">
+		<delete dir="${build.dir}"/>
+		<delete file="chappie-util.jar"/>
+  </target>
+
+	<path id="project.class.path">
+    <pathelement path="../chappie.jar"/>
+		<pathelement path="dacapo/dacapo-9.12-MR1-bach.jar"/>
+		<pathelement path="graphchi/graphchi.jar"/>
+		<pathelement path="oltpbench/oltp.jar"/>
+		<!-- <fileset dir="benchmark/spark/spark-2.4.3-bin-hadoop2.7/jars" includes="*.jar"/> -->
+	</path>
+
+	<target name="compile" depends="init" description="Compile source">
+		<mkdir dir="${build.classes.dir}"/>
+    <javac
+      source="1.8" target="1.8"
+      srcdir="${src.dir}"
+      destdir="${build.classes.dir}"
+			classpathref="project.class.path">
+    </javac>
+	</target>
+
+  <target name="jar" depends="compile">
+		<jar jarfile="${runtime.jar}">
+			<fileset dir="${build.classes.dir}" includes="chappie_util/**/*.class"/>
+			<!-- <fileset dir="build/classes" includes="*.class" /> -->
+		</jar>
+  </target>
+</project>

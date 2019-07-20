@@ -20,11 +20,13 @@
 package chappie.monitor;
 
 import chappie.input.Config;
+import chappie.input.Config.Mode;
 
 import chappie.util.GLIBC;
 
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 import java.io.*;
 
@@ -35,9 +37,6 @@ import jrapl.EnergyCheckUtils.*;
 
 public class ChappieMonitor {
   Config config;
-  // private boolean no_rapl = false;
-  // private boolean dump_stats = false;
-  // private int sockets_no = 0;
 
   private double[] initialRaplReading;
 
@@ -66,23 +65,21 @@ public class ChappieMonitor {
   public void read(int epoch, long unixTime) {
     ArrayList<Object> record;
 
-    // needed for method alignment
-    // long unixTime = System.currentTimeMillis();
-
     // read vm state
-    if (epoch % config.vmFactor == 0) {
+    if (config.vmFactor > 0 && epoch % config.vmFactor == 0) {
       Thread[] threads = new Thread[rootGroup.activeCount()];
       while (rootGroup.enumerate(threads, true) == threads.length)
           threads = new Thread[threads.length * 2];
 
       for (Thread thread: threads)
-        if (thread != null) {
+        if (config.mode == Mode.SAMPLE && thread != null) {
           record = new ArrayList<Object>();
 
           record.add(epoch);
           record.add(unixTime);
           record.add(thread.getName());
           record.add(thread.getId());
+          // record.add(GLIBC.tids.get(thread.getName()));
           record.add(thread.getState() == Thread.State.RUNNABLE);
 
           idData.add(record);
@@ -90,32 +87,33 @@ public class ChappieMonitor {
     }
 
     // read os state
-    if (epoch % config.osFactor == 0) {
+    if (config.osFactor > 0 && epoch % config.osFactor == 0) {
       for (File f: new File("/proc/" + GLIBC.getProcessId() + "/task/").listFiles()) {
-        int tid = Integer.parseInt(f.getName());
-        String threadRecord = GLIBC.readThread(tid);
-        if (threadRecord.length() > 0) {
-          record = new ArrayList<Object>();
+        if (config.mode == Mode.SAMPLE) {
+          int tid = Integer.parseInt(f.getName());
+          String threadRecord = GLIBC.readThread(tid);
+          if (threadRecord.length() > 0) {
+            record = new ArrayList<Object>();
 
-          record.add(epoch);
-          record.add(tid);
-          record.add(unixTime);
-          record.add(threadRecord);
+            record.add(epoch);
+            record.add(tid);
+            record.add(unixTime);
+            record.add(threadRecord);
 
-          threadData.add(record);
+            threadData.add(record);
+          }
         }
       }
 
-      record = new ArrayList<Object>();
-      // record.add(epoch);
-      // record.add(unixTime);
-      record.add(GLIBC.readSystemJiffies());
-
-      jiffiesData.add(record);
+      if (config.mode == Mode.SAMPLE) {
+        record = new ArrayList<Object>();
+        record.add(GLIBC.readSystemJiffies());
+        jiffiesData.add(record);
+      }
     }
 
     // read energy
-    if (epoch % config.raplFactor == 0) {
+    if (config.mode == Mode.SAMPLE && config.raplFactor > 0 && epoch % config.raplFactor == 0) {
       double[] raplReading = jrapl.EnergyCheckUtils.getEnergyStats();
 
       for (int i = 0; i < raplReading.length / 3; ++i) {
@@ -140,7 +138,7 @@ public class ChappieMonitor {
     String message;
     PrintWriter log = null;
 
-    if (config.timerRate > 0) {
+    // if (config.timerRate > 0) {
       // thread data
       String path = Paths.get(directory, "chappie.thread" + suffix + ".csv").toString();
       try {
@@ -162,6 +160,25 @@ public class ChappieMonitor {
       }
 
       log.close();
+
+      // tid data
+      path = Paths.get(directory, "chappie.tid" + suffix + ".csv").toString();
+      try {
+        log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
+      } catch (Exception io) { }
+
+      message = "thread,tid\n";
+      log.write(message);
+
+      // System.out.println(GLIBC.tids.toString());
+
+      for (Map.Entry<Thread, Integer> thread: GLIBC.tids.entrySet()) {
+        message = thread.getKey().getName() + "," + thread.getValue().toString() + "\n";
+        log.write(message);
+      }
+
+      log.close();
+      GLIBC.tids.clear();
 
       // id data
       path = Paths.get(directory, "chappie.id" + suffix + ".csv").toString();
@@ -224,7 +241,7 @@ public class ChappieMonitor {
       }
 
       log.close();
-    }
+    // }
   }
 
   public void dumpstats() {

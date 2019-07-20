@@ -2,193 +2,120 @@
 
 import argparse
 import json
-import os
 
-from time import time
 import xml.etree.ElementTree as ET
 
 import matplotlib
 matplotlib.use('Agg')
 
 import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
 import seaborn as sns
 
-from latex import build_pdf
-from tabulate import tabulate
+from summarize import *
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-config')
+    parser.add_argument('-benchmark')
 
     return parser.parse_args()
 
-def parse_configs(config):
-    configs = []
-    for case in os.listdir(config):
-        if 'NOP' not in case:
-            configs.append({})
-            root = ET.parse(os.path.join(args.config, case)).getroot()
-            for child in root:
-                try:
-                    configs[-1][child.tag] = int(child.text)
-                except:
-                    configs[-1][child.tag] = child.text
+def main():
+    args = parse_args()
 
-    return configs
+    bench = args.benchmark.split('/')[-1]
+    path = os.path.join(args.benchmark)
+
+    # path = path = os.path.join(
+    #     os.path.dirname(os.path.dirname(args.benchmark)),
+    #     os.path.splitext(os.path.basename(args.benchmark))[0]
+    # )
+
+    if not os.path.exists(os.path.join(args.benchmark, 'plots')):
+        os.mkdir(os.path.join(args.benchmark, 'plots'))
+
+    runtime = pd.read_csv(os.path.join(args.benchmark, 'summary', 'chappie.runtime.csv'), index_col = 'experiment').dropna()
+
+    runtime['tr'] = runtime.index.str.split('_').map(lambda x: x[0] if len(x) > 1 else x[0]).str.findall('\d+').map(lambda x: x[0]).astype(int)
+    runtime['vm'] = runtime.index.str.split('_').map(lambda x: x[1] if len(x) > 1 else x[0]).str.findall('\d+').map(lambda x: x[0]).astype(int) * runtime['tr']
+    runtime['os'] = runtime.index.str.split('_').map(lambda x: x[2] if len(x) > 1 else [0]).str.findall('\d+').map(lambda x: x[0] if x == x else '0').astype(int) * runtime['tr']
+    runtime = runtime[runtime.os != 2]
+
+    mu = runtime.pivot(index = 'vm', columns = 'os', values = 'overhead').sort_index(ascending = False).round(2)
+    sig = runtime.pivot(index = 'vm', columns = 'os', values = 'overhead_std').sort_index(ascending = False).round(2)
+
+    annot = mu.round(2).fillna('-').astype(str) + '±' + sig.round(2).astype(str)
+    annot = annot.transform(lambda x: x.map(lambda y: (y + '%') if y != '-±nan' else '-'))
+
+    print(annot)
+
+    ax = sns.heatmap(mu, cmap = 'Reds', annot = annot, fmt = '')
+    ax.collections[0].colorbar.set_label('Percent Overhead')
+    plt.xlabel("OS Sampling Rate (ms)")
+    plt.ylabel("VM Sampling Rate (ms)")
+    plt.savefig(os.path.join(args.benchmark, 'plots', 'runtime_map.pdf'), bbox_inches = 'tight')
+
+    plt.figure()
+
+    # print(runtime)
+    mu = runtime.pivot(index = 'vm', columns = 'os', values = 'rate').sort_index(ascending = False)
+    # print(mu)
+    # mu.columns = ['sleep'] + list(np.sort(mu.columns[1:]))
+
+    # sig = runtime.pivot(index = 'vm', columns = 'os', values = 'overhead_std').sort_index(ascending = False).round(2)
+    # sig.columns = ['sleep'] + list(np.sort(sig.columns[1:]))
+
+    # sig -= sig.sleep
+    # mu -= mu.sleep
+
+    # mu = (mu * 100).round(2).drop(columns = 'sleep')
+    # sig = (sig * 100).round(4).drop(columns = 'sleep')
+
+    # mu = runtime.pivot(index = 'vm', columns = 'os', values = 'rate').sort_index(ascending = False).round(2)
+    # mu.columns = ['sleep'] + list(np.sort(mu.columns[1:]))
+    # sig = runtime.pivot(index = 'vm', columns = 'os', values = 'rate_std').sort_index(ascending = False).round(2)
+    # sig.columns = ['sleep'] + list(np.sort(sig.columns[1:]))
+    annot = mu.round(2).fillna('-').astype(str).transform(lambda x: x.map(lambda y: (y + '%') if y != '-' else y))
+    # annot = mu.astype(str) + "+" + sig.astype(str)
+    print(annot)
+
+    # sns.heatmap(mu, cmap = 'Reds', annot = annot)
+    ax = sns.heatmap(mu, cmap = 'Reds', annot = annot, fmt = '')
+    ax.collections[0].colorbar.set_label('Rate Slowdown')
+    plt.xlabel("OS Sampling Rate (ms)")
+    plt.ylabel("VM Sampling Rate (ms)")
+    plt.savefig(os.path.join(args.benchmark, 'plots', 'rate_map.pdf'), bbox_inches = 'tight')
+
+    plt.figure()
+
+    methods = pd.read_csv(os.path.join(path, 'summary', 'chappie.method.csv')).dropna()
+    methods = methods.pivot(index = 'stack', columns = 'benchmark', values = 'energy')
+    methods = methods.corr()['timerRate1_vmFactor1_osFactor2'].to_frame(name = 'correlation')
+    # methods = methods.corr().agg(('mean', 'std')).T
+    # methods.columns = ['correlation', 'correlation_std']
+
+    methods['tr'] = methods.index.str.split('_').map(lambda x: x[0] if len(x) > 1 else x[0]).str.findall('\d+').map(lambda x: x[0]).astype(int)
+    methods['vm'] = methods.index.str.split('_').map(lambda x: x[1] if len(x) > 1 else x[0]).str.findall('\d+').map(lambda x: x[0]).astype(int) * methods['tr']
+    methods['os'] = methods.index.str.split('_').map(lambda x: x[2] if len(x) > 1 else [0]).str.findall('\d+').map(lambda x: x[0] if x == x else '0').astype(int) * methods['tr']
+    methods = methods[methods.os != 2]
+
+    mu = methods.pivot(index = 'vm', columns = 'os', values = 'correlation').sort_index(ascending = False).round(2)
+    # sig = (methods.pivot(index = 'vm', columns = 'os', values = 'correlation_std').sort_index(ascending = False) * 100).round(2)
+
+    annot = mu.round(2).fillna('-').astype(str).fillna('-')
+
+    # mu = (methods.pivot(index = 'vm', columns = 'os', values = 'correlation').sort_index(ascending = False) * 100).round(2)
+    # # sig = (methods.pivot(index = 'vm', columns = 'os', values = 'correlation_std').sort_index(ascending = False) * 100).round(2)
+    #
+    # annot = mu.round(2).fillna('-').astype(str).transform(lambda x: x.map(lambda y: (y + '%') if y != '-' else y))
+    # annot = mu.astype(str) + "±" + sig.astype(str)
+    print(annot)
+
+    ax = sns.heatmap(mu, cmap = 'Reds_r', annot = annot, fmt = '')
+    ax.collections[0].colorbar.set_label('Percent Correlation')
+    plt.xlabel("OS Sampling Rate (ms)")
+    plt.ylabel("VM Sampling Rate (ms)")
+    plt.savefig(os.path.join(args.benchmark, 'plots', 'corr_map.pdf'), bbox_inches = 'tight')
 
 if __name__ == '__main__':
-    args = parse_args()
-    configs = parse_configs(args.config)
-
-    path = os.path.dirname(args.config)
-
-    runtime = []
-    for config in configs:
-        df = pd.read_csv(os.path.join(config['workPath'], 'summary', 'chappie.runtime.csv')).head(1)
-
-        df['rate'] = config['timerRate']
-        df['vm'] = config['timerRate'] * config['vmFactor']
-        df['os'] = config['osFactor']
-        # df['vm'] = config['timerRate'] * config['vmFactor']
-        # df['hp'] = config['timerRate'] * config['hpFactor']
-        df['case'] = config['workPath'].split(os.sep)[-1]
-
-        runtime.append(df)
-
-    runtime = pd.concat(runtime)
-
-    runtime_grid = runtime.pivot(index = 'os', columns = 'vm', values = 'time_overhead').sort_index(ascending = False)
-    runtime_grid.index.name = 'vm rate (ms)'
-    runtime_grid.columns.name = 'os factor'
-
-    sns.heatmap(runtime_grid, cmap = 'Reds')
-    plt.savefig(os.path.join(path, 'runtime_map.svg'), bbox_inches = 'tight')
-    # plt.xticks(os_rates)
-
-    plt.figure()
-    energy_grid = runtime.pivot(index = 'os', columns = 'vm', values = 'energy_overhead').sort_index(ascending = False)
-    energy_grid.index.name = 'vm rate (ms)'
-    energy_grid.columns.name = 'os factor'
-
-    sns.heatmap(energy_grid, cmap = 'Greens')
-    plt.savefig(os.path.join(path, 'energy_map.svg'), bbox_inches = 'tight')
-    # plt.xticks(os_rates)
-
-    # runtime[['overhead', 'error']] *= 100
-    # runtime['overhead'] = runtime['overhead'].map('{:.2f}%'.format)
-    # runtime['error'] = runtime['error'].transform('{:.2f}%'.format)
-    # runtime['runtime'] /= 10**3
-    # runtime['runtime'] = runtime['runtime'].map('{:.2f} s'.format)
-    # runtime['deviation'] /= 10**3
-    # runtime['deviation'] = runtime['deviation'].map('{:.2f} s'.format)
-    # runtime.columns = runtime.columns.str.title()
-    # # print(runtime)
-    # runtime = runtime.to_latex(
-    #     index = False,
-    #     # float_format = '{:.2f}%'.format,
-    #     column_format = '|l|r|r|r|r|'
-    # )
-    # runtime = '\documentclass{article}\n\\usepackage{booktabs}\n\\begin{document}\n' + runtime + '\end{document}'
-    # pdf = build_pdf(runtime)
-    # pdf.save_to(os.path.join(path, 'overhead.pdf'))
-
-    # summary = {run: pd.read_csv(os.path.join(path, run, 'dacapo', 'h2', 'summary', 'chappie.component.csv')) for run in runs}
-    #
-    # for run in runs:
-    #     summary[run] = summary[run].drop(columns = ['total package', 'total dram']).rename(columns = {
-    #         'other application package': 'other package',
-    #         'other application dram': 'other dram',
-    #         'system package': 'jvm-c package',
-    #         'system dram': 'jvm-c dram',
-    #         'jvm package': 'jvm-java package',
-    #         'jvm dram': 'jvm-java dram',
-    #     })
-    #     summary[run]['experiment'] = run
-    #
-    # # energy summary
-    # socket_summary = pd.concat(summary).groupby(['experiment', 'socket']).sum().reset_index().sort_values('experiment')
-    #
-    # ax = None
-    # first = True
-    # for socket, color, width in zip((1, 2), ('Reds', 'Blues'), (-0.125, 0.125)):
-    #     soc = socket_summary[socket_summary['socket'] == socket].drop(columns = 'socket')
-    #     # print(soc)
-    #     soc = soc.drop(columns = ['other package', 'other dram'])
-    #     ax = soc.plot.bar(
-    #         x = 'experiment',
-    #         stacked = True,
-    #         cmap = 'tab20',
-    #         edgecolor = 'black',
-    #         linewidth = 0.125,
-    #         align = 'edge',
-    #         width = width,
-    #         ax = ax,
-    #         figsize = (16, 9),
-    #         legend = False
-    #     )
-    #
-    #     if first:
-    #         first = False
-    #         handles, labels = ax.get_legend_handles_labels()
-    #
-    #         handles.reverse()
-    #         labels.reverse()
-    #
-    #         plt.legend(handles, labels, loc = 'best', prop = {'size': 7})
-    #
-    # max_tick = np.ceil(socket_summary.drop(columns = ['other package', 'other dram']).drop(columns = ['experiment']).sum(axis = 1).astype(int).max() / 100) * 100
-    #
-    # plt.xticks(fontsize = 8, rotation = 30)
-    # plt.yticks(ticks = np.arange(0, max_tick, 100), fontsize = 8)
-    # plt.xlabel('Benchmarks', fontsize = 12)
-    # plt.ylabel('Energy (J)', fontsize = 12)
-    #
-    # plt.savefig(os.path.join(path, 'attribution.svg'), bbox_inches = 'tight')
-    #
-    # plt.figure()
-
-    methods = []
-    for config in configs:
-        df = pd.read_csv(os.path.join(config['workPath'], 'summary', 'chappie.method.csv'))
-
-        df['rate'] = config['timerRate']
-        df['vm'] = config['timerRate'] * config['vmFactor']
-        df['os'] = config['osFactor']
-        # df['os'] = config['timerRate'] * config['osFactor']
-        df['hp'] = config['timerRate'] * config['hpFactor']
-        df['case'] = config['workPath'].split(os.sep)[-1]
-        methods.append(df)
-
-    methods = pd.concat(methods)
-    methods = methods[(methods['level'] == 'method') & (methods['type'] == 'all')]
-    methods = methods.pivot_table(
-        index = 'name',
-        values = 'Energy',
-        columns = ['os', 'vm'],
-    ).corr()
-    methods = methods[methods.columns[0]]
-    methods.name = 'Correlation'
-    methods = methods.reset_index()
-
-    corrs_grid = methods.pivot(index = 'os', columns = 'vm', values = 'Correlation').sort_index(ascending = False)
-    corrs_grid.index.name = 'vm rate (ms)'
-    corrs_grid.columns.name = 'os factor'
-
-    import seaborn as sns
-    plt.figure()
-    sns.heatmap(corrs_grid, cmap = 'Blues_r')
-    plt.savefig(os.path.join(path, 'correlation_map.svg'), bbox_inches = 'tight')
-    # plt.xticks(os_rates)
-
-    # corrs.name = 'Correlation'
-    # corrs.index.name = 'Experiment'
-    #
-    # corrs = corrs.to_latex(
-    #     # float_format = '{:.2f}%'.format,
-    #     column_format = '|l|r|'
-    # )
-    # corrs = '\documentclass{article}\n\\usepackage{booktabs}\n\\begin{document}\n' + corrs + '\end{document}'
-    # pdf = build_pdf(corrs)
-    # pdf.save_to(os.path.join(path, 'correlation.pdf'))
+    print('?')
+    main()

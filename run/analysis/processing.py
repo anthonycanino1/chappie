@@ -75,11 +75,6 @@ def filter_to_application(l):
         return ';'.join(l)
 
 if __name__ == '__main__':
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument('-path')
-    #
-    # args = parser.parse_args()
-
     args = parse_args()
     config = parse_config(args.benchmark, args.config)
 
@@ -97,10 +92,6 @@ if __name__ == '__main__':
     stack = None
     if os.path.exists('chappie.stack.csv'):
         stack = pd.read_csv('chappie.stack.csv')
-    # try:
-    #     iters = range(10) # range(max([int(re.search(r'\d+', f).group()) for f in os.listdir()]))
-    # except:
-    #     iters = ['']
 
     runtime_summary = []
 
@@ -111,14 +102,54 @@ if __name__ == '__main__':
             # if 'csv' in f and '.{}.'.format(i) in f:
                 # print(f)
                 # pd.read_csv(f)
+        df = pd.read_csv('chappie.activeness.{}.csv'.format(i))
+        df.timestamp = df.timestamp.diff()
+        print(df.describe()['timestamp'])
+        continue
+
         data = {f.split(r'.')[1]: pd.read_csv(f) for f in os.listdir() if 'csv' in f and '.{}.'.format(i) in f}
 
-        print('{:.2f} seconds for loading'.format(time() - start))
+        # print(data['activeness'].describe())
+        # print(len(data['activeness'][data['activeness']['total'] == 10]), len(data['activeness']), len(data['activeness'][data['activeness']['total'] == 10]) / len(data['activeness']))
+
+        import sys
+        sys.exit()
+
+        # print('{:.2f} seconds for loading'.format(time() - start))
 
         # RUNTIME #
         start = time()
 
-        runtime_summary.append(data['runtime'])
+        # df = data['misses']
+        # df['dt'] = df.epoch.diff().dropna().astype(int)
+        # df.dt.value_counts().sort_index().to_csv(os.path.join('processed', 'chappie.miss.epoch.{}.csv'.format(i)), header = True)
+        #
+        # # df = data['misses']
+        # df['dt'] = (df.timestamp.diff() / df.epoch.diff()).dropna().astype(int)
+        # df.dt.value_counts().sort_index().to_csv(os.path.join('processed', 'chappie.miss.timestamp.{}.csv'.format(i)), header = True)
+
+        # df = data['misses']
+        # df.drop(columns = 'activeness').dropna().astype(int).set_index('epoch').to_csv(os.path.join('processed', 'chappie.frame.{}.csv'.format(i)))
+        # continue
+
+        # df['dt'] = (df.timestamp.diff() / df.epoch.diff()).dropna().astype(int)
+        # df.dt.value_counts().sort_index().to_csv(os.path.join('processed', 'chappie.active.epoch.{}.csv'.format(i)), header = True)
+        #
+        # df['dt'] = df.epoch.diff().dropna().astype(int)
+        # df.dt.value_counts().sort_index().to_csv(os.path.join('processed', 'chappie.active.timestamp.{}.csv'.format(i)), header = True)
+
+        # print(data['activeness'].activeness.max())
+
+        df = data['runtime'].append(pd.DataFrame({
+            'name': ['active', 'missed'],
+            'value': [len(data['activeness']), len(data['misses'])]
+        }))
+        # print(data['runtime'])
+        # print(data['activeness'].count())
+        # print(data['misses'].count())
+
+        runtime_summary.append(df) # data['runtime'])
+        continue
         main_id = data['runtime'].set_index('name').to_dict()['value']['main_id']
 
         print('{:.2f} seconds for runtime'.format(time() - start))
@@ -270,12 +301,16 @@ if __name__ == '__main__':
 
         print('{:.2f} seconds for writing'.format(time() - start))
 
-    os.remove('thread')
-    os.remove('stack')
+    import sys
+    sys.exit()
+
+    if os.path.exists('thread'):
+        os.remove('thread')
+        os.remove('stack')
 
     start = time()
 
     runtime_summary = pd.concat(runtime_summary)
     runtime_summary.to_csv(os.path.join('processed', 'chappie.runtime.csv'), index = False)
 
-    print('{:.2f} seconds for writing runtime'.format(time() - start))
+    # print('{:.2f} seconds for writing runtime'.format(time() - start))

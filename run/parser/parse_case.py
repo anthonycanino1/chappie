@@ -13,19 +13,7 @@ def parse_args():
 
     return parser.parse_args()
 
-def parse_config(benchmark, config):
-    config = json.load(open(benchmark, 'r'))
-
-    root = ET.parse(args.experiment).getroot()
-    for child in root:
-        try:
-            config[child.tag] = int(child.text)
-        except:
-            config[child.tag] = child.text
-
-    return config
-
-if __name__ == '__main__':
+def main():
     args = parse_args()
     benchmark = json.load(open(args.benchmark, 'r'))
 
@@ -58,3 +46,6 @@ if __name__ == '__main__':
         command = '{java_path} -agentpath:{hp_args} -cp {class_path} {dargs} {main} {args}'.format(**benchmark)
 
     print(command)
+
+if __name__ == '__main__':
+    main()

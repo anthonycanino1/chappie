@@ -9,6 +9,7 @@ import javassist.ClassPool;
 import javassist.CtClass;
 import javassist.CtMethod;
 import javassist.bytecode.Descriptor;
+import javassist.CannotCompileException;
 
 import java.io.File;
 import java.net.URL;
@@ -53,29 +54,73 @@ public class ThreadOSMapper implements ClassFileTransformer {
     }
   }
 
-  public byte[] transform(ClassLoader loader,
-                          String className,
-                          Class classBeingRedefined,
-                          ProtectionDomain protectionDomain,
-                          byte[] classfileBuffer) throws IllegalClassFormatException {
+  public byte[] transform(
+    ClassLoader loader,
+    String className,
+    Class classBeingRedefined,
+    ProtectionDomain protectionDomain,
+    byte[] classfileBuffer
+  ) throws IllegalClassFormatException {
 		try {
 			ClassPool classPool = ClassPool.getDefault();
-			CtClass ctClass = classPool.makeClass(new ByteArrayInputStream(classfileBuffer));
+			CtClass fClass = classPool.getOrNull(className);
+			boolean fRunnable = isRunnable(fClass);
+      CtClass ctClass = classPool.makeClass(new ByteArrayInputStream(classfileBuffer));
 
-      if(!isRunnable(ctClass))
+      // System.out.println("Same class: " + fClass.equals(ctClass));
+      // System.out.println("fRunnable: " + fRunnable);
+      // System.out.println("ctRunnable: " + isRunnable(ctClass));
+      // // System.exit(0);
+			// if(!fRunnable) {
+			// 	return classfileBuffer;
+			// }
+
+
+
+      if(!ctClass.getPackageName().contains("java.") && isRunnable(ctClass)) {
+        System.out.println(ctClass.getPackageName());
+  			CtMethod runMethod = ctClass.getMethod("run", Descriptor.ofMethod(CtClass.voidType, new CtClass[0]));
+        try {
+          // runMethod.insertBefore("Thread.currentThread.setName(Thread.currentThread.getId() + \"_\" + Thread.currentThread.getName());");
+    			runMethod.insertBefore(
+            "try {"                                         +
+              "chappie.util.GLIBC.getThreadId();"           +
+            "} catch (java.lang.NoClassDefFoundError ex) {"  +
+              "System.out.println(\"Couldn't map \" + Thread.currentThread().getName());" +
+              "System.out.println(ex.getClass().getCanonicalName());" +
+              "ex.printStackTrace();" +
+            "}"
+          );
+        } catch (CannotCompileException noBody) {
+          System.out.println(className + " has no run body; adding dummy");
+          System.out.println(noBody.getClass().getCanonicalName());
+          // ex.printStackTrace();
+
+          runMethod.setBody(";");
+          // runMethod.insertBefore("Thread.currentThread.setName(Thread.currentThread.getId() + \"_\" + Thread.currentThread.getName());");
+          runMethod.insertBefore(
+            "System.out.println(\"Mapping \" + Thread.currentThread().getName());" +
+            "try {"                                         +
+              "chappie.util.GLIBC.getThreadId();"           +
+            "} catch (java.lang.NoClassDefFoundError ex) {"  +
+              "System.out.println(\"Couldn't map \" + Thread.currentThread().getName());" +
+              "System.out.println(ex.getClass().getCanonicalName());" +
+              "ex.printStackTrace();" +
+            "}"
+          );
+        }
+        byte[] byteCode = ctClass.toBytecode();
+  			ctClass.detach();
+        return byteCode;
+      } else {
         return classfileBuffer;
+      }
+    } catch (Throwable ex) {
+      System.out.println("Couldn't modify " + className);
+      System.out.println(ex.getClass().getCanonicalName());
+      ex.printStackTrace();
 
-			CtMethod runMethod = ctClass.getMethod("run", Descriptor.ofMethod(CtClass.voidType, new CtClass[0]));
-			runMethod.insertBefore("chappie.util.GLIBC.getThreadId();");
-			runMethod.insertAfter("chappie.util.GLIBC.unmapThread();");
-
-      byte[] byteCode = ctClass.toBytecode();
-			ctClass.detach();
-      return byteCode;
-		} catch (Throwable ex) {
-			System.out.println("Couldn't modify " + className);
-		}
-
-    return classfileBuffer;
+      return classfileBuffer;
+    }
 	}
 }

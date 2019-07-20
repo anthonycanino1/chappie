@@ -38,7 +38,7 @@ public class Main {
       System.out.println("no config found");
       System.exit(0);
     }
-    Config config = Config.readConfig(configPath);
+    Config config = Config.readConfig(configPath, "");
     System.out.println(config.toString());
 
     String jarPath = args[0];

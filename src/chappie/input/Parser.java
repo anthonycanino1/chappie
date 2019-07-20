@@ -32,16 +32,21 @@ import org.w3c.dom.Element;
 public class Parser {
   private Config config;
 
-  Parser(String configPath) {
+  Parser(String configPath, String workDir) {
     // Setup the document parser
     try {
       DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
       Element root = builder.parse(new File(configPath)).getDocumentElement();
 
       // Grab the chappie values and make a config
-      String workPath = root.getElementsByTagName("workPath").item(0).getTextContent();
+      String workPath = workDir;
       Mode mode = Mode.valueOf(root.getElementsByTagName("mode").item(0).getTextContent());
-      if (mode != Mode.NOP) {
+      if (mode == Mode.NOP)
+        config = new Config(workPath);
+      else if (mode == Mode.SLEEP) {
+        int timerRate = Integer.parseInt(root.getElementsByTagName("timerRate").item(0).getTextContent());
+        config = new Config(workPath, timerRate);
+      } else if (mode == Mode.POLL || mode == Mode.SAMPLE) {
         int timerRate = Integer.parseInt(root.getElementsByTagName("timerRate").item(0).getTextContent());
         int vmFactor = Integer.parseInt(root.getElementsByTagName("vmFactor").item(0).getTextContent());
         int hpFactor = Integer.parseInt(root.getElementsByTagName("hpFactor").item(0).getTextContent());
@@ -49,7 +54,6 @@ public class Parser {
         int raplFactor = Integer.parseInt(root.getElementsByTagName("raplFactor").item(0).getTextContent());
         config = new Config(workPath, mode, timerRate, vmFactor, hpFactor, osFactor, raplFactor);
       } else {
-        config = new Config(workPath);
       }
 
     } catch(Exception e) {
