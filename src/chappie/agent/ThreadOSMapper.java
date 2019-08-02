@@ -1,9 +1,14 @@
-package chappie.util;
+package chappie.agent;
 
 import java.io.ByteArrayInputStream;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.security.ProtectionDomain;
+
+import java.io.File;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.net.MalformedURLException;
 
 import javassist.ClassPool;
 import javassist.CtClass;
@@ -11,14 +16,18 @@ import javassist.CtMethod;
 import javassist.bytecode.Descriptor;
 import javassist.CannotCompileException;
 
-import java.io.File;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.net.MalformedURLException;
-
 public class ThreadOSMapper implements ClassFileTransformer {
 
-  public static CtClass getSuperClass(CtClass cls) {
+  static String mappingBody =
+    "try {"                                                                       +
+      "String thread = Thread.currentThread().getName())"                         +
+      "System.out.println(\"Mapping \" + Thread.currentThread().getName());"      +
+      "chappie.util.GLIBC.getThreadId();"                                         +
+    "} catch (java.lang.NoClassDefFoundError ex) {"                               +
+      "System.out.println(\"Couldn't map \" + Thread.currentThread().getName());" +
+    "}";
+
+  static CtClass getSuperClass(CtClass cls) {
     try {
       return cls.getSuperclass();
     } catch(Exception exception) {
@@ -26,7 +35,7 @@ public class ThreadOSMapper implements ClassFileTransformer {
     }
   }
 
-  public static boolean isRunnable(CtClass cls) {
+  static boolean isRunnable(CtClass cls) {
 		CtClass klass = cls;
 		while (klass != null) {
 			try {
@@ -42,7 +51,6 @@ public class ThreadOSMapper implements ClassFileTransformer {
 	}
 
 	private ClassLoader classLoader;
-
   public ThreadOSMapper() {
     try {
       File dir = new File(System.getProperty("java.class.path"));
@@ -63,51 +71,19 @@ public class ThreadOSMapper implements ClassFileTransformer {
   ) throws IllegalClassFormatException {
 		try {
 			ClassPool classPool = ClassPool.getDefault();
-			CtClass fClass = classPool.getOrNull(className);
-			boolean fRunnable = isRunnable(fClass);
       CtClass ctClass = classPool.makeClass(new ByteArrayInputStream(classfileBuffer));
 
-      // System.out.println("Same class: " + fClass.equals(ctClass));
-      // System.out.println("fRunnable: " + fRunnable);
-      // System.out.println("ctRunnable: " + isRunnable(ctClass));
-      // // System.exit(0);
-			// if(!fRunnable) {
-			// 	return classfileBuffer;
-			// }
-
-
-
       if(!ctClass.getPackageName().contains("java.") && isRunnable(ctClass)) {
-        System.out.println(ctClass.getPackageName());
+        System.out.println("Modifying " + className);
   			CtMethod runMethod = ctClass.getMethod("run", Descriptor.ofMethod(CtClass.voidType, new CtClass[0]));
         try {
-          // runMethod.insertBefore("Thread.currentThread.setName(Thread.currentThread.getId() + \"_\" + Thread.currentThread.getName());");
-    			runMethod.insertBefore(
-            "try {"                                         +
-              "chappie.util.GLIBC.getThreadId();"           +
-            "} catch (java.lang.NoClassDefFoundError ex) {"  +
-              "System.out.println(\"Couldn't map \" + Thread.currentThread().getName());" +
-              "System.out.println(ex.getClass().getCanonicalName());" +
-              "ex.printStackTrace();" +
-            "}"
-          );
+    			runMethod.insertBefore(mappingBody);
         } catch (CannotCompileException noBody) {
-          System.out.println(className + " has no run body; adding dummy");
-          System.out.println(noBody.getClass().getCanonicalName());
-          // ex.printStackTrace();
+          throw noBody;
+          System.out.println(className + " has no defined run body; adding empty dummy body");
 
           runMethod.setBody(";");
-          // runMethod.insertBefore("Thread.currentThread.setName(Thread.currentThread.getId() + \"_\" + Thread.currentThread.getName());");
-          runMethod.insertBefore(
-            "System.out.println(\"Mapping \" + Thread.currentThread().getName());" +
-            "try {"                                         +
-              "chappie.util.GLIBC.getThreadId();"           +
-            "} catch (java.lang.NoClassDefFoundError ex) {"  +
-              "System.out.println(\"Couldn't map \" + Thread.currentThread().getName());" +
-              "System.out.println(ex.getClass().getCanonicalName());" +
-              "ex.printStackTrace();" +
-            "}"
-          );
+          runMethod.insertBefore(mappingBody);
         }
         byte[] byteCode = ctClass.toBytecode();
   			ctClass.detach();
@@ -118,7 +94,6 @@ public class ThreadOSMapper implements ClassFileTransformer {
     } catch (Throwable ex) {
       System.out.println("Couldn't modify " + className);
       System.out.println(ex.getClass().getCanonicalName());
-      ex.printStackTrace();
 
       return classfileBuffer;
     }

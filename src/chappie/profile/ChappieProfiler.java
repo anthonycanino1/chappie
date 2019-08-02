@@ -17,32 +17,30 @@
  * DEALINGS IN THE SOFTWARE.
  * ***********************************************************************************************/
 
-package chappie.monitor;
-
-import chappie.input.Config;
-import chappie.input.Config.Mode;
-
-import chappie.util.GLIBC;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+package chappie.profile;
 
 import java.io.*;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+
+import java.util.List;
+import java.util.Map;
+
+import chappie.Chaperone.Config;
+import chappie.Chaperone.Mode;
+import chappie.glibc.GLIBC;
 
 import jrapl.EnergyCheckUtils.*;
 
-public class ChappieMonitor {
+public class ChappieProfiler {
   Config config;
 
   private double[] initialRaplReading;
-
   ThreadGroup rootGroup;
 
-  public ChappieMonitor(Config config) {
+  public ChappieProfiler(Config config) {
     this.config = config;
 
     if (config.raplFactor > 0)
@@ -57,12 +55,12 @@ public class ChappieMonitor {
   }
 
   // Runtime data containers
-  private ArrayList<ArrayList<Object>> threadData = new ArrayList<ArrayList<Object>>();
-  private ArrayList<ArrayList<Object>> idData = new ArrayList<ArrayList<Object>>();
-  private ArrayList<ArrayList<Object>> jiffiesData = new ArrayList<ArrayList<Object>>();
-  private ArrayList<ArrayList<Object>> energyData = new ArrayList<ArrayList<Object>>();
+  private ArrayList<ArrayList<Object>> vmData = new ArrayList<ArrayList<Object>>();
+  private ArrayList<ArrayList<Object>> osData = new ArrayList<ArrayList<Object>>();
+  private ArrayList<ArrayList<Object>> systemData = new ArrayList<ArrayList<Object>>();
+  private ArrayList<ArrayList<Object>> raplData = new ArrayList<ArrayList<Object>>();
 
-  public void read(int epoch, long unixTime) {
+  public void sample(int epoch, long unixTime) {
     ArrayList<Object> record;
 
     // read vm state
@@ -79,10 +77,9 @@ public class ChappieMonitor {
           record.add(unixTime);
           record.add(thread.getName());
           record.add(thread.getId());
-          // record.add(GLIBC.tids.get(thread.getName()));
-          record.add(thread.getState() == Thread.State.RUNNABLE);
+          record.add(thread.getState());
 
-          idData.add(record);
+          vmData.add(record);
         }
     }
 
@@ -91,7 +88,7 @@ public class ChappieMonitor {
       for (File f: new File("/proc/" + GLIBC.getProcessId() + "/task/").listFiles()) {
         if (config.mode == Mode.SAMPLE) {
           int tid = Integer.parseInt(f.getName());
-          String threadRecord = GLIBC.readThread(tid);
+          String threadRecord = GLIBC.getThreadStats(tid);
           if (threadRecord.length() > 0) {
             record = new ArrayList<Object>();
 
@@ -100,15 +97,15 @@ public class ChappieMonitor {
             record.add(unixTime);
             record.add(threadRecord);
 
-            threadData.add(record);
+            osData.add(record);
           }
         }
       }
 
       if (config.mode == Mode.SAMPLE) {
         record = new ArrayList<Object>();
-        record.add(GLIBC.readSystemJiffies());
-        jiffiesData.add(record);
+        record.add(GLIBC.getSystemStats());
+        systemData.add(record);
       }
     }
 
@@ -124,124 +121,122 @@ public class ChappieMonitor {
         record.add(raplReading[3 * i + 2]);
         record.add(raplReading[3 * i]);
 
-        energyData.add(record);
+        raplData.add(record);
       }
     }
   }
 
   public void dump() {
-    String directory = config.workPath;
+    String message;
+    PrintWriter log = null;
+    String path;
+
     String suffix = System.getProperty("chappie.suffix", "");
     if (suffix != "")
       suffix = "." + suffix;
 
-    String message;
-    PrintWriter log = null;
+    // vm data
+    path = Paths.get(config.workDirectory, "chappie.vm" + suffix + ".csv").toString();
+    try {
+      log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
+    } catch (Exception io) { }
 
-    // if (config.timerRate > 0) {
-      // thread data
-      String path = Paths.get(directory, "chappie.thread" + suffix + ".csv").toString();
-      try {
-        log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
-      } catch (Exception io) { }
+    message = "epoch,timestamp,thread,id,state\n";
+    log.write(message);
 
-      message = "epoch,tid,timestamp,record\n";
+    for (List<Object> frame: vmData) {
+      message = "";
+      for (Object item: frame) {
+        message += item.toString() + ",";
+      }
+      message = message.substring(0, message.length() - 1);
+      message += "\n";
       log.write(message);
+    }
 
-      for (List<Object> frame: threadData) {
-        message = "";
-        for (Object item: frame) {
-          message += item.toString() + ",";
-        }
-        message = message.substring(0, message.length() - 1);
-        message += "\n";
+    log.close();
 
-        log.write(message);
+    // os data
+    path = Paths.get(config.workDirectory, "chappie.os" + suffix + ".csv").toString();
+
+    try {
+      log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
+    } catch (Exception io) { }
+
+    message = "epoch,tid,timestamp,record\n";
+    log.write(message);
+
+    for (List<Object> frame: osData) {
+      message = "";
+      for (Object item: frame) {
+        message += item.toString() + ",";
       }
+      message = message.substring(0, message.length() - 1);
+      message += "\n";
 
-      log.close();
-
-      // tid data
-      path = Paths.get(directory, "chappie.tid" + suffix + ".csv").toString();
-      try {
-        log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
-      } catch (Exception io) { }
-
-      message = "thread,tid\n";
       log.write(message);
+    }
 
-      // System.out.println(GLIBC.tids.toString());
+    log.close();
 
-      for (Map.Entry<Thread, Integer> thread: GLIBC.tids.entrySet()) {
-        message = thread.getKey().getName() + "," + thread.getValue().toString() + "\n";
-        log.write(message);
-      }
+    // tid data
+    path = Paths.get(config.workDirectory, "chappie.tid" + suffix + ".csv").toString();
+    try {
+      log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
+    } catch (Exception io) { }
 
-      log.close();
-      GLIBC.tids.clear();
+    message = "thread,tid\n";
+    log.write(message);
 
-      // id data
-      path = Paths.get(directory, "chappie.id" + suffix + ".csv").toString();
-      try {
-        log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
-      } catch (Exception io) { }
-
-      message = "epoch,timestamp,thread,id,state\n";
+    for (Map.Entry<Thread, Integer> thread: GLIBC.tidMap.entrySet()) {
+      message = thread.getKey().getName() + "," + thread.getValue().toString() + "\n";
       log.write(message);
+    }
 
-      for (List<Object> frame: idData) {
-        message = "";
-        for (Object item: frame) {
-          message += item.toString() + ",";
-        }
-        message = message.substring(0, message.length() - 1);
-        message += "\n";
-        log.write(message);
+    log.close();
+    GLIBC.tidMap.clear();
+
+    // system data
+    path = Paths.get(config.workDirectory, "chappie.system" + suffix + ".csv").toString();
+    try {
+      log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
+    } catch (Exception io) { }
+
+    log.write("record\n");
+
+	  for (ArrayList<Object> frame : systemData) {
+      message = "";
+      for (Object item: frame) {
+        message += item.toString() + ",";
       }
-
-      log.close();
-
-      // energy data
-      path = Paths.get(directory, "chappie.energy" + suffix + ".csv").toString();
-      try {
-        log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
-      } catch (Exception io) { }
-
-      message = "epoch,socket,package,dram\n";
+      message = message.substring(0, message.length() - 1);
+      message += "\n";
       log.write(message);
+    }
 
-      for (List<Object> frame: energyData) {
-        message = "";
-        for (Object item: frame) {
-          message += item.toString() + ",";
-        }
-        message = message.substring(0, message.length() - 1);
-        message += "\n";
-        log.write(message);
+    log.close();
+
+    // rapl data
+    path = Paths.get(config.workDirectory, "chappie.rapl" + suffix + ".csv").toString();
+    try {
+      log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
+    } catch (Exception io) { }
+
+    message = "epoch,socket,package,dram\n";
+    log.write(message);
+
+    for (List<Object> frame: raplData) {
+      message = "";
+      for (Object item: frame) {
+        message += item.toString() + ",";
       }
+      message = message.substring(0, message.length() - 1);
+      message += "\n";
+      log.write(message);
+    }
 
-      log.close();
+    log.close();
 
-      // system data
-      path = Paths.get(directory, "chappie.system" + suffix + ".csv").toString();
-      try {
-        log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
-      } catch (Exception io) { }
-
-      log.write("record\n");
-
-  	  for (ArrayList<Object> frame : jiffiesData) {
-        message = "";
-        for (Object item: frame) {
-          message += item.toString() + ",";
-        }
-        message = message.substring(0, message.length() - 1);
-        message += "\n";
-        log.write(message);
-      }
-
-      log.close();
-    // }
   }
 
   public void dumpstats() {

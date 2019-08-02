@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package chappie.util;
+package chappie.glibc;
 
 import java.io.*;
 
@@ -34,7 +34,7 @@ import java.io.*;
  * @see https://github.com/adamheinrich/native-utils
  *
  */
-public class NativeUtils {
+class NativeUtils {
 
     /**
      * Private constructor - this class will never be instanced

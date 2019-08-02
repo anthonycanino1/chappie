@@ -1,6 +1,6 @@
 /* ************************************************************************************************
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this
- * Copyright 2017 SUNY Binghamton
+ * Copyright 2019 SUNY Binghamton
  * software and associated documentation files (the "Software"), to deal in the Software
  * without restriction, including without limitation the rights to use, copy, modify, merge,
  * publish, distribute, sublicense, and/or sell copies of the Software, and to permit
@@ -19,214 +19,167 @@
 
 package chappie;
 
-import chappie.input.Config;
-import chappie.input.Config.Mode;
-
-import chappie.monitor.ChappieMonitor;
-
-import chappie.util.GLIBC;
-
 import java.io.*;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import java.util.ArrayList;
-import java.util.Timer;
-import java.util.TimerTask;
 
-public class Chaperone extends TimerTask {
-  int mainID;
+import chappie.profile.ChappieProfiler;
 
+import chappie.glibc.GLIBC;
+
+public class Chaperone implements Runnable {
   // Metrics
   private int epoch;
   private long start;
-  private long lastScheduledTime;
   private double[] initialRaplReading;
 
   // Timer
-  private Timer timer;
+  private Thread thread;
+
+  public enum Mode {NOP, SLEEP, POLL, SAMPLE}
+  private Config config;
+  public class Config {
+    public String workDirectory;
+    public String suffix;
+
+    public Mode mode;
+    public int timerRate;
+
+    public int vmFactor;
+    public int hpFactor;
+    public int osFactor;
+    public int raplFactor;
+
+    public Config(String workDirectory, String suffix, Mode mode, int timerRate, int vmFactor, int hpFactor, int osFactor, int raplFactor) {
+      this.workDirectory = workDirectory;
+      this.suffix = suffix;
+
+      this.mode = mode;
+      this.timerRate = timerRate;
+
+      this.vmFactor = vmFactor;
+      this.hpFactor = hpFactor;
+      this.osFactor = osFactor;
+      this.raplFactor = raplFactor;
+    }
+
+    @Override
+    public String toString() {
+      String message = "################################";
+      message += "\tChaperone Parameters:";
+      message += "\n\t - Mode:\t\t\t" + mode;
+      if (mode == Mode.SLEEP) {
+        message += "\n\t - Sleep Rate:\t\t" + timerRate + " milliseconds";
+      } else if (mode == Mode.POLL || mode == Mode.SAMPLE) {
+        message += "\n\t - VM Polling Rate:\t\t" + vmFactor * timerRate + " milliseconds";
+        message += "\n\t - OS Polling Rate:\t\t" + osFactor * timerRate + " milliseconds";
+        message += "\n\t - HP Polling Rate:\t\t" + hpFactor * timerRate + " milliseconds";
+        message += "\n\t - RAPL Polling Rate:\t\t" + raplFactor * timerRate + " milliseconds";
+      }
+      message += "\n################################";
+
+      return message;
+    }
+  }
+
+  @Override
+  public String toString() { return this.config.toString(); }
 
   // Monitor
-  private Config config;
-  private ChappieMonitor monitor = null;
+  private ChappieProfiler profiler = null;
 
-  public Chaperone(Config config) {
-    this.config = config;
+  public Chaperone() {
+    String workDir = System.getProperty("chappie.workDir", "data");
+    String suffix = System.getProperty("chappie.suffix", "");
 
-    if (this.config.mode != Mode.SAMPLE)
-      this.config.timerRate = -1;
+    Mode mode = Mode.valueOf(System.getProperty("chappie.mode", "SAMPLE"));
+    int tr = Integer.parseInt(System.getProperty("chappie.timer", "2"));
 
-    mainID = GLIBC.getProcessId();
+    int vm = Integer.parseInt(System.getProperty("chappie.vm", "2"));
+    int os = Integer.parseInt(System.getProperty("chappie.os", "5"));
+    int hp = Integer.parseInt(System.getProperty("chappie.hp", "1"));
+    int rapl = Integer.parseInt(System.getProperty("chappie.rapl", "1"));
 
-    this.monitor = new ChappieMonitor(config);
-    timer = new Timer("Chaperone");
-    if (this.config.timerRate > 0)
-      timer.scheduleAtFixedRate(this, 100, this.config.timerRate);
-    else
-      terminated = true;
+    config = new Config(workDir, suffix, mode, tr, vm, os, hp, rapl);
+
+    if (this.config.mode != Mode.NOP) {
+      profiler = new ChappieProfiler(config);
+      thread = new Thread(this, "chappie");
+    }
 
     epoch = 0;
     start = System.currentTimeMillis();
-    lastChappieTime = start;
     initialRaplReading = jrapl.EnergyCheckUtils.getEnergyStats();
   }
 
-  // Runtime data containers
-  // the other containers are in the monitor now
-  private ArrayList<ArrayList<Object>> activeness = new ArrayList<ArrayList<Object>>();
-  private ArrayList<ArrayList<Object>> misses = new ArrayList<ArrayList<Object>>();
+  private ArrayList<ArrayList<Object>> activity = new ArrayList<ArrayList<Object>>();
 
-  // TIMER TASK CLASS METHODS
-
-  // Termination flags
-  // The timer class does not have a synchronized termination method. Luckily,
-  // only main touches the chaperone, so we can use a double flag psuedo-lock.
-  private boolean terminate = false;
-  private boolean terminated = false;
-
-  private long lastChappieTime = 0;
-
-  @Override
   public void run() {
-    long currentEpochTime = System.currentTimeMillis();
-    long elapsedTime = currentEpochTime - lastScheduledTime;
-    if (!terminate) {
-      if(elapsedTime >= config.timerRate) {
-        // cache last epoch's ms timestamp
-        lastScheduledTime = currentEpochTime;
+    while (!thread.interrupted()) {
+      long startTime = System.nanoTime();
+      long epochTime = System.currentTimeMillis();
 
-        if (epoch > 0) {
-          ArrayList<Object> record = new ArrayList<Object>();
-
-          record.add(epoch);
-          record.add(currentEpochTime);
-          record.add((double)(lastChappieTime) / elapsedTime);
-
-          activeness.add(record);
-        }
-
-        // read from the specific monitor
-        monitor.read(epoch, currentEpochTime);
-
-        // estimate of chappie's machine time usage based on runtime
-        lastChappieTime = System.currentTimeMillis() - currentEpochTime;
-      } else {
-        ArrayList<Object> record = new ArrayList<Object>();
-
-        record.add(epoch);
-        record.add(currentEpochTime);
-        record.add(currentEpochTime - lastScheduledTime);
-
-        misses.add(record);
+      if (config.mode == Mode.POLL || config.mode == Mode.SAMPLE) {
+        epoch++;
+        profiler.sample(epoch, epochTime);
       }
-      epoch++;
-    } else {
-      // stop ourselves before letting everything know we're done
-      // we also have to block everyone else
-      synchronized (this) {
-        if (!terminated) {
-          terminated = true;
 
-          ArrayList<Object> record = new ArrayList<Object>();
+      // estimate of chappie's machine time usage based on runtime
+      long readingTime = System.nanoTime() - startTime;
+      long millis = readingTime / 1000000;
+      int nanos = (int)(readingTime - millis * 1000000);
 
-          record.add(epoch);
-          record.add(currentEpochTime);
-          record.add((double)(lastChappieTime) / elapsedTime);
+      long milliSleep = config.timerRate - millis - (nanos > 0 ? 1 : 0);
+      int nanoSleep = 1000000 - nanos;
 
-          activeness.add(record);
-        }
-      }
+      try {
+        if (milliSleep >= 0)
+          Thread.sleep(milliSleep, nanoSleep);
+      } catch (InterruptedException e) { }
+
+      long totalTime = System.nanoTime() - startTime;
+
+      ArrayList<Object> record = new ArrayList<Object>();
+
+      record.add(epoch);
+      record.add(currentTime);
+      record.add((double)(totalTime) / 1000000);
+      record.add((double)(readingTime) / totalTime);
+
+      activeness.add(record);
     }
   }
 
-  @Override
   public boolean cancel() {
-    // use the double flag to kill the process from in here
-    terminate = true;
-
-    while(!terminated) {
+    if (config.mode == Mode.NOP)
+      dump();
+    else {
+      thread.interrupt();
       try {
-        Thread.sleep(0, 100);
-      } catch(Exception e) { }
+        thread.join();
+      } catch (Exception e) {
+        System.out.println("unable to join chappie: " + ex.getClass().getCanonicalName());
+      }
     }
-    super.cancel();
-    timer.cancel();
 
-    dump();
-    monitor.dump();
     return true;
   }
 
   private void dump() {
-    String directory = config.workPath;
-    String suffix = System.getProperty("chappie.suffix", "");
-    if (suffix != "")
-      suffix = "." + suffix;
+    if (mode != Mode.NOP) {
+      CSVPrinter printer = new CSVPrinter(
+        new FileWriter(config.workDirectory + "/chappie.activity" + config.suffix + ".csv"),
+        CSVFormat.DEFAULT.withHeader("epoch", "timestamp", "elapsed", "activity")
+      );
 
-    // runtime stats
-    PrintWriter log = null;
-
-    String path = Paths.get(directory, "chappie.runtime" + suffix + ".csv").toString();
-    try {
-      log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
-    } catch (Exception io) { }
-
-    long runtime = System.currentTimeMillis() - start;
-    double[] raplReading = jrapl.EnergyCheckUtils.getEnergyStats();
-
-    double package1 = raplReading[2] - initialRaplReading[2];
-    double package2 = raplReading[5] - initialRaplReading[5];
-    double dram1 = raplReading[0] - initialRaplReading[0];
-    double dram2 = raplReading[3] - initialRaplReading[3];
-
-    String message = "name,value\nruntime," + runtime +
-                      "\nmain_id," + mainID +
-                      "\npackage1," + package1 +
-                      "\npackage2," + package2 +
-                      "\ndram1," + dram1 +
-                      "\ndram2," + dram2;
-
-    log.write(message);
-    log.close();
-
-    // chappie activeness
-    if (config.mode == Mode.POLL || config.mode == Mode.SAMPLE) {
-      path = Paths.get(directory, "chappie.activeness" + suffix + ".csv").toString();
-      try {
-        log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
-      } catch (Exception io) { }
-
-      log.write("epoch,timestamp,activeness\n");
-
-      for (ArrayList<Object> frame : activeness) {
-        message = "";
-        for (Object item: frame) {
-          message += item.toString() + ",";
-        }
-        message = message.substring(0, message.length() - 1);
-        message += "\n";
-        log.write(message);
-      }
-      log.close();
-
-      path = Paths.get(directory, "chappie.misses" + suffix + ".csv").toString();
-      try {
-        log = new PrintWriter(new BufferedWriter(new FileWriter(path)));
-      } catch (Exception io) { }
-
-      log.write("epoch,timestamp,scheduled,tardiness\n");
-
-      for (ArrayList<Object> frame : misses) {
-        message = "";
-        for (Object item: frame) {
-          message += item.toString() + ",";
-        }
-        message = message.substring(0, message.length() - 1);
-        message += "\n";
-        log.write(message);
-      }
-      log.close();
+      printer.printRecords(activity);
+      printer.close();
     }
+
+    for (Profiler profiler: profilers)
+      profiler.dump();
   }
 }
