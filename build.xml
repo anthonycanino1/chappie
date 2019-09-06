@@ -2,54 +2,89 @@
 <project name="chappie" default="compile">
 	<target name="init">
     <property name="package.dir" value="chappie"/>
-    <property name="src.dir" value="src" />
-    <property name="build.dir" value="build" />
-    <property name="build.classes.dir" value="${build.dir}/classes" />
-	  <property name="chappie.libs" value="" />
+    <property name="src.dir" value="src"/>
+    <property name="build.dir" value="build"/>
+    <property name="build.classes.dir" value="${build.dir}/classes"/>
+		<property name="deps.dir" value="dependencies"/>
     <property name="runtime.jar" location="chappie.jar"/>
   </target>
 
-	<target name="clean" depends="init" description="Remove build files created this scripts">
-    <!-- <exec executable="/usr/bin/make"><arg value="-C"/><arg value="src/async"/><arg value="clean"/></exec> -->
-		<!-- <exec executable="/usr/bin/make"><arg value="-C"/><arg value="vendor/jrapl-port"/><arg value="clean"/></exec> -->
+	<target name="clean" depends="init" description="remove build files created this scripts">
 		<delete dir="${build.dir}"/>
+		<delete dir="${deps.dir}"/>
 		<delete file="chappie.jar"/>
   </target>
 
-	<path id="project.class.path">
-		<pathelement path="vendor/jrapl-port/classes"/>
-		<pathelement path="vendor/jna-4.5.0.jar"/>
-		<pathelement path="vendor/jna-platform-4.5.0.jar"/>
-		<pathelement path="vendor/javassist.jar"/>
+	<target name="setup" depends="init" description="create directories for compilation">
+		<mkdir dir="${build.dir}"/>
+		<mkdir dir="${deps.dir}"/>
+	</target>
+
+	<target name="csv" depends="setup" description="fetch apache commons csv jar">
+		<local name="dep"/>
+		<local name="dep.tar"/>
+		<local name="dep.url"/>
+		<property name="dep" value="commons-csv-1.7"/>
+		<property name="dep.tar" value="commons-csv-1.7-bin.tar.gz"/>
+		<property name="dep.url" value="https://www-us.apache.org/dist/commons/csv/binaries/commons-csv-1.7-bin.tar.gz"/>
+
+		<get src="${dep.url}" dest="${dep.tar}"/>
+		<untar src="${dep.tar}" dest="${deps.dir}/." compression="gzip"/>
+		<move todir="${deps.dir}/.">
+			<fileset dir="${deps.dir}/${dep}">
+	 			<include name="*.jar" />
+			</fileset>
+		</move>
+		<delete file="${dep.tar}"/>
+		<delete dir="${deps.dir}/${dep}"/>
+	</target>
+
+	<target name="log4j" depends="setup" description="fetch apache log4j jar">
+		<local name="dep"/>
+		<local name="dep.tar"/>
+		<local name="dep.url"/>
+		<property name="dep" value="apache-log4j-2.12.1"/>
+		<property name="dep.tar" value="apache-log4j-2.12.1-bin.tar.gz"/>
+		<property name="dep.url" value="https://www.apache.org/dyn/closer.lua/logging/log4j/2.12.1/apache-log4j-2.12.1-bin.tar.gz"/>
+
+		<get src="${dep.url}" dest="${dep}"/>
+		<untar src="${dep.tar}" dest="${deps.dir}/." compression="gzip"/>
+		<mv src="${deps.dir}/${dep}/*.jar" dest="${deps.dir}"/>
+		<delete file="${dep}"/>
+	</target>
+
+	<target name="dependencies" depends="csv,log4j" description="fetch all dependencies"></target>
+
+	<path id="deps">
+		<fileset dir="dependencies" includes="**/*.jar" />
 	</path>
 
-	<target name="hp" description="Compile hp source">
+	<target name="hp" description="compile hp source">
     <exec executable="/usr/bin/cmake"><arg value="src/async/CMakeLists.txt"/></exec>
     <exec executable="/usr/bin/make"><arg value="-C"/><arg value="src/async"/></exec>
+		<copy file="src/async/build/liblagent.so" todir="build"/>
 	</target>
 
-	<target name="jrapl" description="Compile hp source">
-    <exec executable="/usr/bin/make"><arg value="-C"/><arg value="vendor/jrapl-port"/><arg value="jrapl"/></exec>
+	<target name="rapl" description="compile jrapl source">
+    <exec executable="/usr/bin/make"><arg value="-C"/><arg value="src/jrapl-port"/><arg value="jrapl"/></exec>
 	</target>
 
-	<target name="compile" depends="init" description="Compile source">
+	<target name="compile" depends="setup" description="compile chappie source">
 		<mkdir dir="${build.classes.dir}"/>
+		<echo message="${deps.dir}"/>
     <javac
       source="1.9" target="1.9"
       srcdir="${src.dir}"
       destdir="${build.classes.dir}"
-			classpathref="project.class.path">
-    </javac>
+			classpathref="deps"
+		/>
 	</target>
 
   <target name="jar" depends="compile">
 		<jar jarfile="${runtime.jar}" manifest="manifest.txt">
-			<fileset dir="src/" includes="chappie/**/*.so" />
-			<fileset dir="build/classes" includes="chappie/**/*.class" />
-			<fileset dir="build/classes" includes="*.class" />
-			<fileset dir="vendor/jrapl-port/classes" includes="jrapl/**/*.class" />
-			<fileset dir="vendor/jrapl-port/classes" includes="jrapl/**/*.so" />
-			<zipgroupfileset dir="vendor" includes="*.jar"/>
+			<fileset dir="${build.dir}" includes="*.so" />
+			<fileset dir="${build.classes.dir}" includes="*.class" />
+			<zipgroupfileset dir="${deps.dir}" includes="*.jar"/>
 		</jar>
   </target>
 </project>

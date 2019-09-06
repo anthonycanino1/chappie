@@ -19,29 +19,24 @@
 
 package chappie;
 
-import java.io.*;
-
-import java.nio.file.Path;
-import java.nio.file.Paths;
-
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 
-import chappie.profile.ChappieProfiler;
+import chappie.profile.*;
 
-import chappie.glibc.GLIBC;
+import org.apache.commons.csv.CSVPrinter;
+import org.apache.commons.csv.CSVFormat;
 
 public class Chaperone implements Runnable {
-  // Metrics
-  private int epoch;
-  private long start;
-  private double[] initialRaplReading;
+  private int epoch = 0;
 
-  // Timer
   private Thread thread;
 
   public enum Mode {NOP, SLEEP, POLL, SAMPLE}
+
   private Config config;
-  public class Config {
+  public static class Config {
     public String workDirectory;
     public String suffix;
 
@@ -53,16 +48,23 @@ public class Chaperone implements Runnable {
     public int osFactor;
     public int raplFactor;
 
-    public Config(String workDirectory, String suffix, Mode mode, int timerRate, int vmFactor, int hpFactor, int osFactor, int raplFactor) {
+    public Config(
+      String workDirectory,
+      Mode mode,
+      int timerRate,
+      int vmFactor,
+      int osFactor,
+      int hpFactor,
+      int raplFactor
+    ) {
       this.workDirectory = workDirectory;
-      this.suffix = suffix;
 
       this.mode = mode;
       this.timerRate = timerRate;
 
       this.vmFactor = vmFactor;
-      this.hpFactor = hpFactor;
       this.osFactor = osFactor;
+      this.hpFactor = hpFactor;
       this.raplFactor = raplFactor;
     }
 
@@ -85,97 +87,114 @@ public class Chaperone implements Runnable {
     }
   }
 
-  @Override
-  public String toString() { return this.config.toString(); }
-
-  // Monitor
-  private ChappieProfiler profiler = null;
-
-  public Chaperone() {
-    String workDir = System.getProperty("chappie.workDir", "data");
-    String suffix = System.getProperty("chappie.suffix", "");
+  public static Config parseConfig() {
+    String workDir = System.getProperty("chappie.dir", "data");
 
     Mode mode = Mode.valueOf(System.getProperty("chappie.mode", "SAMPLE"));
-    int tr = Integer.parseInt(System.getProperty("chappie.timer", "2"));
+    int tr = Integer.parseInt(System.getProperty("chappie.rate", "2"));
 
     int vm = Integer.parseInt(System.getProperty("chappie.vm", "2"));
     int os = Integer.parseInt(System.getProperty("chappie.os", "5"));
     int hp = Integer.parseInt(System.getProperty("chappie.hp", "1"));
-    int rapl = Integer.parseInt(System.getProperty("chappie.rapl", "1"));
+    int rapl = Integer.parseInt(System.getProperty("chappie.rapl", new Integer(vm).toString()));
 
-    config = new Config(workDir, suffix, mode, tr, vm, os, hp, rapl);
+    Config config = new Chaperone.Config(workDir, mode, tr, vm, os, hp, rapl);
 
-    if (this.config.mode != Mode.NOP) {
-      profiler = new ChappieProfiler(config);
-      thread = new Thread(this, "chappie");
-    }
-
-    epoch = 0;
-    start = System.currentTimeMillis();
-    initialRaplReading = jrapl.EnergyCheckUtils.getEnergyStats();
+    return config;
   }
 
-  private ArrayList<ArrayList<Object>> activity = new ArrayList<ArrayList<Object>>();
+  @Override
+  public String toString() { return this.config.toString(); }
+
+  private ArrayList<Profiler> profilers = new ArrayList<Profiler>();
+
+  public Chaperone() {
+    config = parseConfig();
+    if (config.mode != Mode.NOP) {
+      // profiler.add(new RuntimeProfiler(config));
+    }
+
+    thread = new Thread(this, "chappie");
+  }
+
+  private static class ActivityRecord {
+    int epoch; long timestamp; double elapsedTime; double totalTime;
+
+    public ActivityRecord(int epoch, long timestamp, long elapsedTime, long totalTime) {
+      this.epoch = epoch;
+      this.timestamp = timestamp;
+      this.elapsedTime = elapsedTime;
+      this.totalTime = totalTime;
+    }
+  }
+
+  private ArrayList<ActivityRecord> data = new ArrayList<ActivityRecord>();
 
   public void run() {
-    while (!thread.interrupted()) {
-      long startTime = System.nanoTime();
-      long epochTime = System.currentTimeMillis();
+    if (config.mode != Mode.NOP) {
+      long timestamp = System.currentTimeMillis();
+      for (Profiler profiler: profilers)
+        profiler.sample(epoch, timestamp);
+    } else {
+      while (!thread.interrupted()) {
+        long timestamp = System.currentTimeMillis();
+        long start = System.nanoTime();
 
-      if (config.mode == Mode.POLL || config.mode == Mode.SAMPLE) {
-        epoch++;
-        profiler.sample(epoch, epochTime);
+        if (config.mode == Mode.POLL || config.mode == Mode.SAMPLE) {
+          epoch++;
+          for (Profiler profiler: profilers)
+            profiler.sample(epoch, timestamp);
+        }
+
+        long elapsed = System.nanoTime() - start;
+        long millis = elapsed / 1000000;
+        int nanos = (int)(elapsed - millis * 1000000);
+
+        millis = config.timerRate - millis - (nanos > 0 ? 1 : 0);
+        nanos = 1000000 - nanos;
+
+        if (millis >= 0 && nanos > 0)
+          try {
+            Thread.sleep(millis, nanos);
+          } catch (InterruptedException e) {
+
+          }
+
+        long total = System.nanoTime() - start;
+        data.add(new ActivityRecord(epoch, timestamp, elapsed, total));
       }
 
-      // estimate of chappie's machine time usage based on runtime
-      long readingTime = System.nanoTime() - startTime;
-      long millis = readingTime / 1000000;
-      int nanos = (int)(readingTime - millis * 1000000);
-
-      long milliSleep = config.timerRate - millis - (nanos > 0 ? 1 : 0);
-      int nanoSleep = 1000000 - nanos;
-
       try {
-        if (milliSleep >= 0)
-          Thread.sleep(milliSleep, nanoSleep);
-      } catch (InterruptedException e) { }
-
-      long totalTime = System.nanoTime() - startTime;
-
-      ArrayList<Object> record = new ArrayList<Object>();
-
-      record.add(epoch);
-      record.add(currentTime);
-      record.add((double)(totalTime) / 1000000);
-      record.add((double)(readingTime) / totalTime);
-
-      activeness.add(record);
+        dump();
+      } catch (IOException io) { }
     }
   }
 
   public boolean cancel() {
     if (config.mode == Mode.NOP)
-      dump();
+      try {
+        dump();
+      } catch (IOException io) { }
     else {
       thread.interrupt();
       try {
         thread.join();
       } catch (Exception e) {
-        System.out.println("unable to join chappie: " + ex.getClass().getCanonicalName());
+        System.out.println("unable to join chappie: " + e.getClass().getCanonicalName());
       }
     }
 
     return true;
   }
 
-  private void dump() {
-    if (mode != Mode.NOP) {
+  private void dump() throws IOException {
+    if (config.mode != Mode.NOP) {
       CSVPrinter printer = new CSVPrinter(
-        new FileWriter(config.workDirectory + "/chappie.activity" + config.suffix + ".csv"),
+        new FileWriter(config.workDirectory + "activity.csv"),
         CSVFormat.DEFAULT.withHeader("epoch", "timestamp", "elapsed", "activity")
       );
 
-      printer.printRecords(activity);
+      printer.printRecords(data);
       printer.close();
     }
 

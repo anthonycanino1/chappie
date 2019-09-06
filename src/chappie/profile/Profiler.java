@@ -1,9 +1,12 @@
 package chappie.profile;
 
-public interface Profiler {
-  public Profiler(Config config);
+import chappie.Chaperone.Config;
 
-  public void sample(int epoch, long epochTime);
+public abstract class Profiler {
+  protected Config config;
+  public Profiler(Config config) { this.config = config; }
 
-  private void dump();
+  public abstract void sample(int epoch, long timestamp);
+
+  public abstract void dump();
 }

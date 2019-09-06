@@ -1,0 +1,6 @@
+{
+  "java_path": "java",
+  "chappie_path": "/home/timur/Projects/chappie",
+  "agent_args": "{chappie_path}/chappie.jar",
+  "agent": "{chappie_path}/src/async/build/liblagent.so=interval={hpRate},logPath={raw_dir}/chappie.stack.csv"
+}

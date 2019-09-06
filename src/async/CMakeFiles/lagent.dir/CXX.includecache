@@ -1,4 +1,4 @@
-#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
 
 #IncludeRegexScan: ^.*$
 
@@ -6,7 +6,7 @@
 
 #IncludeRegexTransform: 
 
-/home/acanino1/chappie/src/async/src/main/cpp/agent.cpp
+/home/timur/chappie/src/async/src/main/cpp/agent.cpp
 stdio.h
 -
 string.h
@@ -16,27 +16,27 @@ string
 jvmti.h
 -
 globals.h
-/home/acanino1/chappie/src/async/src/main/cpp/globals.h
+/home/timur/chappie/src/async/src/main/cpp/globals.h
 thread_map.h
-/home/acanino1/chappie/src/async/src/main/cpp/thread_map.h
+/home/timur/chappie/src/async/src/main/cpp/thread_map.h
 profiler.h
-/home/acanino1/chappie/src/async/src/main/cpp/profiler.h
+/home/timur/chappie/src/async/src/main/cpp/profiler.h
 controller.h
-/home/acanino1/chappie/src/async/src/main/cpp/controller.h
+/home/timur/chappie/src/async/src/main/cpp/controller.h
 
-/home/acanino1/chappie/src/async/src/main/cpp/circular_queue.cpp
+/home/timur/chappie/src/async/src/main/cpp/circular_queue.cpp
 circular_queue.h
-/home/acanino1/chappie/src/async/src/main/cpp/circular_queue.h
+/home/timur/chappie/src/async/src/main/cpp/circular_queue.h
 iostream
 -
 unistd.h
 -
 
-/home/acanino1/chappie/src/async/src/main/cpp/circular_queue.h
+/home/timur/chappie/src/async/src/main/cpp/circular_queue.h
 thread_map.h
-/home/acanino1/chappie/src/async/src/main/cpp/thread_map.h
+/home/timur/chappie/src/async/src/main/cpp/thread_map.h
 stacktraces.h
-/home/acanino1/chappie/src/async/src/main/cpp/stacktraces.h
+/home/timur/chappie/src/async/src/main/cpp/stacktraces.h
 time.h
 -
 string.h
@@ -44,21 +44,21 @@ string.h
 cstddef
 -
 
-/home/acanino1/chappie/src/async/src/main/cpp/common.cpp
+/home/timur/chappie/src/async/src/main/cpp/common.cpp
 common.h
-/home/acanino1/chappie/src/async/src/main/cpp/common.h
+/home/timur/chappie/src/async/src/main/cpp/common.h
 
-/home/acanino1/chappie/src/async/src/main/cpp/common.h
+/home/timur/chappie/src/async/src/main/cpp/common.h
 jvmti.h
 -
 globals.h
-/home/acanino1/chappie/src/async/src/main/cpp/globals.h
+/home/timur/chappie/src/async/src/main/cpp/globals.h
 
-/home/acanino1/chappie/src/async/src/main/cpp/concurrent_map.cpp
+/home/timur/chappie/src/async/src/main/cpp/concurrent_map.cpp
 concurrent_map.h
-/home/acanino1/chappie/src/async/src/main/cpp/concurrent_map.h
+/home/timur/chappie/src/async/src/main/cpp/concurrent_map.h
 
-/home/acanino1/chappie/src/async/src/main/cpp/concurrent_map.h
+/home/timur/chappie/src/async/src/main/cpp/concurrent_map.h
 cstdatomic
 -
 atomic
@@ -72,25 +72,25 @@ vector
 mutex
 -
 trace.h
-/home/acanino1/chappie/src/async/src/main/cpp/trace.h
+/home/timur/chappie/src/async/src/main/cpp/trace.h
 
-/home/acanino1/chappie/src/async/src/main/cpp/control.cpp
+/home/timur/chappie/src/async/src/main/cpp/control.cpp
 jvmti.h
 -
 profiler.h
-/home/acanino1/chappie/src/async/src/main/cpp/profiler.h
+/home/timur/chappie/src/async/src/main/cpp/profiler.h
 
-/home/acanino1/chappie/src/async/src/main/cpp/controller.cpp
+/home/timur/chappie/src/async/src/main/cpp/controller.cpp
 controller.h
-/home/acanino1/chappie/src/async/src/main/cpp/controller.h
+/home/timur/chappie/src/async/src/main/cpp/controller.h
 
-/home/acanino1/chappie/src/async/src/main/cpp/controller.h
+/home/timur/chappie/src/async/src/main/cpp/controller.h
 globals.h
-/home/acanino1/chappie/src/async/src/main/cpp/globals.h
+/home/timur/chappie/src/async/src/main/cpp/globals.h
 common.h
-/home/acanino1/chappie/src/async/src/main/cpp/common.h
+/home/timur/chappie/src/async/src/main/cpp/common.h
 profiler.h
-/home/acanino1/chappie/src/async/src/main/cpp/profiler.h
+/home/timur/chappie/src/async/src/main/cpp/profiler.h
 stdio.h
 -
 stdlib.h
@@ -112,7 +112,7 @@ netdb.h
 jvmti.h
 -
 
-/home/acanino1/chappie/src/async/src/main/cpp/globals.h
+/home/timur/chappie/src/async/src/main/cpp/globals.h
 assert.h
 -
 dlfcn.h
@@ -134,15 +134,15 @@ mach/clock.h
 mach/mach.h
 -
 
-/home/acanino1/chappie/src/async/src/main/cpp/log_writer.cpp
+/home/timur/chappie/src/async/src/main/cpp/log_writer.cpp
 cstdlib
 -
 log_writer.h
-/home/acanino1/chappie/src/async/src/main/cpp/log_writer.h
+/home/timur/chappie/src/async/src/main/cpp/log_writer.h
 math.h
 -
 
-/home/acanino1/chappie/src/async/src/main/cpp/log_writer.h
+/home/timur/chappie/src/async/src/main/cpp/log_writer.h
 jvmti.h
 -
 unordered_set
@@ -150,41 +150,41 @@ unordered_set
 fstream
 -
 thread_map.h
-/home/acanino1/chappie/src/async/src/main/cpp/thread_map.h
+/home/timur/chappie/src/async/src/main/cpp/thread_map.h
 circular_queue.h
-/home/acanino1/chappie/src/async/src/main/cpp/circular_queue.h
+/home/timur/chappie/src/async/src/main/cpp/circular_queue.h
 stacktraces.h
-/home/acanino1/chappie/src/async/src/main/cpp/stacktraces.h
+/home/timur/chappie/src/async/src/main/cpp/stacktraces.h
 
-/home/acanino1/chappie/src/async/src/main/cpp/processor.cpp
+/home/timur/chappie/src/async/src/main/cpp/processor.cpp
 thread
 -
 iostream
 -
 processor.h
-/home/acanino1/chappie/src/async/src/main/cpp/processor.h
+/home/timur/chappie/src/async/src/main/cpp/processor.h
 windows.h
 -
 unistd.h
 -
 
-/home/acanino1/chappie/src/async/src/main/cpp/processor.h
+/home/timur/chappie/src/async/src/main/cpp/processor.h
 jvmti.h
 -
 common.h
-/home/acanino1/chappie/src/async/src/main/cpp/common.h
+/home/timur/chappie/src/async/src/main/cpp/common.h
 log_writer.h
-/home/acanino1/chappie/src/async/src/main/cpp/log_writer.h
+/home/timur/chappie/src/async/src/main/cpp/log_writer.h
 signal_handler.h
-/home/acanino1/chappie/src/async/src/main/cpp/signal_handler.h
+/home/timur/chappie/src/async/src/main/cpp/signal_handler.h
 trace.h
-/home/acanino1/chappie/src/async/src/main/cpp/trace.h
+/home/timur/chappie/src/async/src/main/cpp/trace.h
 
-/home/acanino1/chappie/src/async/src/main/cpp/profiler.cpp
+/home/timur/chappie/src/async/src/main/cpp/profiler.cpp
 profiler.h
-/home/acanino1/chappie/src/async/src/main/cpp/profiler.h
+/home/timur/chappie/src/async/src/main/cpp/profiler.h
 
-/home/acanino1/chappie/src/async/src/main/cpp/profiler.h
+/home/timur/chappie/src/async/src/main/cpp/profiler.h
 signal.h
 -
 unistd.h
@@ -198,23 +198,23 @@ string
 memory
 -
 thread_map.h
-/home/acanino1/chappie/src/async/src/main/cpp/thread_map.h
+/home/timur/chappie/src/async/src/main/cpp/thread_map.h
 signal_handler.h
-/home/acanino1/chappie/src/async/src/main/cpp/signal_handler.h
+/home/timur/chappie/src/async/src/main/cpp/signal_handler.h
 stacktraces.h
-/home/acanino1/chappie/src/async/src/main/cpp/stacktraces.h
+/home/timur/chappie/src/async/src/main/cpp/stacktraces.h
 processor.h
-/home/acanino1/chappie/src/async/src/main/cpp/processor.h
+/home/timur/chappie/src/async/src/main/cpp/processor.h
 log_writer.h
-/home/acanino1/chappie/src/async/src/main/cpp/log_writer.h
+/home/timur/chappie/src/async/src/main/cpp/log_writer.h
 trace.h
-/home/acanino1/chappie/src/async/src/main/cpp/trace.h
+/home/timur/chappie/src/async/src/main/cpp/trace.h
 
-/home/acanino1/chappie/src/async/src/main/cpp/signal_handler.cpp
+/home/timur/chappie/src/async/src/main/cpp/signal_handler.cpp
 signal_handler.h
-/home/acanino1/chappie/src/async/src/main/cpp/signal_handler.h
+/home/timur/chappie/src/async/src/main/cpp/signal_handler.h
 
-/home/acanino1/chappie/src/async/src/main/cpp/signal_handler.h
+/home/timur/chappie/src/async/src/main/cpp/signal_handler.h
 signal.h
 -
 stdlib.h
@@ -232,15 +232,15 @@ array
 iterator
 -
 globals.h
-/home/acanino1/chappie/src/async/src/main/cpp/globals.h
+/home/timur/chappie/src/async/src/main/cpp/globals.h
 
-/home/acanino1/chappie/src/async/src/main/cpp/stacktraces.h
+/home/timur/chappie/src/async/src/main/cpp/stacktraces.h
 globals.h
-/home/acanino1/chappie/src/async/src/main/cpp/globals.h
+/home/timur/chappie/src/async/src/main/cpp/globals.h
 
-/home/acanino1/chappie/src/async/src/main/cpp/thread_map.cpp
+/home/timur/chappie/src/async/src/main/cpp/thread_map.cpp
 thread_map.h
-/home/acanino1/chappie/src/async/src/main/cpp/thread_map.h
+/home/timur/chappie/src/async/src/main/cpp/thread_map.h
 sys/syscall.h
 -
 unistd.h
@@ -248,9 +248,9 @@ unistd.h
 mach/mach.h
 -
 
-/home/acanino1/chappie/src/async/src/main/cpp/thread_map.h
+/home/timur/chappie/src/async/src/main/cpp/thread_map.h
 concurrent_map.h
-/home/acanino1/chappie/src/async/src/main/cpp/concurrent_map.h
+/home/timur/chappie/src/async/src/main/cpp/concurrent_map.h
 jni.h
 -
 jvmti.h
@@ -258,21 +258,21 @@ jvmti.h
 string.h
 -
 
-/home/acanino1/chappie/src/async/src/main/cpp/trace.h
+/home/timur/chappie/src/async/src/main/cpp/trace.h
 iostream
 -
 
-/usr/lib/jvm/java-8-openjdk-amd64/include/jni.h
+/usr/lib/jvm/java-11-openjdk-amd64/include/jni.h
 stdio.h
 -
 stdarg.h
 -
 jni_md.h
-/usr/lib/jvm/java-8-openjdk-amd64/include/jni_md.h
+/usr/lib/jvm/java-11-openjdk-amd64/include/jni_md.h
 
-/usr/lib/jvm/java-8-openjdk-amd64/include/jvmti.h
+/usr/lib/jvm/java-11-openjdk-amd64/include/jvmti.h
 jni.h
-/usr/lib/jvm/java-8-openjdk-amd64/include/jni.h
+/usr/lib/jvm/java-11-openjdk-amd64/include/jni.h
 
-/usr/lib/jvm/java-8-openjdk-amd64/include/linux/jni_md.h
+/usr/lib/jvm/java-11-openjdk-amd64/include/linux/jni_md.h
 
