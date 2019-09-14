@@ -22,183 +22,127 @@ package chappie;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.logging.Logger;
+import java.util.stream.Stream;
+import java.util.stream.Collectors;
 
 import chappie.profile.*;
-
-import org.apache.commons.csv.CSVPrinter;
-import org.apache.commons.csv.CSVFormat;
+import chappie.profile.Profiler.Record;
+import chappie.util.*;
 
 public class Chaperone implements Runnable {
+  static int id = 0;
+
+  private int timerRate;
   private int epoch = 0;
 
-  private Thread thread;
-
-  public enum Mode {NOP, SLEEP, POLL, SAMPLE}
-
-  private Config config;
-  public static class Config {
-    public String workDirectory;
-    public String suffix;
-
-    public Mode mode;
-    public int timerRate;
-
-    public int vmFactor;
-    public int hpFactor;
-    public int osFactor;
-    public int raplFactor;
-
-    public Config(
-      String workDirectory,
-      Mode mode,
-      int timerRate,
-      int vmFactor,
-      int osFactor,
-      int hpFactor,
-      int raplFactor
-    ) {
-      this.workDirectory = workDirectory;
-
-      this.mode = mode;
-      this.timerRate = timerRate;
-
-      this.vmFactor = vmFactor;
-      this.osFactor = osFactor;
-      this.hpFactor = hpFactor;
-      this.raplFactor = raplFactor;
-    }
-
-    @Override
-    public String toString() {
-      String message = "################################";
-      message += "\tChaperone Parameters:";
-      message += "\n\t - Mode:\t\t\t" + mode;
-      if (mode == Mode.SLEEP) {
-        message += "\n\t - Sleep Rate:\t\t" + timerRate + " milliseconds";
-      } else if (mode == Mode.POLL || mode == Mode.SAMPLE) {
-        message += "\n\t - VM Polling Rate:\t\t" + vmFactor * timerRate + " milliseconds";
-        message += "\n\t - OS Polling Rate:\t\t" + osFactor * timerRate + " milliseconds";
-        message += "\n\t - HP Polling Rate:\t\t" + hpFactor * timerRate + " milliseconds";
-        message += "\n\t - RAPL Polling Rate:\t\t" + raplFactor * timerRate + " milliseconds";
-      }
-      message += "\n################################";
-
-      return message;
-    }
-  }
-
-  public static Config parseConfig() {
-    String workDir = System.getProperty("chappie.dir", "data");
-
-    Mode mode = Mode.valueOf(System.getProperty("chappie.mode", "SAMPLE"));
-    int tr = Integer.parseInt(System.getProperty("chappie.rate", "2"));
-
-    int vm = Integer.parseInt(System.getProperty("chappie.vm", "2"));
-    int os = Integer.parseInt(System.getProperty("chappie.os", "5"));
-    int hp = Integer.parseInt(System.getProperty("chappie.hp", "1"));
-    int rapl = Integer.parseInt(System.getProperty("chappie.rapl", new Integer(vm).toString()));
-
-    Config config = new Chaperone.Config(workDir, mode, tr, vm, os, hp, rapl);
-
-    return config;
-  }
-
-  @Override
-  public String toString() { return this.config.toString(); }
+  public Thread thread;
+  private Logger logger;
 
   private ArrayList<Profiler> profilers = new ArrayList<Profiler>();
 
   public Chaperone() {
-    config = parseConfig();
-    if (config.mode != Mode.NOP) {
-      // profiler.add(new RuntimeProfiler(config));
-    }
+    logger = ChappieLogger.getLogger();
+    logger.info("creating chappie instance " + id);
 
-    thread = new Thread(this, "chappie");
-  }
+    timerRate = Integer.parseInt(System.getProperty("chappie.rate", "1"));
+    if (timerRate > 0) {
+      int vmRate = Integer.parseInt(System.getProperty("chappie.vm", "1"));
+      if (vmRate > 0)
+        profilers.add(new VMProfiler(vmRate, timerRate));
 
-  private static class ActivityRecord {
-    int epoch; long timestamp; double elapsedTime; double totalTime;
+      int osRate = Integer.parseInt(System.getProperty("chappie.os", "1"));
+      if (osRate > 0)
+        profilers.add(new OSProfiler(osRate, timerRate));
 
-    public ActivityRecord(int epoch, long timestamp, long elapsedTime, long totalTime) {
-      this.epoch = epoch;
-      this.timestamp = timestamp;
-      this.elapsedTime = elapsedTime;
-      this.totalTime = totalTime;
-    }
-  }
+      int raplRate = Integer.parseInt(System.getProperty("chappie.rapl", "1"));
+      if (raplRate > 0)
+        profilers.add(new RAPLProfiler(raplRate, timerRate));
 
-  private ArrayList<ActivityRecord> data = new ArrayList<ActivityRecord>();
-
-  public void run() {
-    if (config.mode != Mode.NOP) {
-      long timestamp = System.currentTimeMillis();
-      for (Profiler profiler: profilers)
-        profiler.sample(epoch, timestamp);
+      thread = new Thread(this, "chappie-" + id++);
     } else {
-      while (!thread.interrupted()) {
-        long timestamp = System.currentTimeMillis();
-        long start = System.nanoTime();
-
-        if (config.mode == Mode.POLL || config.mode == Mode.SAMPLE) {
-          epoch++;
-          for (Profiler profiler: profilers)
-            profiler.sample(epoch, timestamp);
-        }
-
-        long elapsed = System.nanoTime() - start;
-        long millis = elapsed / 1000000;
-        int nanos = (int)(elapsed - millis * 1000000);
-
-        millis = config.timerRate - millis - (nanos > 0 ? 1 : 0);
-        nanos = 1000000 - nanos;
-
-        if (millis >= 0 && nanos > 0)
-          try {
-            Thread.sleep(millis, nanos);
-          } catch (InterruptedException e) {
-
-          }
-
-        long total = System.nanoTime() - start;
-        data.add(new ActivityRecord(epoch, timestamp, elapsed, total));
-      }
-
-      try {
-        dump();
-      } catch (IOException io) { }
+      logger.info("running in nop mode");
     }
   }
 
-  public boolean cancel() {
-    if (config.mode == Mode.NOP)
-      try {
-        dump();
-      } catch (IOException io) { }
-    else {
+  public void start() {
+    if (timerRate > 0)
+      thread.start();
+    logger.info("starting profiling");
+  }
+
+  public void stop() {
+    if (timerRate > 0) {
       thread.interrupt();
+
       try {
         thread.join();
-      } catch (Exception e) {
-        System.out.println("unable to join chappie: " + e.getClass().getCanonicalName());
+      } catch(InterruptedException e) {
+        logger.info("chappie couldn't join: " + e.getMessage());
       }
     }
 
-    return true;
+    try {
+      dump();
+    } catch(IOException io) {
+      logger.info("couldn't write observations: " + io.getMessage());
+    }
   }
 
-  private void dump() throws IOException {
-    if (config.mode != Mode.NOP) {
-      CSVPrinter printer = new CSVPrinter(
-        new FileWriter(config.workDirectory + "activity.csv"),
-        CSVFormat.DEFAULT.withHeader("epoch", "timestamp", "elapsed", "activity")
-      );
+  private class ChappieRecord implements Record {
+    private Integer epoch;
+    private long timestamp;
+    private long elapsed;
+    private long total;
 
-      printer.printRecords(data);
-      printer.close();
+    public ChappieRecord(int epoch, long timestamp, long elapsed, long total) {
+      this.epoch = epoch;
+      this.timestamp = timestamp;
+      this.elapsed = elapsed;
+      this.total = total;
     }
+
+    @Override
+    public String toString() {
+      return Arrays.stream(new Object[]{epoch, timestamp, elapsed, total})
+        .map(Object::toString)
+        .collect(Collectors.joining(";"));
+    }
+  }
+
+  private ArrayList<Record> data = new ArrayList<Record>();
+  public void run() {
+    while (!thread.interrupted()) {
+      long timestamp = System.currentTimeMillis();
+      long start = System.nanoTime();
+
+      epoch++;
+      for (Profiler profiler: profilers)
+        profiler.sample(epoch);
+
+      long elapsed = System.nanoTime() - start;
+
+      try {
+        ThreadUtil.sleepUntil(start, timerRate);
+      } catch (InterruptedException e) {
+        try { ThreadUtil.sleepUntil(start, timerRate); } catch (InterruptedException ex) { }
+        break;
+      }
+
+      long total = System.nanoTime() - start;
+      data.add(new ChappieRecord(epoch, timestamp, elapsed, total));
+    }
+  }
+
+  private static String[] header = new String[] { "epoch", "timestamp", "elapsed", "total" };
+  private void dump() throws IOException {
+    logger.info("writing chappie data");
+    chappie.util.CSV.write(data, "data/chappie.csv", header);
 
     for (Profiler profiler: profilers)
       profiler.dump();
+
+    logger.info("done writing data");
   }
 }

@@ -1,6 +1,6 @@
 TARGET = libCPUScaler.so CPUScaler.o arch_spec.o msr.o dvfs.o
 CFLAGS = -fPIC -g -c -Wall
-JAVA_HOME="/home/timur/Projects/dev/build/linux-x86_64-normal-server-release/jdk"
+# JAVA_HOME="/home/timur/Projects/dev/build/linux-x86_64-normal-server-release/jdk"
 JAVA_INCLUDE = $(JAVA_HOME)/include
 JAVA_INCLUDE_LINUX = $(JAVA_INCLUDE)/linux
 

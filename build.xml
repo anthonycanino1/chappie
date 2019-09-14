@@ -9,10 +9,13 @@
     <property name="runtime.jar" location="chappie.jar"/>
   </target>
 
-	<target name="clean" depends="init" description="remove build files created this scripts">
+	<target name="clean" depends="init" description="remove build files created this script">
 		<delete dir="${build.dir}"/>
-		<delete dir="${deps.dir}"/>
 		<delete file="chappie.jar"/>
+  </target>
+
+	<target name="cleanall" depends="clean" description="remove all files created this script">
+		<delete dir="${deps.dir}"/>
   </target>
 
 	<target name="setup" depends="init" description="create directories for compilation">
@@ -20,44 +23,19 @@
 		<mkdir dir="${deps.dir}"/>
 	</target>
 
-	<target name="csv" depends="setup" description="fetch apache commons csv jar">
-		<local name="dep"/>
-		<local name="dep.tar"/>
-		<local name="dep.url"/>
-		<property name="dep" value="commons-csv-1.7"/>
-		<property name="dep.tar" value="commons-csv-1.7-bin.tar.gz"/>
-		<property name="dep.url" value="https://www-us.apache.org/dist/commons/csv/binaries/commons-csv-1.7-bin.tar.gz"/>
+	<target name="deps" depends="setup" description="fetch deps">
+		<get src="http://repo1.maven.org/maven2/net/java/dev/jna/jna/5.4.0/jna-5.4.0.jar" dest="${deps.dir}"/>
 
-		<get src="${dep.url}" dest="${dep.tar}"/>
-		<untar src="${dep.tar}" dest="${deps.dir}/." compression="gzip"/>
-		<move todir="${deps.dir}/.">
-			<fileset dir="${deps.dir}/${dep}">
-	 			<include name="*.jar" />
-			</fileset>
-		</move>
-		<delete file="${dep.tar}"/>
-		<delete dir="${deps.dir}/${dep}"/>
+		<get src="https://github.com/jboss-javassist/javassist/tarball/master" dest="${deps.dir}"/>
+		<!-- <gunzip src="${deps.dir}/master" dest="${deps.dir}"/> -->
+
+		<untar src="${deps.dir}/master" compression="gzip" dest="${deps.dir}"/>
+		<move file="${deps.dir}/jboss-javassist-javassist-f7ef31c/javassist.jar" todir="${deps.dir}"/>
+
+		<delete file="${deps.dir}/master"/>
+		<delete dir="${deps.dir}/jboss-javassist-javassist-f7ef31c"/>
+		<delete dir="${deps.dir}/pax_global_header"/>
 	</target>
-
-	<target name="log4j" depends="setup" description="fetch apache log4j jar">
-		<local name="dep"/>
-		<local name="dep.tar"/>
-		<local name="dep.url"/>
-		<property name="dep" value="apache-log4j-2.12.1"/>
-		<property name="dep.tar" value="apache-log4j-2.12.1-bin.tar.gz"/>
-		<property name="dep.url" value="https://www.apache.org/dyn/closer.lua/logging/log4j/2.12.1/apache-log4j-2.12.1-bin.tar.gz"/>
-
-		<get src="${dep.url}" dest="${dep}"/>
-		<untar src="${dep.tar}" dest="${deps.dir}/." compression="gzip"/>
-		<mv src="${deps.dir}/${dep}/*.jar" dest="${deps.dir}"/>
-		<delete file="${dep}"/>
-	</target>
-
-	<target name="dependencies" depends="csv,log4j" description="fetch all dependencies"></target>
-
-	<path id="deps">
-		<fileset dir="dependencies" includes="**/*.jar" />
-	</path>
 
 	<target name="hp" description="compile hp source">
     <exec executable="/usr/bin/cmake"><arg value="src/async/CMakeLists.txt"/></exec>
@@ -69,22 +47,22 @@
     <exec executable="/usr/bin/make"><arg value="-C"/><arg value="src/jrapl-port"/><arg value="jrapl"/></exec>
 	</target>
 
-	<target name="compile" depends="setup" description="compile chappie source">
+	<target name="compile" depends="init" description="compile chappie source">
 		<mkdir dir="${build.classes.dir}"/>
-		<echo message="${deps.dir}"/>
-    <javac
+		<javac
       source="1.9" target="1.9"
       srcdir="${src.dir}"
       destdir="${build.classes.dir}"
-			classpathref="deps"
+			classpath="${deps.dir}/jna-5.4.0.jar:${deps.dir}/javassist.jar"
 		/>
+		<copy file="src/jrapl-port/classes/libCPUScaler.so" todir="build/classes/jrapl"/>
+		<!-- <copy file="src/async/build/liblagent.so" todir="build/classes"/> -->
 	</target>
 
   <target name="jar" depends="compile">
-		<jar jarfile="${runtime.jar}" manifest="manifest.txt">
-			<fileset dir="${build.dir}" includes="*.so" />
-			<fileset dir="${build.classes.dir}" includes="*.class" />
-			<zipgroupfileset dir="${deps.dir}" includes="*.jar"/>
+		<jar jarfile="${runtime.jar}" basedir="${build.classes.dir}" manifest="manifest.txt">
+			<!-- <fileset dir="${build.classes.dir}" includes="jrapl-port/**/*.so" /> -->
+			<zipgroupfileset dir="dependencies" includes="*.jar"/>
 		</jar>
   </target>
 </project>
