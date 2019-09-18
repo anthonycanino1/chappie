@@ -19,85 +19,81 @@
 
 package chappie.profile;
 
-import java.io.*;
-
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-import chappie.glibc.GLIBC;
+import chappie.glibc.*;
 
 public class OSProfiler extends Profiler {
-  File root = new File("/proc/" + GLIBC.getProcessId() + "/task/");
+  // The OS records require reading both the system (proc/stat)
+  // and application tasks (proc/<pid>/task/<tid>/stat), so I wrote some
+  // auxillary methods to simplify the code. It's likely that I should fold
+  // this back into the GLIBC library in some capacity (similar to psutil).
   public OSProfiler(int rate, int time) {
     super(rate, time);
   }
 
-  private class ProcessRecord implements Record {
-    private Integer epoch;
-    private String stat;
-
-    public ProcessRecord(int epoch, String stat) {
+  private class OSProcessRecord extends Record {
+    private int id;
+    private OSProcess proc;
+    public OSProcessRecord(int epoch, OSProcess proc) {
       this.epoch = epoch;
-      this.stat = stat;
+      this.proc = proc;
     }
 
-    @Override
-    public String toString() {
-      return Stream.concat(
-        Arrays.stream(new String[]{epoch.toString()}),
-        Arrays.stream(GLIBC.parseProcessRecord(stat)))
-        .collect(Collectors.joining(";"));
+    public String stringImpl() {
+      return proc.parse().toString();
     }
+
+    private String[] header = new String[] { "epoch", "id", "cpu", "state", "user", "sys" };
+    public String[] headerImpl() {
+      return header;
+    };
   }
 
-  private class SystemRecord implements Record {
-    private Integer epoch;
-    private ArrayList<String> stat;
+  private class CPURecord extends Record {
+    private int id;
+    private CPU cpu;
 
-    public SystemRecord(int epoch, ArrayList<String> stat) {
+    public CPURecord(int epoch, CPU cpu) {
       this.epoch = epoch;
-      this.stat = stat;
+      this.cpu = cpu;
     }
 
-    @Override
-    public String toString() {
-      return stat.stream()
-        .map(GLIBC::parseSystemRecord)
-        .map(Arrays::stream)
-        .map(r -> Stream.concat(Arrays.stream(new String[]{epoch.toString()}), r))
-        .map(r -> r.collect(Collectors.joining(";")))
-        .map(Object::toString)
-        .collect(Collectors.joining("\n"));
+    public String stringImpl() {
+      return cpu.parse().toString();
     }
+
+    private String[] header = new String[] {
+      "epoch", "cpu",
+      "user", "nice", "system", "idle", "iowait",
+      "irq", "softirq", "steal", "guest", "guestNice"
+    };
+    public String[] headerImpl() {
+      return header;
+    };
   }
 
   ArrayList<Record> sysData = new ArrayList<Record>();
   public void sampleImpl(int epoch) {
-    for (File f: root.listFiles())
+    for (OSProcess proc: OSProcess.currentProcess().getTasks())
       try {
-        data.add(new ProcessRecord(epoch, GLIBC.readProcess(f.getName())));
+        data.add(new OSProcessRecord(epoch, proc.sample()));
       } catch (IOException io1) {
-        logger.info("could not read " + f.getName() + ": " + io1.getMessage());
+        // logger.info("could not sample process " + tid + ": " + io1.getMessage());
       }
 
     try {
-      sysData.add(new SystemRecord(epoch, GLIBC.readSystem()));
+      for (CPU cpu: CPU.getCPUs())
+        sysData.add(new CPURecord(epoch, cpu));
     } catch (IOException io2) {
-      logger.info("could not read system stats: " + io2.getMessage());
+      logger.info("could not sample cpu: "+ io2.getMessage());
     }
   }
 
-  private static String[] header = new String[] { "epoch", "id", "core", "state", "user", "system" };
-  private static String[] sysHeader = new String[] { "epoch", "cpu", "user", "nice", "system", "idle", "iowait", "irq", "softirq", "steal", "guest", "guest_nice" };
-  public void dump() throws IOException {
-    logger.info("writing os data");
-
-    chappie.util.CSV.write(data, "data/os.csv", header);
-    chappie.util.CSV.write(sysData, "data/sys.csv", sysHeader);
-
-    GLIBC.dumpMapping();
+  public void dumpImpl() throws IOException {
+    chappie.util.CSV.write(data, "data/os.csv");
+    chappie.util.CSV.write(sysData, "data/sys.csv");
+    GLIBC.dump();
   }
 }

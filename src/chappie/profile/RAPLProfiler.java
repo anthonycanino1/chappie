@@ -21,26 +21,24 @@ package chappie.profile;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.HashMap;
-import java.util.stream.Collectors;
-import java.util.stream.DoubleStream;
-import java.util.stream.Stream;
 
 import jrapl.EnergyCheckUtils;
 
 import chappie.util.*;
 
 public class RAPLProfiler extends Profiler {
+  // Since jRAPL returns a double[] from getEnergyStats, I wrote a helper to
+  // reshape it into a 3 x socket array. This primarily helps with clean code
+  // but could be in jRAPL instead.
   private static boolean noRapl = false;
-  private EnergyRecord initReading;
+  private ArrayList<EnergyRecord> initReading;
   public RAPLProfiler(int rate, int time) {
     super(rate, time);
 
     if (!noRapl) {
       try {
-        initReading = new EnergyRecord(-1, EnergyCheckUtils.getEnergyStats());
+        for (double[] record: sampleEnergy())
+          initReading.add(new EnergyRecord(-1, record));
       } catch(Exception e) {
         noRapl = true;
         logger.info("no rapl available");
@@ -49,44 +47,52 @@ public class RAPLProfiler extends Profiler {
   }
 
   private static int sockets = EnergyCheckUtils.GetSocketNum();
-  private class EnergyRecord implements Record {
+  private class EnergyRecord extends Record {
+    private int socket;
 
-    private Integer epoch;
-    private double[][] reading;
+    private double cpu;
+    private double dram;
 
-    private EnergyRecord(int epoch, double[] reading) {
+    private EnergyRecord(int epoch, double[] record) {
       this.epoch = epoch;
-
-      this.reading = new double[RAPLProfiler.sockets][5];
-      for (int i = 0; i < RAPLProfiler.sockets; i++) {
-        this.reading[i][0] = epoch;
-        this.reading[i][1] = i;
-        for (int j = 0; j < 3; j++)
-          this.reading[i][j + 2] = reading[3 * i + j];
-      }
+      this.socket = (int)record[0];
+      this.cpu = record[3];
+      this.dram = record[1];
     }
 
-    @Override
-    public String toString() {
-      return Arrays.stream(reading)
-        .map(DoubleStream::of)
-        .map(r -> r.boxed().map(Object::toString).collect(Collectors.joining(";")))
-        .map(Object::toString)
-        .collect(Collectors.joining("\n"));
+    protected void parseRecord() {}
+
+    public String[] toArray() {
+      return new String[]{ Integer.toString(epoch), Integer.toString(socket), Double.toString(cpu), Double.toString(dram) };
     }
+
+    private String[] header = new String[] { "epoch", "cpu", "uncore", "dram" };
+    public String[] headerImpl() {
+      return header;
+    };
   }
 
   protected void sampleImpl(int epoch) {
     if (!noRapl)
-      data.add(new EnergyRecord(epoch, EnergyCheckUtils.getEnergyStats()));
+      for (double[] record: sampleEnergy())
+        data.add(new EnergyRecord(epoch, record));
   }
 
-  private static String[] header = new String[] { "epoch", "cpu", "uncore", "dram" };
-  public void dump() throws IOException {
-    if (!noRapl) {
-      logger.info("writing energy data");
-
-      chappie.util.CSV.write(data, "data/energy.csv", header);
+  private static double[][] sampleEnergy() {
+    double[] energy = EnergyCheckUtils.getEnergyStats();
+    double[][] parsedEnergy = new double[sockets][4];
+    for (int i = 0; i < 3 * sockets; ++i) {
+      parsedEnergy[i][0] = i;
+      parsedEnergy[i][1] = energy[3 * i];
+      parsedEnergy[i][2] = energy[3 * i + 1];
+      parsedEnergy[i][3] = energy[3 * i + 2];
     }
+
+    return parsedEnergy;
+  }
+
+  public void dumpImpl() throws IOException {
+    if (!noRapl)
+      chappie.util.CSV.write(data, "data/energy.csv");
   }
 }

@@ -21,23 +21,28 @@ package chappie.util;
 
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.io.PrintWriter;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Set;
 
 public class JSON {
-  public static void write(Map<Object, Object> records, String path) throws IOException {
-    FileWriter writer = new FileWriter(path);
+  // This takes any map and writes a json from it, assuming its entry types
+  // support to string. There is certainly a tool that does this but it
+  // seems overkill
+  public static void write(Map records, String path) throws IOException {
+    PrintWriter writer = new PrintWriter(new FileWriter(path));
 
-    writer.write("{\n");
+    writer.println("{");
+
     int size = records.size();
     int i = 0;
-    for (Map.Entry<?, ?> record: records.entrySet()) {
-      String message = "  \"" + record.getKey() + "\": \"" + record.getValue() + "\"" + (++i < size ? "," : "") + "\n";
-      writer.write(message);
+    Set<Map.Entry> recordSet = records.entrySet();
+    for (Map.Entry record: recordSet) {
+      String message = "  \"" + record.getKey().toString() + "\": \"" + record.getValue().toString() + "\"" + (++i < size ? "," : "");
+      writer.println(message);
     }
-    writer.write("}\n");
+
+    writer.println("}");
 
     writer.close();
   }

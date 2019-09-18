@@ -19,122 +19,52 @@
 
 package chappie.glibc;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.logging.Logger;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import com.sun.jna.Library;
 import com.sun.jna.Native;
-
-import chappie.util.ChappieLogger;
 
 interface GLIBCLibrary extends Library {
   static GLIBCLibrary instance = (GLIBCLibrary)Native.loadLibrary("c", GLIBCLibrary.class);
 
   int getpid();
   int gettid();
-
-  int syscall(int call);
 }
 
 public abstract class GLIBC {
   // pid methods
-  private static int getpid() {
-    try {
-      return GLIBCLibrary.instance.getpid();
-    } catch (UnsatisfiedLinkError e) {
-      return -1;
-    }
+  private static int getpid() throws UnsatisfiedLinkError {
+    return GLIBCLibrary.instance.getpid();
   }
 
   private static Integer pid = getpid();
   public static int getProcessId() { return pid; }
 
   // tid methods
-  private static int gettid() {
-    try {
-      return GLIBCLibrary.instance.gettid();
-    } catch (UnsatisfiedLinkError e) {
-      return -1;
-    }
+  private static int gettid() throws UnsatisfiedLinkError {
+    return GLIBCLibrary.instance.gettid();
   }
 
-  private static HashMap<Object, Object> tidMap = new HashMap<Object, Object>();
-  public static int getThreadId() {
-    Logger logger = ChappieLogger.getLogger();
-
+  // we are keeping a local copy of the tid map (essentially any thread that is created at runtime)
+  // to speed things up a bit
+  private static HashMap<Long, Integer> tidMap = new HashMap<Long, Integer>();
+  public static int getTaskId() {
     int tid = -1;
     Thread thread = Thread.currentThread();
     if (!tidMap.containsKey(thread.getId())) {
-      tid = GLIBC.gettid();
-      if (tid > 0) {
-        tidMap.put(thread.getId(), tid);
-        logger.info("mapped " + thread.getName() + " to " + tid);
-      } else logger.info("could not map " + thread.getName());
-    } else tid = (int)tidMap.get(thread.getId());
+      try {
+        tid = GLIBC.gettid();
+        if (tid > 0)
+          tidMap.put(thread.getId(), tid);
+      } catch (UnsatisfiedLinkError e) { }
+    } else
+      tid = (int)tidMap.get(thread.getId());
 
     return tid;
   }
 
-  // process reading helpers
-  public static String readProcess(String tid) throws IOException {
-    String path = "/proc/" + pid + "/task/" + tid + "/stat";
-    BufferedReader reader = new BufferedReader(new FileReader(path));
-    String stat = reader.readLine();
-    reader.close();
-
-    return stat;
-  }
-
-  private static HashMap<Object, Object> nameMap = new HashMap<Object, Object>();
-  public static String[] parseProcessRecord(String stat) {
-    String[] stats = stat.split(" ");
-    int offset = stats.length - 52;
-
-    String tid = stats[0];
-    if (!nameMap.containsKey(tid)) {
-      String name = Arrays.stream(Arrays.copyOfRange(stats, 1, 2 + offset)).collect(Collectors.joining(""));
-      nameMap.put(tid, name.substring(1, name.length() - 1));
-    }
-
-    String state = stats[2 + offset];
-    String u_jiffies = stats[13 + offset];
-    String k_jiffies = stats[14 + offset];
-    String core = stats[38 + offset];
-
-    return new String[] {tid, core, state, u_jiffies, k_jiffies};
-  }
-
-  // runtime stats
-  private static int cores = Runtime.getRuntime().availableProcessors();
-  public static ArrayList<String> readSystem() throws IOException {
-    ArrayList<String> records = new ArrayList<String>();
-    BufferedReader reader = new BufferedReader(new FileReader("/proc/stat"));
-
-    reader.readLine();
-    for (int i = cores; i > 0; i--)
-      records.add(reader.readLine());
-    reader.close();
-
-    return records;
-  }
-
-  public static String[] parseSystemRecord(String stat) {
-    String[] stats = stat.split(" ");
-    stats[0] = stats[0].substring(3, stats[0].length());
-
-    return stats;
-  }
-
-  // helper functions
-  public static void dumpMapping() throws IOException {
+  public static void dump() throws IOException {
     chappie.util.JSON.write(tidMap, "data/tid.json");
-    chappie.util.JSON.write(nameMap, "data/name.json");
   }
 }

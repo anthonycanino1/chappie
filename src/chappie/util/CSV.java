@@ -22,27 +22,23 @@ package chappie.util;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
-import chappie.profile.Profiler.Record;
+import chappie.profile.Record;
 
 public class CSV {
-  public static void write(List<Record> records, String path, String[] header) throws IOException {
+  // Takes a list of records and writes them to a file as a csv. At this stage,
+  // it doesn't make sense to use a complex csv writer to dump data. Eventually,
+  // this will probably have to dump to a database or similar, so I want to keep
+  // things open
+  public static void write(List<Record> records, String path) throws IOException {
     PrintWriter writer = new PrintWriter(new FileWriter(path));
+
+    String[] header = records.get(0).getHeader();
     writer.println(String.join(";", header));
+
     for(Record record: records)
       writer.println(record);
-    // records.stream()
-      // .map(Object::toString)
-      // .map(r -> writer.println(r.toString()));
-
-    // writer.write(String.join(delimiter, header) + "\n");
-    // for (Object[] record: records) {
-    //   String message = Arrays.stream(record).map(Object::toString).collect(Collectors.joining(delimiter)) + "\n";
-    //   writer.write(message);
-    // }
 
     writer.close();
   }

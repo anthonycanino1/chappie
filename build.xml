@@ -56,7 +56,7 @@
 			classpath="${deps.dir}/jna-5.4.0.jar:${deps.dir}/javassist.jar"
 		/>
 		<copy file="src/jrapl-port/classes/libCPUScaler.so" todir="build/classes/jrapl"/>
-		<!-- <copy file="src/async/build/liblagent.so" todir="build/classes"/> -->
+		<copy file="src/async/build/liblagent.so" todir="build"/>
 	</target>
 
   <target name="jar" depends="compile">

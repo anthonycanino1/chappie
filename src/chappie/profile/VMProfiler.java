@@ -20,7 +20,6 @@
 package chappie.profile;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.stream.Collectors;
@@ -38,26 +37,27 @@ public class VMProfiler extends Profiler {
       rootGroup = parentGroup;
   }
 
-  private class ThreadRecord implements Record {
-    private Integer epoch;
+  private class ThreadRecord extends Record {
     private long id;
     private Thread.State state;
 
-    private ThreadRecord(int epoch, long id, Thread.State state) {
+    public ThreadRecord(int epoch, Thread thread) {
       this.epoch = epoch;
-      this.id = id;
-      this.state = state;
+      this.id = thread.getId();
+      this.state = thread.getState();
     }
 
-    @Override
-    public String toString() {
-      return Arrays.stream(new Object[]{epoch, id, state})
-        .map(Object::toString)
-        .collect(Collectors.joining(";"));
+    public String stringImpl() {
+      return Integer.toString(epoch) + ":" + Long.toString(id) + ":" + state.toString();
     }
+
+    private String[] header = new String[] { "epoch", "id", "state" };
+    public String[] headerImpl() {
+      return header;
+    };
   }
 
-  HashMap<Object, Object> mapping = new HashMap<Object, Object>();
+  HashMap<Long, String> mapping = new HashMap<Long, String>();
   protected void sampleImpl(int epoch) {
     // get all active threads (essentially everything but zombies)
     Thread[] threads = new Thread[rootGroup.activeCount()];
@@ -70,15 +70,12 @@ public class VMProfiler extends Profiler {
       if (thread != null) {
         if (!mapping.containsKey(thread.getId()))
           mapping.put(thread.getId(), thread.getName());
-        data.add(new ThreadRecord(epoch, thread.getId(), thread.getState()));
+        data.add(new ThreadRecord(epoch, thread));
       }
   }
 
-  private static String[] header = new String[] { "epoch", "id", "state" };
-  public void dump() throws IOException {
-    logger.info("writing vm data");
-
-    chappie.util.CSV.write(data, "data/vm.csv", header);
+  public void dumpImpl() throws IOException {
+    chappie.util.CSV.write(data, "data/vm.csv");
     chappie.util.JSON.write(mapping, "data/id.json");
   }
 }

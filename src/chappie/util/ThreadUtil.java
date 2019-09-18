@@ -20,13 +20,15 @@
 package chappie.util;
 
 public class ThreadUtil {
+  // the code to do this is messy so it's just easier to tuck it here in case
+  // we need this again
   public static void sleepUntil(long start, long end) throws InterruptedException {
     long elapsed = System.nanoTime() - start;
     long millis = elapsed / 1000000;
     int nanos = (int)(elapsed - millis * 1000000);
 
     millis = end - millis - (nanos > 0 ? 1 : 0);
-    nanos = 1000000 - nanos;
+    nanos = Math.min(1000000 - nanos, 999999);
 
     if (millis >= 0 && nanos > 0)
       Thread.sleep(millis, nanos);

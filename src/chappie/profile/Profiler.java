@@ -2,7 +2,9 @@ package chappie.profile;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 public abstract class Profiler {
   protected int rate;
@@ -13,14 +15,19 @@ public abstract class Profiler {
     logger.info(this.getClass().getSimpleName() + ": " + rate * time + " ms");
   }
 
-  public interface Record { }
   protected ArrayList<Record> data = new ArrayList<Record>();
   public void sample(int epoch) {
     if (epoch % rate == 0) {
       sampleImpl(epoch);
     }
   };
+
   protected abstract void sampleImpl(int epoch);
 
-  public abstract void dump() throws IOException;
+  public void dump() throws IOException {
+    logger.info("writing " + this.getClass().getSimpleName() + " data");
+    dumpImpl();
+  }
+
+  public abstract void dumpImpl() throws IOException;
 }

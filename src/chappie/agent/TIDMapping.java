@@ -20,7 +20,7 @@ import chappie.util.ChappieLogger;
 
 public class TIDMapping implements ClassFileTransformer {
 
-  static String mappingBody = "chappie.glibc.GLIBC.getThreadId();";
+  static String mappingBody = "chappie.glibc.GLIBC.getTaskId();";
     //
     // "java.util.logging.Logger logger = chappie.util.ChappieLogger.getLogger();" +
     // "try {"                                                                     +

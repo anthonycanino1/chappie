@@ -28,11 +28,14 @@ import java.util.stream.Stream;
 import java.util.stream.Collectors;
 
 import chappie.profile.*;
-import chappie.profile.Profiler.Record;
+import chappie.profile.Record;
 import chappie.util.*;
 
 public class Chaperone implements Runnable {
-  static int id = 0;
+  // used for tracking instances; in reality, this is a singleton class since
+  // there is no reason to have a second chaperone. even in the case of
+  // parallel sampling, the singleton should manage the system.
+  private static int id = 0;
 
   private int timerRate;
   private int epoch = 0;
@@ -46,8 +49,10 @@ public class Chaperone implements Runnable {
     logger = ChappieLogger.getLogger();
     logger.info("creating chappie instance " + id);
 
+    // check if we are in nop
     timerRate = Integer.parseInt(System.getProperty("chappie.rate", "1"));
     if (timerRate > 0) {
+      // setup the various profilers
       int vmRate = Integer.parseInt(System.getProperty("chappie.vm", "1"));
       if (vmRate > 0)
         profilers.add(new VMProfiler(vmRate, timerRate));
@@ -62,10 +67,13 @@ public class Chaperone implements Runnable {
 
       thread = new Thread(this, "chappie-" + id++);
     } else {
+      // we probably need a runtime profiler to collect nop stats
       logger.info("running in nop mode");
     }
   }
 
+  // Thread-like interface since we don't deal with the structure like a
+  // runnable; I should find out if there's a better pattern
   public void start() {
     if (timerRate > 0)
       thread.start();
@@ -90,8 +98,8 @@ public class Chaperone implements Runnable {
     }
   }
 
-  private class ChappieRecord implements Record {
-    private Integer epoch;
+  // measurement of chappie's activeness for each epoch
+  private class ChappieRecord extends Record {
     private long timestamp;
     private long elapsed;
     private long total;
@@ -103,17 +111,25 @@ public class Chaperone implements Runnable {
       this.total = total;
     }
 
-    @Override
-    public String toString() {
-      return Arrays.stream(new Object[]{epoch, timestamp, elapsed, total})
-        .map(Object::toString)
-        .collect(Collectors.joining(";"));
+    protected String stringImpl() {
+      return Integer.toString(epoch) + ";" +
+        Long.toString(timestamp) + ";" +
+        Long.toString(elapsed) + ";" +
+        Long.toString(total);
     }
+
+    private String[] header = new String[] { "epoch", "timestamp", "elapsed", "total" };
+    public String[] headerImpl() {
+      return header;
+    };
   }
 
   private ArrayList<Record> data = new ArrayList<Record>();
   public void run() {
     while (!thread.interrupted()) {
+      // in addition to sampling all profilers, chappie needs to
+      // know when the samples are taken, how long the sampling took,
+      // and how long the entire epoch took
       long timestamp = System.currentTimeMillis();
       long start = System.nanoTime();
 
@@ -123,6 +139,7 @@ public class Chaperone implements Runnable {
 
       long elapsed = System.nanoTime() - start;
 
+      // we try our best to sample at uniform intervals, even when terminating
       try {
         ThreadUtil.sleepUntil(start, timerRate);
       } catch (InterruptedException e) {
@@ -135,10 +152,9 @@ public class Chaperone implements Runnable {
     }
   }
 
-  private static String[] header = new String[] { "epoch", "timestamp", "elapsed", "total" };
   private void dump() throws IOException {
     logger.info("writing chappie data");
-    chappie.util.CSV.write(data, "data/chappie.csv", header);
+    chappie.util.CSV.write(data, "data/chappie.csv");
 
     for (Profiler profiler: profilers)
       profiler.dump();
