@@ -12,7 +12,7 @@ public abstract class Record {
 
   @Override
   public String toString() {
-    return Integer.toString(epoch) + ":" + stringImpl();
+    return Integer.toString(epoch) + ";" + stringImpl();
   };
   protected abstract String stringImpl();
 

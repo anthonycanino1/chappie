@@ -89,17 +89,17 @@ public class CPU {
   }
 
   private static String path = "/proc/stat";
-  private static int socketNum = Runtime.getRuntime().availableProcessors();
+  private static int cpuNum = Runtime.getRuntime().availableProcessors();
 
   public static CPU[] getCPUs() throws IOException {
-    CPU[] stats = new CPU[socketNum];
+    CPU[] stats = new CPU[cpuNum];
 
     BufferedReader reader = new BufferedReader(new FileReader(path));
 
     // we are throwing away the first record; it's the whole system and
     // we need cpu specific
     reader.readLine();
-    for (int i = 0; i < socketNum; i++)
+    for (int i = 0; i < cpuNum; i++)
       stats[i] = new CPU(reader.readLine());
 
     reader.close();

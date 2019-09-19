@@ -28,7 +28,7 @@ import java.util.stream.Stream;
 import java.util.stream.Collectors;
 
 import chappie.profile.*;
-import chappie.profile.Record;
+import chappie.profile.impl.*;
 import chappie.util.*;
 
 public class Chaperone implements Runnable {
