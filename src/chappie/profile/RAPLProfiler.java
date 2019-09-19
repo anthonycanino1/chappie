@@ -42,6 +42,7 @@ public class RAPLProfiler extends Profiler {
       } catch(Exception e) {
         noRapl = true;
         logger.info("no rapl available");
+        e.printStackTrace();
       }
     }
   }
