@@ -60,13 +60,14 @@ public class RAPLProfiler extends Profiler {
       this.dram = record[1];
     }
 
-    protected void parseRecord() {}
-
-    public String[] toArray() {
-      return new String[]{ Integer.toString(epoch), Integer.toString(socket), Double.toString(cpu), Double.toString(dram) };
+    protected String stringImpl() {
+      return Integer.toString(epoch) + ";" +
+        Integer.toString(socket) + ";" +
+        Double.toString(cpu) + ";" +
+        Double.toString(dram);
     }
 
-    private String[] header = new String[] { "epoch", "cpu", "uncore", "dram" };
+    private String[] header = new String[] { "epoch", "socket", "package", "dram" };
     public String[] headerImpl() {
       return header;
     };

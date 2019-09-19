@@ -29,8 +29,8 @@ import chappie.profile.Record;
 public class CSV {
   // Takes a list of records and writes them to a file as a csv. At this stage,
   // it doesn't make sense to use a complex csv writer to dump data. Eventually,
-  // this will probably have to dump to a database or similar, so I want to keep
-  // things open
+  // we will have to dump to a database, so I want to keep things open so the
+  // same structure can be use 
   public static void write(List<Record> records, String path) throws IOException {
     PrintWriter writer = new PrintWriter(new FileWriter(path));
 
