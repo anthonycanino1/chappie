@@ -31,18 +31,16 @@ public class RAPLProfiler extends Profiler {
   // reshape it into a 3 x socket array. This primarily helps with clean code
   // but could be in jRAPL instead.
   private static boolean noRapl = false;
-  private ArrayList<EnergyRecord> initReading;
+  // private ArrayList<EnergyRecord> initReading;
   public RAPLProfiler(int rate, int time) {
     super(rate, time);
 
     if (!noRapl) {
       try {
-        for (double[] record: sampleEnergy())
-          initReading.add(new EnergyRecord(-1, record));
+        sampleEnergy();
       } catch(Exception e) {
         noRapl = true;
         logger.info("no rapl available");
-        e.printStackTrace();
       }
     }
   }
@@ -83,7 +81,7 @@ public class RAPLProfiler extends Profiler {
   private static double[][] sampleEnergy() {
     double[] energy = EnergyCheckUtils.getEnergyStats();
     double[][] parsedEnergy = new double[sockets][4];
-    for (int i = 0; i < 3 * sockets; ++i) {
+    for (int i = 0; i < sockets; ++i) {
       parsedEnergy[i][0] = i;
       parsedEnergy[i][1] = energy[3 * i];
       parsedEnergy[i][2] = energy[3 * i + 1];
