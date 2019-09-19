@@ -24,6 +24,7 @@ import java.util.ArrayList;
 
 import jrapl.EnergyCheckUtils;
 
+import chappie.Chaperone;
 import chappie.profile.*;
 import chappie.util.*;
 
@@ -92,6 +93,6 @@ public class RAPLProfiler extends Profiler {
 
   public void dumpImpl() throws IOException {
     if (!noRapl)
-      chappie.util.CSV.write(data, "data/energy.csv");
+      chappie.util.CSV.write(data, Chaperone.getWorkDirectory() + "/energy.csv");
   }
 }

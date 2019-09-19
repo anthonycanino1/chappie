@@ -26,14 +26,11 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.logging.Logger;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import com.sun.jna.Library;
 import com.sun.jna.Native;
 
-import chappie.util.ChappieLogger;
+import chappie.Chaperone;
 
 public class OSProcess {
 
@@ -87,7 +84,7 @@ public class OSProcess {
   private long userJiffies;
   private long systemJiffies;
 
-  HashMap<Integer, String> nameMap = new HashMap<Integer, String>();
+  private static HashMap<Integer, String> nameMap = new HashMap<Integer, String>();
   public OSProcess parse() {
     if (this.stat != null) {
       // since java use spaces in thread names, we can't just split on
@@ -142,5 +139,9 @@ public class OSProcess {
   private static OSProcess current = new OSProcess(GLIBC.getProcessId());
   public static OSProcess currentProcess() {
     return current;
+  }
+
+  public static void dump() throws IOException {
+    chappie.util.JSON.write(nameMap, Chaperone.getWorkDirectory() + "/name.json");
   }
 }

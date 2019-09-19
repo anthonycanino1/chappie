@@ -5,3 +5,6 @@ build
 *.json
 dependencies
 **\classes
+*\_pycache__
+analysis
+run\dep

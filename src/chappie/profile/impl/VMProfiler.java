@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.stream.Collectors;
 
+import chappie.Chaperone;
 import chappie.profile.*;
 import chappie.util.*;
 
@@ -76,7 +77,7 @@ public class VMProfiler extends Profiler {
   }
 
   public void dumpImpl() throws IOException {
-    chappie.util.CSV.write(data, "data/vm.csv");
-    chappie.util.JSON.write(mapping, "data/id.json");
+    chappie.util.CSV.write(data, Chaperone.getWorkDirectory() + "/vm.csv");
+    chappie.util.JSON.write(mapping, Chaperone.getWorkDirectory() + "/id.json");
   }
 }

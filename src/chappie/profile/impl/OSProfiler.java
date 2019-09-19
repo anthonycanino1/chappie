@@ -22,8 +22,8 @@ package chappie.profile.impl;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import chappie.Chaperone;
 import chappie.glibc.*;
-
 import chappie.profile.*;
 import chappie.util.*;
 
@@ -83,7 +83,7 @@ public class OSProfiler extends Profiler {
       try {
         data.add(new OSProcessRecord(epoch, proc.sample()));
       } catch (IOException io1) {
-        // logger.info("could not sample process " + tid + ": " + io1.getMessage());
+        logger.info("could not sample process: " + io1.getMessage());
       }
 
     try {
@@ -95,8 +95,10 @@ public class OSProfiler extends Profiler {
   }
 
   public void dumpImpl() throws IOException {
-    chappie.util.CSV.write(data, "data/os.csv");
-    chappie.util.CSV.write(sysData, "data/sys.csv");
+    chappie.util.CSV.write(data, Chaperone.getWorkDirectory() + "/os.csv");
+    chappie.util.CSV.write(sysData, Chaperone.getWorkDirectory() + "/sys.csv");
+
     GLIBC.dump();
+    OSProcess.dump();
   }
 }

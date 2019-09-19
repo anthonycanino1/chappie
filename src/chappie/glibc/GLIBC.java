@@ -25,6 +25,8 @@ import java.util.HashMap;
 import com.sun.jna.Library;
 import com.sun.jna.Native;
 
+import chappie.Chaperone;
+
 interface GLIBCLibrary extends Library {
   static GLIBCLibrary instance = (GLIBCLibrary)Native.loadLibrary("c", GLIBCLibrary.class);
 
@@ -65,6 +67,6 @@ public abstract class GLIBC {
   }
 
   public static void dump() throws IOException {
-    chappie.util.JSON.write(tidMap, "data/tid.json");
+    chappie.util.JSON.write(tidMap, Chaperone.getWorkDirectory() + "/tid.json");
   }
 }

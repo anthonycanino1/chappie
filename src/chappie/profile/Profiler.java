@@ -12,7 +12,7 @@ public abstract class Profiler {
   public Profiler(int rate, int time) {
     this.rate = rate;
     this.logger = Logger.getLogger("chappie");
-    logger.info(this.getClass().getSimpleName() + ": " + rate * time + " ms");
+    logger.info(this.getClass().getSimpleName() + " set to " + rate * time + " ms");
   }
 
   protected ArrayList<Record> data = new ArrayList<Record>();

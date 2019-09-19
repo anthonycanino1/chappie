@@ -19,13 +19,10 @@
 
 package chappie;
 
-import java.io.FileWriter;
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.logging.Logger;
-import java.util.stream.Stream;
-import java.util.stream.Collectors;
 
 import chappie.profile.*;
 import chappie.profile.impl.*;
@@ -37,6 +34,12 @@ public class Chaperone implements Runnable {
   // parallel sampling, the singleton should manage the system.
   private static int id = 0;
 
+  private static String baseWorkDirectory;
+  private static String workDirectory;
+  public static String getWorkDirectory() {
+    return workDirectory;
+  }
+
   private int timerRate;
   private int epoch = 0;
 
@@ -47,7 +50,13 @@ public class Chaperone implements Runnable {
 
   public Chaperone() {
     logger = ChappieLogger.getLogger();
-    logger.info("creating chappie instance " + id);
+    logger.info("creating chappie instance " + ++id);
+
+    // grab the work directory if it doesn't exist yet and then make a new one
+    if (baseWorkDirectory == null)
+      baseWorkDirectory = System.getProperty("chappie.directory", "data");
+    workDirectory = baseWorkDirectory + "/" + id;
+    new File(workDirectory).mkdir();
 
     // check if we are in nop
     timerRate = Integer.parseInt(System.getProperty("chappie.rate", "1"));
@@ -65,7 +74,7 @@ public class Chaperone implements Runnable {
       if (raplRate > 0)
         profilers.add(new RAPLProfiler(raplRate, timerRate));
 
-      thread = new Thread(this, "chappie-" + id++);
+      thread = new Thread(this, "chappie-" + id);
     } else {
       // we probably need a runtime profiler to collect nop stats
       logger.info("running in nop mode");
@@ -154,7 +163,7 @@ public class Chaperone implements Runnable {
 
   private void dump() throws IOException {
     logger.info("writing chappie data");
-    chappie.util.CSV.write(data, "data/chappie.csv");
+    chappie.util.CSV.write(data, Chaperone.getWorkDirectory() + "/chappie.csv");
 
     for (Profiler profiler: profilers)
       profiler.dump();
