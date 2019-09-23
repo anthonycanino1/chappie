@@ -48,7 +48,7 @@ public class OSProfiler extends Profiler {
       return proc.parse().toString();
     }
 
-    private String[] header = new String[] { "epoch", "id", "cpu", "state", "user", "sys" };
+    private String[] header = new String[] { "epoch", "tid", "cpu", "state", "user", "sys" };
     public String[] headerImpl() {
       return header;
     };

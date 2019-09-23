@@ -21,15 +21,6 @@ import chappie.util.ChappieLogger;
 public class TIDMapping implements ClassFileTransformer {
 
   static String mappingBody = "chappie.glibc.GLIBC.getTaskId();";
-    //
-    // "java.util.logging.Logger logger = chappie.util.ChappieLogger.getLogger();" +
-    // "try {"                                                                     +
-    //   "String thread = Thread.currentThread().getName());"                       +
-    //   "logger.info(\"mapping \" + Thread.currentThread().getName());"           +
-    //   "chappie.util.GLIBC.getThreadId();"                                       +
-    // "} catch (java.lang.NoClassDefFoundError ex) {"                             +
-    //   "logger.info(\"Couldn't map \" + Thread.currentThread().getName());"      +
-    // "}";
 
   static CtClass getSuperClass(CtClass cls) {
     try {
@@ -78,7 +69,6 @@ public class TIDMapping implements ClassFileTransformer {
 			ClassPool classPool = ClassPool.getDefault();
       CtClass ctClass = classPool.makeClass(new ByteArrayInputStream(classfileBuffer));
 
-      // if(!ctClass.getPackageName().contains("java.") && isRunnable(ctClass)) {
       if(isRunnable(ctClass)) {
   			CtMethod runMethod = ctClass.getMethod("run", Descriptor.ofMethod(CtClass.voidType, new CtClass[0]));
         runMethod.insertBefore(mappingBody);

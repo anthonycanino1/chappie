@@ -22,6 +22,7 @@ package chappie;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.logging.Logger;
 
 import chappie.profile.*;
@@ -49,15 +50,17 @@ public class Chaperone implements Runnable {
   private ArrayList<Profiler> profilers = new ArrayList<Profiler>();
 
   public Chaperone() {
-    logger = ChappieLogger.getLogger();
-    logger.info("creating chappie instance " + ++id);
+    logger = ChappieLogger.buildLogger();
 
     // grab the work directory if it doesn't exist yet and then make a new one
-    if (baseWorkDirectory == null)
-      baseWorkDirectory = System.getProperty("chappie.directory", "data");
+    if (baseWorkDirectory == null) {
+      baseWorkDirectory = System.getProperty("chappie.dir", "chappie-logs") + "/raw";
+      logger.info("base work directory set to " + baseWorkDirectory);
+    }
     workDirectory = baseWorkDirectory + "/" + id;
     new File(workDirectory).mkdir();
 
+    logger.info("creating chappie instance " + ++id);
     // check if we are in nop
     timerRate = Integer.parseInt(System.getProperty("chappie.rate", "1"));
     if (timerRate > 0) {
@@ -103,46 +106,45 @@ public class Chaperone implements Runnable {
     try {
       dump();
     } catch(IOException io) {
-      logger.info("couldn't write observations: " + io.getMessage());
+      logger.info("couldn't write data: " + io.getMessage());
     }
   }
 
   // measurement of chappie's activeness for each epoch
   private class ChappieRecord extends Record {
-    private long timestamp;
     private long elapsed;
     private long total;
 
-    public ChappieRecord(int epoch, long timestamp, long elapsed, long total) {
+    public ChappieRecord(int epoch, long elapsed, long total) {
       this.epoch = epoch;
-      this.timestamp = timestamp;
       this.elapsed = elapsed;
       this.total = total;
     }
 
     protected String stringImpl() {
       return Integer.toString(epoch) + ";" +
-        Long.toString(timestamp) + ";" +
         Long.toString(elapsed) + ";" +
         Long.toString(total);
     }
 
-    private String[] header = new String[] { "epoch", "timestamp", "elapsed", "total" };
+    private String[] header = new String[] { "epoch", "elapsed", "total" };
     public String[] headerImpl() {
       return header;
     };
   }
 
   private ArrayList<Record> data = new ArrayList<Record>();
+  private HashMap<Integer, Long> timestamps = new HashMap<Integer, Long>();
   public void run() {
     while (!thread.interrupted()) {
       // in addition to sampling all profilers, chappie needs to
       // know when the samples are taken, how long the sampling took,
       // and how long the entire epoch took
-      long timestamp = System.currentTimeMillis();
       long start = System.nanoTime();
 
       epoch++;
+      timestamps.put(epoch, System.currentTimeMillis());
+
       for (Profiler profiler: profilers)
         profiler.sample(epoch);
 
@@ -157,13 +159,14 @@ public class Chaperone implements Runnable {
       }
 
       long total = System.nanoTime() - start;
-      data.add(new ChappieRecord(epoch, timestamp, elapsed, total));
+      data.add(new ChappieRecord(epoch, elapsed, total));
     }
   }
 
   private void dump() throws IOException {
     logger.info("writing chappie data");
     chappie.util.CSV.write(data, Chaperone.getWorkDirectory() + "/chappie.csv");
+    chappie.util.JSON.write(timestamps, Chaperone.getWorkDirectory() + "/time.json");
 
     for (Profiler profiler: profilers)
       profiler.dump();

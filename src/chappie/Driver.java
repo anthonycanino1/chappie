@@ -30,16 +30,22 @@ import java.util.ArrayList;
 
 public class Driver {
   public static void main(String[] args) throws IOException {
-    Chaperone chappie = new Chaperone();
+    int iters = 1;
+    if (args.length > 0)
+      iters = Integer.parseInt(args[0]);
 
-    chappie.start();
+    System.out.println("running test program for " + iters + "iterations");
+    for (int i = 0; i < iters; i++) {
+      Chaperone chappie = new Chaperone();
+      chappie.start();
 
-    for (int i = 0; i < 10; ++i) {
-      try {
-        Thread.sleep(100);
-      } catch(InterruptedException e) { }
+      for (int k = 0; k < 10; ++k) {
+        try {
+          Thread.sleep(100);
+        } catch(InterruptedException e) { }
+      }
+
+      chappie.stop();
     }
-
-    chappie.stop();
   }
 }

@@ -50,7 +50,7 @@ public class VMProfiler extends Profiler {
     }
 
     public String stringImpl() {
-      return Integer.toString(epoch) + ":" + Long.toString(id) + ":" + state.toString();
+      return Integer.toString(epoch) + ";" + Long.toString(id) + ";" + state.toString();
     }
 
     private String[] header = new String[] { "epoch", "id", "state" };

@@ -48,8 +48,10 @@ public abstract class GLIBC {
     return GLIBCLibrary.instance.gettid();
   }
 
-  // we are keeping a local copy of the tid map (essentially any thread that is created at runtime)
-  // to speed things up a bit
+  // we are keeping a local copy of the tid map
+  // (essentially any thread that is created at runtime)
+  // to speed things up a bit but we only need the id since
+  // we are also tracking names elsewhere
   private static HashMap<Long, Integer> tidMap = new HashMap<Long, Integer>();
   public static int getTaskId() {
     int tid = -1;

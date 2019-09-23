@@ -40,8 +40,10 @@ public class OSProcess {
 
   private OSProcess(int id) {
     this.id = id;
-    // this.statFile = "/proc/" + id + "/task/" + tid + "/stat";
-    this.statFile = "/proc/" + id + "/stat";
+    // which path do we use???
+    this.statFile = "/proc/" + GLIBC.getProcessId() + "/task/" + id + "/stat";
+    // this.statFile = "/proc/" + id + "/stat";
+
     this.taskDir = "/proc/" + id + "/task/";
 
     try {
@@ -58,6 +60,7 @@ public class OSProcess {
     BufferedReader reader = new BufferedReader(new FileReader(this.statFile));
     this.stat = reader.readLine();
     reader.close();
+    // timestamp = System.currentTimeMillis();
 
     return this;
   }
@@ -96,7 +99,7 @@ public class OSProcess {
       if (!nameMap.containsKey(id)) {
         // I'm clipping the parens around thread name here so the output
         // is cleaner
-        String name = String.join("", Arrays.copyOfRange(stats, 1, 2 + offset));
+        String name = String.join(" ", Arrays.copyOfRange(stats, 1, 2 + offset));
         name = name.substring(1, name.length() - 1);
         nameMap.put(id, name);
       }
