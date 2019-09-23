@@ -6,3 +6,4 @@ build
 dependencies
 **\classes
 *__pycache__*
+*.log

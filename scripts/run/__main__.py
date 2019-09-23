@@ -1,7 +1,6 @@
 import argparse
 import json
 import os
-import shutil
 
 from argparse import Namespace
 from os.path import dirname
@@ -9,43 +8,11 @@ from os.path import dirname
 run_libs = dirname(__file__)
 chappie_root = dirname(dirname(run_libs))
 
-def set_default(config_path):
-    shutil.copyfile(config_path, os.path.join(run_libs, 'default_config.json'))
-
-def load_default(args):
-    default = load_config(os.path.join(run_libs, 'default_config.json'))
-
-    if args.work_directory:
-        default['work_directory'] = args.work_directory
-
-    if 'properties' in default:
-        default['properties'] += args.properties
-    else:
-        default['properties'] = args.properties
-
-    if 'class_path' in default:
-        default['class_path'] += args.class_path
-    else:
-        default['class_path'] = args.class_path
-
-    if args.main:
-        default['main'] = args.main
-
-    if args.args:
-        default['args'] = args.args
-
-    return default
-
-def load_config(path):
-    return json.load(open(path))
-
 def parse_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-cfg', '--config')
     parser.add_argument('-dir', '--work-directory')
-
-    # parser.add_argument('--set-default', action = 'store_true')
 
     args = parser.parse_args()
 
@@ -54,27 +21,16 @@ def parse_args():
     elif args.config:
         config = json.load(open(args.config))
     else:
-        config = json.load(open(os.path.join(dirname(__file__), 'default_config.json')))
-
-        jparser = parser.add_subparsers().add_parser(name = "java args")
-        jparser.add_argument('-dargs', '--properties', nargs = '+', default = [])
-        jparser.add_argument('-cp', '--class-path', default = None)
-        jparser.add_argument('main', default = '')
-        jparser.add_argument('args', nargs = argparse.REMAINDER, default = [])
-
-        jargs = jparser.parse_args()
+        raise ArgumentError('no config!')
 
     if args.work_directory:
         config['work_directory'] = args.work_directory
     elif 'work_directory' not in config:
         config['work_directory'] = 'chappie-logs'
 
-    # if args.set_default:
-    #     set_default(args.config)
-
     return config
 
-def build_call(config):
+def build_java_call(config):
     call_args = {}
     call_args['chappie_root'] = chappie_root
     call_args['class_path'] = config['class_path']
@@ -124,7 +80,12 @@ def build_call(config):
         {main} {args}
     """.format(**call_args)
 
-    print(java_call)
+    return java_call
+
+def main(args):
+    call = build_java_call(args)
+
+    print(call)
 
 if __name__ == "__main__":
-    build_call(parse_args())
+    main(parse_args())

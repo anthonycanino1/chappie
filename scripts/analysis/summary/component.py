@@ -10,8 +10,8 @@ JVM_JAVA = (
     'Finalizer',
     'Java2D Disposer',
     'process reaper',
-    'Reference Handl',
-    'Signal Dispatch'
+    'Reference Handler',
+    'Signal Dispatcher'
 )
 
 JIT = ('CompilerThre', )
@@ -39,7 +39,7 @@ def thread_to_component(thread):
 def component(path):
     df = pd.concat(tqdm(pd.read_csv(os.path.join(path, f)).assign(iter = k) for k, f in enumerate(os.listdir(path))))
     df['component'] = df.name.map(thread_to_component)
-    df = df.groupby(['component', 'socket', 'iter'])[['package', 'dram']].sum()
-    df = df.groupby(['component', 'socket'])[['package', 'dram']].mean()
+    df = df.groupby(['socket', 'component', 'iter'])[['package', 'dram']].sum()
+    df = df.groupby(['socket', 'component'])[['package', 'dram']].mean()
 
     return df

@@ -56,13 +56,15 @@ def fill_methods(df, limit = None):
 
     return df.set_index('timestamp')[['trace', 'package', 'dram']]
 
-def align(attributed, method, limit = None, status = None):
+def align(attributed, method, id, limit = None, status = None):
     if status:
         status.set_description('align')
     aligned = align_methods(attributed, method)
 
     if status:
         status.set_description('smooth')
-    aligned = aligned.reset_index().groupby('id').apply(fill_methods, (limit))
+    aligned = aligned.reset_index().groupby('id').apply(fill_methods, (limit)).reset_index()
+    id = {int(k): v for k, v in id.items()}
+    aligned['name'] = aligned.id.map(id)
 
-    return aligned
+    return aligned.set_index(['timestamp', 'id', 'name'])
