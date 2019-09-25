@@ -15,14 +15,17 @@ def smooth_energy_trace(df):
     df.package /= df.package_
     df.dram /= df.dram_
 
-    df = df.reset_index()
-    df['timestamp'] = df['index']
-    df['id'] = id
+    if not df.empty:
+        df = df.reset_index()
+        df['timestamp'] = df['index']
+        df['id'] = id
+    else:
+        df['timestamp'] = None
 
     return df.set_index('timestamp')[['package', 'dram']]
 
 def align_methods(attributed, method):
-    attributed = attributed.reset_index(0).groupby('id').apply(smooth_energy_trace)
+    attributed = attributed.reset_index().groupby('id').apply(smooth_energy_trace)
     attributed = attributed.reset_index().set_index(['timestamp', 'id']).sort_index()
 
     method = method['trace']

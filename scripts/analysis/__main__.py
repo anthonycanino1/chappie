@@ -43,8 +43,8 @@ def processing(work_directory):
 
     try:
         raw_method = pd.read_csv(os.path.join(raw_root, 'method.csv'), header = None)
-        raw_method.columns = ['timestamp', 'name', 'id', 'trace']
-        raw_method = raw_method[raw_method.trace != 'end']
+        raw_method.columns = ['name', 'timestamp', 'id', 'trace']
+        raw_method = raw_method[raw_method.trace != 'end'].drop_duplicates(subset = ['timestamp', 'id'])
     except:
         raw_method = None
 
@@ -66,31 +66,37 @@ def processing(work_directory):
         timestamps = { int(k): int(v) for k, v in timestamps.items() }
         start, end = min(timestamps.values()), max(timestamps.values())
 
-        if raw_method:
-            trimmed_method = raw_method[(raw_method.timestamp >= start) & (raw_method.timestamp <= end)]
-            trimmed_method.timestamp -= start
-            trimmed_method.timestamp += 1
-            trimmed_method.set_index(['timestamp', 'id'])
+        if raw_method is not None:
+            trimmed_method = raw_method[(raw_method.timestamp >= start) & (raw_method.timestamp <= end)].copy()
+            trimmed_method['timestamp'] = trimmed_method.timestamp - start + 1
+            trimmed_method = trimmed_method.set_index(['timestamp', 'id'])
         else:
             trimmed_method = pd.DataFrame(index = energy.index)
             trimmed_method['trace'] = randint(0, 26, len(trimmed_method)) + 65
             trimmed_method.trace = trimmed_method.trace.map(chr)
 
         id = json.load(open(os.path.join(raw_root, f, 'id.json')))
-        method = attr.align(energy, trimmed_method, id, status = status)
+        method = attr.align(energy, trimmed_method, id, limit = None, status = status)
         method.to_csv(os.path.join(processed_root, 'method', '{}.csv'.format(f)))
 
 def summary(work_directory):
     processed_root = os.path.join(work_directory, 'processed')
+    summary_root = os.path.join(work_directory, 'summary')
+    if not os.path.exists(summary_root):
+        os.mkdir(summary_root)
 
-    component = smry.component(os.path.join(processed_root, 'energy'))
-    print(component.sort_index())
+    # component = smry.component(os.path.join(processed_root, 'energy'))
+    # component = component.sort_index()
+    # print(component.sort_index())
+    # component.to_csv(os.path.join(summary_root, 'component.csv'))
 
     method = smry.method(os.path.join(processed_root, 'method'))
-    print(method.sort_values(['energy', 'hits'], ascending = False).head(10))
+    method = method.sort_values(['energy', 'hits'], ascending = False)
+    print(method)
+    method.to_csv(os.path.join(summary_root, 'method.csv'))
 
 def main(config):
-    # processing(config['work_directory'])
+    processing(config['work_directory'])
     summary(config['work_directory'])
     # plot(config.work_directory)
 

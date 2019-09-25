@@ -2,35 +2,41 @@ import pandas as pd
 
 def align_by_tid(vm, jiff):
     vm = vm.reset_index().set_index(['epoch', 'tid'])
+    jiff = jiff.reset_index().set_index(['epoch', 'tid'])
 
-    df = pd.concat([vm, jiff], axis = 1)
+    df = pd.concat([vm, jiff], axis = 1).sort_index().reset_index()
     df.jiffies = df.groupby('tid').jiffies.bfill()
     df.socket = df.groupby('tid').socket.bfill()
-    df.id = df.groupby('tid').socket.bfill()
+    df.id = df.groupby('tid').id.bfill().fillna(-1)
+    df.tid = df.groupby('tid').tid.bfill()
+    df.activeness = df.groupby('tid').activeness.bfill().fillna(1)
 
     df = df[df.jiffies == df.jiffies]
+
     df.socket = df.socket.astype(int)
     df.id = df.id.astype(int)
     df.tid = df.tid.astype(int)
 
-    return df.set_index(['epoch', 'id', 'tid', 'os_name'])[['socket', 'jiffies']]
+    return df.set_index(['epoch', 'id', 'tid'])[['socket', 'activeness', 'jiffies']]
 
 def align_by_name(vm, jiff):
     vm = vm.reset_index()
     jiff = jiff.reset_index()
 
     df = pd.merge(vm, jiff, on = ('epoch', 'os_name'), how = 'outer', suffixes = ('_', ''))
-    df.jiffies = df.groupby('os_name').jiffies.bfill()
-    df.socket = df.groupby('os_name').socket.bfill()
-    df.tid = df.groupby('os_name').tid.bfill()
-    df.id = df.groupby('os_name').id.bfill()
+    df.jiffies = df.groupby('tid').jiffies.bfill()
+    df.socket = df.groupby('tid').socket.bfill()
+    df.id = df.groupby('tid').id.bfill().fillna(-1)
+    df.tid = df.groupby('tid').tid.bfill()
+    df.activeness = df.groupby('tid').activeness.bfill().fillna(1)
 
     df = df[df.jiffies == df.jiffies]
+
     df.socket = df.socket.astype(int)
-    df.id = df.id.fillna(-1).astype(int)
+    df.id = df.id.astype(int)
     df.tid = df.tid.astype(int)
 
-    return df.set_index(['epoch', 'id', 'tid', 'os_name'])
+    return df.set_index(['epoch', 'id', 'tid'])[['socket', 'activeness', 'jiffies']]
 
 def align_state(vm, jiff):
     vm = vm
@@ -52,8 +58,8 @@ def align_state(vm, jiff):
         df = name
 
     df.activeness = df.activeness.fillna(1)
-    df['state'] = (df.activeness / df.groupby('epoch').activeness.sum()).fillna(0)
     df['state'] = df.activeness * df.jiffies
+    df['state'] = (df.state / df.groupby('epoch').state.sum()).fillna(0)
 
     return df.reset_index().set_index(['epoch', 'id', 'tid'])[['socket', 'state']]
 

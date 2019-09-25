@@ -38,19 +38,13 @@ public class OSProcess {
   private String statFile;
   private String taskDir;
 
-  private OSProcess(int id) {
+  private OSProcess(int id) throws IOException {
     this.id = id;
-    // which path do we use???
-    this.statFile = "/proc/" + GLIBC.getProcessId() + "/task/" + id + "/stat";
-    // this.statFile = "/proc/" + id + "/stat";
 
+    this.statFile = "/proc/" + GLIBC.getProcessId() + "/task/" + id + "/stat";
     this.taskDir = "/proc/" + id + "/task/";
 
-    try {
-      sample();
-    } catch(IOException e) {
-      this.stat = null;
-    }
+    sample();
   }
 
   // private long timestamp;
@@ -126,12 +120,14 @@ public class OSProcess {
       Long.toString(systemJiffies);
   }
 
-  public OSProcess[] getTasks() {
+  public ArrayList<OSProcess> getTasks() {
     File[] tasks = new File(this.taskDir).listFiles();
-    OSProcess[] procs = new OSProcess[tasks.length];
+    ArrayList<OSProcess> procs = new ArrayList<OSProcess>(tasks.length);
     for (int i = 0; i < tasks.length; i++) {
       int tid = Integer.parseInt(tasks[i].getName());
-      procs[i] = new OSProcess(tid);
+      try {
+        procs.add(new OSProcess(tid));
+      } catch (IOException e) { }
     }
 
     return procs;
@@ -139,8 +135,14 @@ public class OSProcess {
 
   // I'm forcing us to stick to the current process because external
   // ones shouldn't matter other than stat and maybe other tools
-  private static OSProcess current = new OSProcess(GLIBC.getProcessId());
+  private static OSProcess current;
   public static OSProcess currentProcess() {
+    if (current == null) {
+      try {
+        current = new OSProcess(GLIBC.getProcessId());
+      } catch(IOException e) { }
+    }
+
     return current;
   }
 

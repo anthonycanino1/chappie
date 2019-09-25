@@ -55,4 +55,6 @@ def attribute(path, status = None):
     raw['name'] = {int(k): v for k, v in raw['name'].items()}
 
     attributed['name'] = attributed.id.map(raw['id']).fillna(attributed.tid.map(raw['name']))
+    attributed = attributed.drop_duplicates(subset = ['timestamp', 'id', 'name'])
+
     return attributed.set_index(['timestamp', 'id', 'name'])

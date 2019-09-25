@@ -28,10 +28,6 @@ import chappie.profile.*;
 import chappie.util.*;
 
 public class OSProfiler extends Profiler {
-  // The OS records require reading both the system (proc/stat)
-  // and application tasks (proc/<pid>/task/<tid>/stat), so I wrote some
-  // auxillary methods to simplify the code. It's likely that I should fold
-  // this back into the GLIBC library in some capacity (similar to psutil).
   public OSProfiler(int rate, int time) {
     super(rate, time);
   }
@@ -80,18 +76,10 @@ public class OSProfiler extends Profiler {
   ArrayList<Record> sysData = new ArrayList<Record>();
   public void sampleImpl(int epoch) {
     for (OSProcess proc: OSProcess.currentProcess().getTasks())
-      try {
-        data.add(new OSProcessRecord(epoch, proc.sample()));
-      } catch (IOException io1) {
-        logger.info("could not sample process: " + io1.getMessage());
-      }
+      data.add(new OSProcessRecord(epoch, proc));
 
-    try {
-      for (CPU cpu: CPU.getCPUs())
-        sysData.add(new CPURecord(epoch, cpu));
-    } catch (IOException io2) {
-      logger.info("could not sample cpu: "+ io2.getMessage());
-    }
+    for (CPU cpu: CPU.getCPUs())
+      sysData.add(new CPURecord(epoch, cpu));
   }
 
   public void dumpImpl() throws IOException {

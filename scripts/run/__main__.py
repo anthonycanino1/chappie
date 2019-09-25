@@ -16,10 +16,10 @@ def parse_args():
 
     args = parser.parse_args()
 
-    if args.work_directory and os.path.exists(os.path.join(args.work_directory, 'config.json')):
-        config = json.load(open(os.path.join(args.work_directory, 'config.json')))
-    elif args.config:
+    if args.config:
         config = json.load(open(args.config))
+    elif args.work_directory and os.path.exists(os.path.join(args.work_directory, 'config.json')):
+        config = json.load(open(os.path.join(args.work_directory, 'config.json')))
     else:
         raise ArgumentError('no config!')
 
@@ -70,15 +70,16 @@ def build_java_call(config):
     call_args['properties'] += ' -Dchappie.dir={}'.format(call_args['work_directory'])
     call_args['args'] = config['args'].format(work_directory = call_args['work_directory'])
 
-    # -agentpath:{chappie_root}/build/liblagent.so=interval={hp},logPath={work_directory}/raw/method.csv
     java_call = """
-    java -Xbootclasspath/a:{chappie_root}/chappie.jar
-        -agentpath:{chappie_root}/build/liblagent.so
+    java -Xbootclasspath/a:{chappie_root}/chappie.jar -Xmx50g
+        -agentpath:{chappie_root}/build/liblagent.so=interval={hp},logPath={work_directory}/raw/method.csv
         -javaagent:{chappie_root}/chappie.jar
         {properties}
         -cp {chappie_root}/chappie.jar:{class_path}
         {main} {args}
     """.format(**call_args)
+
+    # java_call = """java -cp {class_path} {main} {args}""".format(**call_args)
 
     return java_call
 

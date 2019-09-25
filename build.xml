@@ -30,11 +30,17 @@
 		<!-- <gunzip src="${deps.dir}/master" dest="${deps.dir}"/> -->
 
 		<untar src="${deps.dir}/master" compression="gzip" dest="${deps.dir}"/>
-		<move file="${deps.dir}/jboss-javassist-javassist-f7ef31c/javassist.jar" todir="${deps.dir}"/>
+		<path id="javassist_path">
+			<dirset dir="${deps.dir}">
+				<include name="jboss-javassist-javassist-*"/>
+			</dirset>
+		</path>
+		<property name="javassist.dir" refid="javassist_path" />
+		<move file="${javassist.dir}/javassist.jar" todir="${deps.dir}"/>
 
 		<delete file="${deps.dir}/master"/>
-		<delete dir="${deps.dir}/jboss-javassist-javassist-f7ef31c"/>
-		<delete dir="${deps.dir}/pax_global_header"/>
+		<delete file="${deps.dir}/pax_global_header"/>
+		<delete dir="${javassist.dir}"/>
 	</target>
 
 	<target name="hp" description="compile hp source">
@@ -64,5 +70,9 @@
 			<!-- <fileset dir="${build.classes.dir}" includes="jrapl-port/**/*.so" /> -->
 			<zipgroupfileset dir="dependencies" includes="*.jar"/>
 		</jar>
+  </target>
+
+	<target name="test" depends="jar">
+		
   </target>
 </project>

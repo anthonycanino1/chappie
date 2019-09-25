@@ -32,20 +32,36 @@ interface GLIBCLibrary extends Library {
 
   int getpid();
   int gettid();
+
+  int syscall(int id);
 }
 
 public abstract class GLIBC {
   // pid methods
+  private static boolean getPid = true;
   private static int getpid() throws UnsatisfiedLinkError {
-    return GLIBCLibrary.instance.getpid();
+    if (getPid) {
+      try {
+        return GLIBCLibrary.instance.getpid();
+      } catch (UnsatisfiedLinkError e) { getTid = false; }
+    }
+
+    return GLIBCLibrary.instance.syscall(186);
   }
 
   private static Integer pid = getpid();
   public static int getProcessId() { return pid; }
 
   // tid methods
-  private static int gettid() throws UnsatisfiedLinkError {
-    return GLIBCLibrary.instance.gettid();
+  private static boolean getTid = true;
+  private static int gettid() {
+    if (getTid) {
+      try {
+        return GLIBCLibrary.instance.gettid();
+      } catch (UnsatisfiedLinkError e) { getTid = false; }
+    }
+
+    return GLIBCLibrary.instance.syscall(186);
   }
 
   // we are keeping a local copy of the tid map
@@ -61,7 +77,9 @@ public abstract class GLIBC {
         tid = GLIBC.gettid();
         if (tid > 0)
           tidMap.put(thread.getId(), tid);
-      } catch (UnsatisfiedLinkError e) { }
+      } catch (UnsatisfiedLinkError e) {
+        System.out.println("couldn't map " + thread.getName());
+      }
     } else
       tid = (int)tidMap.get(thread.getId());
 
