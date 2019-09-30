@@ -71,9 +71,11 @@ def build_java_call(config):
     call_args['args'] = config['args'].format(work_directory = call_args['work_directory'])
 
     java_call = """
-    java -Xbootclasspath/a:{chappie_root}/chappie.jar -Xmx50g
-        -agentpath:{chappie_root}/build/liblagent.so=interval={hp},logPath={work_directory}/raw/method.csv
+    java
+        -Xbootclasspath/a:{chappie_root}/chappie.jar
+        -Xmx8g
         -javaagent:{chappie_root}/chappie.jar
+        -agentpath:{chappie_root}/build/liblagent.so=logPath={work_directory}/raw/method.csv,interval={hp}
         {properties}
         -cp {chappie_root}/chappie.jar:{class_path}
         {main} {args}

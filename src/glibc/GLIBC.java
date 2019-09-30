@@ -47,7 +47,8 @@ public abstract class GLIBC {
       try {
         return libc.instance.getpid();
       } catch (UnsatisfiedLinkError e) { no_get_pid = false; }
-    } else if (!no_pid_syscall) {
+    }
+    if (!no_pid_syscall) {
       try {
         return libc.instance.syscall(39);
       } catch (UnsatisfiedLinkError e) { no_pid_syscall = false; }
@@ -66,7 +67,8 @@ public abstract class GLIBC {
       try {
         return libc.instance.gettid();
       } catch (UnsatisfiedLinkError e) { no_get_tid = false; }
-    } else if (!no_tid_syscall) {
+    }
+    if (!no_tid_syscall) {
       try {
         return libc.instance.syscall(186);
       } catch (UnsatisfiedLinkError e) { no_tid_syscall = false; }
@@ -80,13 +82,13 @@ public abstract class GLIBC {
   public static int getProcessId() { return pid; }
 
   // we keep a local mapping of the jvm and os ids
-  private static HashMap<Long, Integer> thread_tids = new HashMap<Long, Integer>();
+  private static HashMap<Integer, Integer> thread_tids = new HashMap<Integer, Integer>();
 
   // this can only get the id of the calling thread
   // since that's the native gettid is implemented
   public static int getTaskId() {
     Thread current = Thread.currentThread();
-    long id = current.getId();
+    int id = (int)current.getId();
 
     if (!thread_tids.containsKey(id)) {
       int tid = gettid();

@@ -60,7 +60,7 @@ public class VMProfiler extends Profiler {
     };
   }
 
-  HashMap<Long, String> names = new HashMap<Long, String>();
+  HashMap<Integer, String> names = new HashMap<Integer, String>();
   protected void sampleImpl(int epoch) {
     // get all active threads (essentially everything but zombies)
     Thread[] threads = new Thread[rootGroup.activeCount()];
@@ -72,7 +72,7 @@ public class VMProfiler extends Profiler {
     for (Thread thread: threads)
       if (thread != null) {
         if (!names.containsKey(thread.getId()))
-          names.put(thread.getId(), thread.getName());
+          names.put((int)thread.getId(), thread.getName());
         data.add(new ThreadRecord(epoch, thread));
       }
   }

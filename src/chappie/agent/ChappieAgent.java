@@ -7,21 +7,14 @@ import java.lang.instrument.Instrumentation;
 
 public class ChappieAgent {
   public static void premain(String agentArgs, Instrumentation inst) {
-    // Logger logger = ChappieLogger.getLogger();
-
-    // logger.info("adding tid mapping");
     inst.addTransformer(new TIDMapping());
 
 		try {
       inst.retransformClasses(new Class[] {java.lang.System.class});
-		} catch(Exception exception) {
-      // logger.info("unable to instrument java.lang.System");
-    }
+		} catch(Exception exception) { }
 
     try {
       inst.retransformClasses(new Class[] {java.lang.Thread.class});
-		} catch(Exception exception) {
-      // logger.info("unable to instrument java.lang.Thread");
-    }
+		} catch(Exception exception) { }
 	}
 }

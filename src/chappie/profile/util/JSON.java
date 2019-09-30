@@ -29,10 +29,7 @@ import java.util.Map.Entry;
 
 public class JSON {
   private static String format(Object value) {
-    if ((value instanceof Integer) || (value instanceof Long))
-      return value.toString();
-    else
-      return "\"" + value.toString() + "\"";
+    return "\"" + value.toString() + "\"";
   }
 
   private static String[] toRecords(Map map) {

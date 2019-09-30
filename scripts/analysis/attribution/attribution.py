@@ -13,6 +13,7 @@ def attribute(path, status = None):
     if status:
         status.set_description('load')
     file_path = lambda f: os.path.join(path, f)
+
     raw = {
         file.split(r'.')[0]:
             pd.read_csv(file_path(file), delimiter = ';').sort_values('epoch')
