@@ -26,7 +26,7 @@ import jrapl.EnergyCheckUtils;
 
 import chappie.Chaperone;
 import chappie.profile.*;
-import chappie.util.*;
+import chappie.profile.util.*;
 
 public class RAPLProfiler extends Profiler {
   // Since jRAPL returns a double[] from getEnergyStats, I wrote a helper to
@@ -34,8 +34,8 @@ public class RAPLProfiler extends Profiler {
   // but could (should?) be in jRAPL instead.
   private static boolean noRapl = false;
 
-  public RAPLProfiler(int rate, int time) {
-    super(rate, time);
+  public RAPLProfiler(int rate, int time, String workDirectory) {
+    super(rate, time, workDirectory);
 
     if (!noRapl) {
       try {
@@ -47,13 +47,13 @@ public class RAPLProfiler extends Profiler {
     }
   }
 
-  private class RAPLRecord extends Record {
+  private static class EnergyRecord extends Record {
     private int socket;
 
     private double cpu;
     private double dram;
 
-    private RAPLRecord(int epoch, double[] record) {
+    private EnergyRecord(int epoch, double[] record) {
       this.epoch = epoch;
       this.socket = (int)record[0];
       this.cpu = record[3];
@@ -66,8 +66,8 @@ public class RAPLProfiler extends Profiler {
         Double.toString(dram);
     }
 
-    private String[] header = new String[] { "epoch", "socket", "package", "dram" };
-    public String[] headerImpl() {
+    private static final String[] header = new String[] { "epoch", "socket", "package", "dram" };
+    public static String[] getHeader() {
       return header;
     };
   }
@@ -75,7 +75,7 @@ public class RAPLProfiler extends Profiler {
   protected void sampleImpl(int epoch) {
     if (!noRapl)
       for (double[] record: sampleEnergy())
-        data.add(new RAPLRecord(epoch, record));
+        data.add(new EnergyRecord(epoch, record));
   }
 
   private static double[][] sampleEnergy() {
@@ -93,6 +93,6 @@ public class RAPLProfiler extends Profiler {
 
   public void dumpImpl() throws IOException {
     if (!noRapl)
-      chappie.util.CSV.write(data, Chaperone.getWorkDirectory() + "/energy.csv");
+      CSV.write(data, EnergyRecord.getHeader(), Chaperone.getWorkDirectory() + "/energy.csv");
   }
 }

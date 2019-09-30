@@ -26,12 +26,13 @@ import java.util.stream.Collectors;
 
 import chappie.Chaperone;
 import chappie.profile.*;
-import chappie.util.*;
+import chappie.profile.util.*;
 
 public class VMProfiler extends Profiler {
   ThreadGroup rootGroup;
-  public VMProfiler(int rate, int time) {
-    super(rate, time);
+
+  public VMProfiler(int rate, int time, String workDirectory) {
+    super(rate, time, workDirectory);
 
     rootGroup = Thread.currentThread().getThreadGroup();
     ThreadGroup parentGroup;
@@ -39,7 +40,7 @@ public class VMProfiler extends Profiler {
       rootGroup = parentGroup;
   }
 
-  private class ThreadRecord extends Record {
+  private static class ThreadRecord extends Record {
     private long id;
     private Thread.State state;
 
@@ -50,16 +51,16 @@ public class VMProfiler extends Profiler {
     }
 
     public String stringImpl() {
-      return Integer.toString(epoch) + ";" + Long.toString(id) + ";" + state.toString();
+      return Long.toString(id) + ";" + state.toString();
     }
 
-    private String[] header = new String[] { "epoch", "id", "state" };
-    public String[] headerImpl() {
+    private static String[] header = new String[] { "epoch", "id", "state" };
+    public static String[] getHeader() {
       return header;
     };
   }
 
-  HashMap<Long, String> mapping = new HashMap<Long, String>();
+  HashMap<Long, String> names = new HashMap<Long, String>();
   protected void sampleImpl(int epoch) {
     // get all active threads (essentially everything but zombies)
     Thread[] threads = new Thread[rootGroup.activeCount()];
@@ -70,14 +71,14 @@ public class VMProfiler extends Profiler {
     // so we don't mess with the GC
     for (Thread thread: threads)
       if (thread != null) {
-        if (!mapping.containsKey(thread.getId()))
-          mapping.put(thread.getId(), thread.getName());
+        if (!names.containsKey(thread.getId()))
+          names.put(thread.getId(), thread.getName());
         data.add(new ThreadRecord(epoch, thread));
       }
   }
 
   public void dumpImpl() throws IOException {
-    chappie.util.CSV.write(data, Chaperone.getWorkDirectory() + "/vm.csv");
-    chappie.util.JSON.write(mapping, Chaperone.getWorkDirectory() + "/id.json");
+    CSV.write(data, ThreadRecord.getHeader(), Chaperone.getWorkDirectory() + "/vm.csv");
+    JSON.write(names, Chaperone.getWorkDirectory() + "/id.json");
   }
 }

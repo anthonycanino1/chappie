@@ -23,24 +23,11 @@
 		<mkdir dir="${deps.dir}"/>
 	</target>
 
-	<target name="deps" depends="setup" description="fetch deps">
-		<get src="http://repo1.maven.org/maven2/net/java/dev/jna/jna/5.4.0/jna-5.4.0.jar" dest="${deps.dir}"/>
-
-		<get src="https://github.com/jboss-javassist/javassist/tarball/master" dest="${deps.dir}"/>
-		<!-- <gunzip src="${deps.dir}/master" dest="${deps.dir}"/> -->
-
-		<untar src="${deps.dir}/master" compression="gzip" dest="${deps.dir}"/>
-		<path id="javassist_path">
-			<dirset dir="${deps.dir}">
-				<include name="jboss-javassist-javassist-*"/>
-			</dirset>
-		</path>
-		<property name="javassist.dir" refid="javassist_path" />
-		<move file="${javassist.dir}/javassist.jar" todir="${deps.dir}"/>
-
-		<delete file="${deps.dir}/master"/>
-		<delete file="${deps.dir}/pax_global_header"/>
-		<delete dir="${javassist.dir}"/>
+	<target name="deps" depends="setup" description="fetch deps through maven">
+		<exec executable="mvn">
+			<arg value="clean"/>
+			<arg value="dependency:copy-dependencies"/>
+		</exec>
 	</target>
 
 	<target name="hp" description="compile hp source">
@@ -53,26 +40,30 @@
     <exec executable="/usr/bin/make"><arg value="-C"/><arg value="src/jrapl-port"/><arg value="jrapl"/></exec>
 	</target>
 
+	<path id="deps.jars">
+  	<fileset dir="dependencies">
+    	<include name="*.jar" />
+  	</fileset>
+	</path>
+
 	<target name="compile" depends="init" description="compile chappie source">
 		<mkdir dir="${build.classes.dir}"/>
 		<javac
       source="1.9" target="1.9"
       srcdir="${src.dir}"
       destdir="${build.classes.dir}"
-			classpath="${deps.dir}/jna-5.4.0.jar:${deps.dir}/javassist.jar"
-		/>
+		>
+			<classpath refid="deps.jars"/>
+		</javac>
 		<copy file="src/jrapl-port/classes/libCPUScaler.so" todir="build/classes/jrapl"/>
 		<copy file="src/async/build/liblagent.so" todir="build"/>
 	</target>
 
   <target name="jar" depends="compile">
 		<jar jarfile="${runtime.jar}" basedir="${build.classes.dir}" manifest="manifest.txt">
-			<!-- <fileset dir="${build.classes.dir}" includes="jrapl-port/**/*.so" /> -->
 			<zipgroupfileset dir="dependencies" includes="*.jar"/>
 		</jar>
   </target>
 
-	<target name="test" depends="jar">
-		
-  </target>
+	<target name="test" depends="jar"></target>
 </project>

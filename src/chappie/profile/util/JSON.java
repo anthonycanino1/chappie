@@ -17,28 +17,43 @@
  * DEALINGS IN THE SOFTWARE.
  * ***********************************************************************************************/
 
-package chappie.util;
+package chappie.profile.util;
 
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.List;
+import java.util.ArrayList;
+import java.util.Set;
+import java.util.Map;
+import java.util.Map.Entry;
 
-import chappie.profile.Record;
+public class JSON {
+  private static String format(Object value) {
+    if ((value instanceof Integer) || (value instanceof Long))
+      return value.toString();
+    else
+      return "\"" + value.toString() + "\"";
+  }
 
-public class CSV {
-  // Takes a list of records and writes them to a file as a csv. At this stage,
-  // it doesn't make sense to use a complex csv writer to dump data. Eventually,
-  // we will have to dump to a database, so I want to keep things open so the
-  // same structure can be used universally
-  public static void write(List<Record> records, String path) throws IOException {
+  private static String[] toRecords(Map map) {
+    ArrayList<String> records = new ArrayList<String>(map.size());
+
+    Set<Entry> recordSet = map.entrySet();
+    for (Entry record: recordSet)
+      records.add(format(record.getKey()) + ": " + format(record.getValue()));
+
+    return records.toArray(new String[records.size()]);
+  }
+
+  public static void write(Map map, String path) throws IOException {
+    String[] records = toRecords(map);
+
     PrintWriter writer = new PrintWriter(new FileWriter(path));
 
-    String[] header = records.get(0).getHeader();
-    writer.println(String.join(";", header));
-
-    for(Record record: records)
-      writer.println(record);
+    writer.println("{");
+    for (int i = 0; i < records.length; i++)
+      writer.println("  " + records[i] + (i + 1 < records.length ? "," : ""));
+    writer.println("}");
 
     writer.close();
   }

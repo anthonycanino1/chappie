@@ -23,34 +23,41 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 import chappie.Chaperone;
-import chappie.glibc.*;
 import chappie.profile.*;
-import chappie.util.*;
+import chappie.profile.util.*;
+
+import glibc.proc.*;
 
 public class OSProfiler extends Profiler {
-  public OSProfiler(int rate, int time) {
-    super(rate, time);
+  Task main = Task.mainTask();
+
+  public OSProfiler(int rate, int time, String workDirectory) {
+    super(rate, time, workDirectory);
   }
 
-  private class OSProcessRecord extends Record {
+  private static class TaskRecord extends Record {
     private int id;
-    private OSProcess proc;
-    public OSProcessRecord(int epoch, OSProcess proc) {
+    private Task task;
+    public TaskRecord(int epoch, Task task) {
       this.epoch = epoch;
-      this.proc = proc;
+      this.task = task;
     }
 
     public String stringImpl() {
-      return proc.parse().toString();
+      return Integer.toString(task.getId()) + ";" +
+        Integer.toString(task.getCPU()) + ";" +
+        task.getState().name() + ";" +
+        Long.toString(task.getUserJiffies()) + ";" +
+        Long.toString(task.getKernelJiffies());
     }
 
-    private String[] header = new String[] { "epoch", "tid", "cpu", "state", "user", "sys" };
-    public String[] headerImpl() {
+    private static final String[] header = new String[] { "epoch", "tid", "cpu", "state", "user", "sys" };
+    public static String[] getHeader() {
       return header;
     };
   }
 
-  private class CPURecord extends Record {
+  private static class CPURecord extends Record {
     private int id;
     private CPU cpu;
 
@@ -60,33 +67,43 @@ public class OSProfiler extends Profiler {
     }
 
     public String stringImpl() {
-      return cpu.parse().toString();
+      return cpu.getCPU() + ";" +
+        cpu.getUserJiffies() + ";" +
+        cpu.getNiceJiffies() + ";" +
+        cpu.getKernelJiffies() + ";" +
+        cpu.getIdleJiffies() + ";" +
+        cpu.getIOWaitJiffies() + ";" +
+        cpu.getIRQJiffies() + ";" +
+        cpu.getSoftIRQJiffies() + ";" +
+        cpu.getStealJiffies() + ";" +
+        cpu.getGuestJiffies() + ";" +
+        cpu.getGuestNiceJiffies();
     }
 
-    private String[] header = new String[] {
+    private static final String[] header = new String[] {
       "epoch", "cpu",
       "user", "nice", "system", "idle", "iowait",
-      "irq", "softirq", "steal", "guest", "guestNice"
+      "irq", "softirq", "steal", "guest", "guest_nice"
     };
-    public String[] headerImpl() {
+    public static String[] getHeader() {
       return header;
     };
   }
 
   ArrayList<Record> sysData = new ArrayList<Record>();
   public void sampleImpl(int epoch) {
-    for (OSProcess proc: OSProcess.currentProcess().getTasks())
-      data.add(new OSProcessRecord(epoch, proc));
+    for (Task task: main.getTasks())
+      data.add(new TaskRecord(epoch, task));
 
     for (CPU cpu: CPU.getCPUs())
       sysData.add(new CPURecord(epoch, cpu));
   }
 
   public void dumpImpl() throws IOException {
-    chappie.util.CSV.write(data, Chaperone.getWorkDirectory() + "/os.csv");
-    chappie.util.CSV.write(sysData, Chaperone.getWorkDirectory() + "/sys.csv");
+    CSV.write(data, TaskRecord.getHeader(), Chaperone.getWorkDirectory() + "/task.csv");
+    CSV.write(sysData, CPURecord.getHeader(), Chaperone.getWorkDirectory() + "/cpu.csv");
 
-    GLIBC.dump();
-    OSProcess.dump();
+    JSON.write(Task.getTaskIds(), Chaperone.getWorkDirectory() + "/tid.json");
+    JSON.write(Task.getTaskNames(), Chaperone.getWorkDirectory() + "/name.json");
   }
 }

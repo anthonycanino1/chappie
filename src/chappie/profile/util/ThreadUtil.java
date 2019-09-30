@@ -17,33 +17,20 @@
  * DEALINGS IN THE SOFTWARE.
  * ***********************************************************************************************/
 
-package chappie.util;
+package chappie.profile.util;
 
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.Map;
-import java.util.Set;
+public class ThreadUtil {
+  // the code to do this is messy so it's just easier to tuck it here in case
+  // we need this again
+  public static void sleepUntil(long start, long end) throws InterruptedException {
+    long elapsed = System.nanoTime() - start;
+    long millis = elapsed / 1000000;
+    int nanos = (int)(elapsed - millis * 1000000);
 
-public class JSON {
-  // This takes any map and writes a json from it, assuming its entry types
-  // support to string. There is certainly a tool that does this but it
-  // seems overkill
-  public static void write(Map records, String path) throws IOException {
-    PrintWriter writer = new PrintWriter(new FileWriter(path));
+    millis = end - millis - (nanos > 0 ? 1 : 0);
+    nanos = Math.min(1000000 - nanos, 999999);
 
-    writer.println("{");
-
-    int size = records.size();
-    int i = 0;
-    Set<Map.Entry> recordSet = records.entrySet();
-    for (Map.Entry record: recordSet) {
-      String message = "  \"" + record.getKey().toString() + "\": \"" + record.getValue().toString() + "\"" + (++i < size ? "," : "");
-      writer.println(message);
-    }
-
-    writer.println("}");
-
-    writer.close();
+    if (millis >= 0 && nanos > 0)
+      Thread.sleep(millis, nanos);
   }
 }

@@ -27,7 +27,8 @@ import java.util.logging.Logger;
 
 import chappie.profile.*;
 import chappie.profile.impl.*;
-import chappie.util.*;
+import chappie.profile.util.*;
+import chappie.util.ChappieLogger;
 
 public class Chaperone implements Runnable {
   // used for tracking instances; in reality, this is a singleton class since
@@ -67,15 +68,15 @@ public class Chaperone implements Runnable {
       // setup the various profilers
       int vmRate = Integer.parseInt(System.getProperty("chappie.vm", "1"));
       if (vmRate > 0)
-        profilers.add(new VMProfiler(vmRate, timerRate));
+        profilers.add(new VMProfiler(vmRate, timerRate, workDirectory));
 
       int osRate = Integer.parseInt(System.getProperty("chappie.os", "1"));
       if (osRate > 0)
-        profilers.add(new OSProfiler(osRate, timerRate));
+        profilers.add(new OSProfiler(osRate, timerRate, workDirectory));
 
       int raplRate = Integer.parseInt(System.getProperty("chappie.rapl", "1"));
       if (raplRate > 0)
-        profilers.add(new RAPLProfiler(raplRate, timerRate));
+        profilers.add(new RAPLProfiler(raplRate, timerRate, workDirectory));
 
       thread = new Thread(this, "chappie-" + id);
     } else {
@@ -111,7 +112,7 @@ public class Chaperone implements Runnable {
   }
 
   // measurement of chappie's activeness for each epoch
-  private class ChappieRecord extends Record {
+  private static class ChappieRecord extends Record {
     private long elapsed;
     private long total;
 
@@ -122,13 +123,11 @@ public class Chaperone implements Runnable {
     }
 
     protected String stringImpl() {
-      return Integer.toString(epoch) + ";" +
-        Long.toString(elapsed) + ";" +
-        Long.toString(total);
+      return elapsed + ";" + total;
     }
 
-    private String[] header = new String[] { "epoch", "elapsed", "total" };
-    public String[] headerImpl() {
+    private static final String[] header = new String[] { "epoch", "elapsed", "total" };
+    public static String[] getHeader() {
       return header;
     };
   }
@@ -165,8 +164,9 @@ public class Chaperone implements Runnable {
 
   private void dump() throws IOException {
     logger.info("writing chappie data");
-    chappie.util.CSV.write(data, Chaperone.getWorkDirectory() + "/chappie.csv");
-    chappie.util.JSON.write(timestamps, Chaperone.getWorkDirectory() + "/time.json");
+
+    CSV.write(data, ChappieRecord.getHeader(), Chaperone.getWorkDirectory() + "/chappie.csv");
+    JSON.write(timestamps, Chaperone.getWorkDirectory() + "/time.json");
 
     for (Profiler profiler: profilers)
       profiler.dump();

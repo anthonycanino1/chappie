@@ -17,65 +17,51 @@
 * DEALINGS IN THE SOFTWARE.
 * ***********************************************************************************************/
 
-package chappie.glibc;
+package glibc.proc;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.logging.Logger;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import com.sun.jna.Library;
-import com.sun.jna.Native;
-
-import chappie.util.ChappieLogger;
 
 public class CPU {
-  // System record require only reading of /proc/stat but it contains some
-  // garbage (relative to us) so I made a little parser to help out later
-  // when we want to write data
-  String stat;
-  private CPU(String stat) { this.stat = stat; }
+  private String stat;
+  private long timestamp;
 
-  // this is a little cheat I made to help myself later
-  private String[] stats;
+  private CPU(String stat) {
+    this.stat = stat;
+    timestamp = System.currentTimeMillis();
+  }
 
-  // cpu fields
   private int cpu;
 
   // jiffies
   private long user;
   private long nice;
-  private long system;
+  private long kernel;
   private long idle;
   private long iowait;
   private long irq;
   private long softirq;
   private long steal;
   private long guest;
-  private long guestNice;
+  private long guest_nice;
 
-  public CPU parse() {
+  private CPU parse() {
     if (stat != null) {
-      stats = this.stat.split(" ");
+      String[] stats = this.stat.split(" ");
       stats[0] = stats[0].substring(3, stats[0].length());
 
       cpu = Integer.parseInt(stats[0]);
       user = Long.parseLong(stats[1]);
       nice = Long.parseLong(stats[2]);
-      system = Long.parseLong(stats[3]);
+      kernel = Long.parseLong(stats[3]);
       idle = Long.parseLong(stats[4]);
       iowait = Long.parseLong(stats[5]);
       irq = Long.parseLong(stats[6]);
       softirq = Long.parseLong(stats[7]);
       steal = Long.parseLong(stats[8]);
       guest = Long.parseLong(stats[9]);
-      guestNice = Long.parseLong(stats[10]);
+      guest_nice = Long.parseLong(stats[10]);
 
       stat = null;
     }
@@ -83,31 +69,49 @@ public class CPU {
     return this;
   }
 
+  // getter boilerplate :(
+  public int getCPU() { parse(); return cpu; }
+  public long getUserJiffies() { parse(); return user; }
+  public long getNiceJiffies() { parse(); return nice; }
+  public long getKernelJiffies() { parse(); return kernel; }
+  public long getIdleJiffies() { parse(); return idle; }
+  public long getIOWaitJiffies() { parse(); return iowait; }
+  public long getIRQJiffies() { parse(); return irq; }
+  public long getSoftIRQJiffies() { parse(); return softirq; }
+  public long getStealJiffies() { parse(); return steal; }
+  public long getGuestJiffies() { parse(); return guest; }
+  public long getGuestNiceJiffies() { parse(); return guest_nice; }
+
   @Override
   public String toString() {
-    return String.join(";", stats);
+    return "";
+    // String.join(";", stats);
   }
 
-  private static String path = "/proc/stat";
-  private static int cpuNum = Runtime.getRuntime().availableProcessors();
+  private static int cpu_count = Runtime.getRuntime().availableProcessors();
+  private static CPU[] cpus = new CPU[cpu_count];
 
   public static CPU[] getCPUs() {
-    CPU[] stats = new CPU[cpuNum];
-
     try {
-      BufferedReader reader = new BufferedReader(new FileReader(path));
+      BufferedReader reader = new BufferedReader(new FileReader("/proc/stat"));
 
       // we are throwing away the first record; it's the whole system and
       // we need cpu specific
       reader.readLine();
-      for (int i = 0; i < cpuNum; i++)
-        stats[i] = new CPU(reader.readLine());
-
+      for (int i = 0; i < cpu_count; i++)
+        cpus[i] = new CPU(reader.readLine());
       reader.close();
 
-      return stats;
+      return cpus.clone();
     } catch (IOException e) {
-      return new CPU[0];
+      return null;
     }
+  }
+
+  public static CPU getCPU(int cpu) {
+    if (cpus == null)
+      getCPUs();
+
+    return cpus[cpu];
   }
 }

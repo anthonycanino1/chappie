@@ -9,5 +9,5 @@
   "class_path": "wrapper/chappie-util.jar:wrapper/jar/dacapo-evaluation-git.jar",
   "properties": "",
   "main": "Harness",
-  "args": "graphchi -s huge -n 10 -c chappie_util.wrapper.DaCapo --scratch-directory {work_directory}/dacapo-scratch"
+  "args": "graphchi -s default -n 10 -c chappie_util.wrapper.DaCapo --scratch-directory {work_directory}/dacapo-scratch"
 }

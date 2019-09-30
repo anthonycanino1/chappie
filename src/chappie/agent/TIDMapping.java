@@ -8,7 +8,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.MalformedURLException;
 import java.security.ProtectionDomain;
-import java.util.logging.Logger;
+// import java.util.logging.Logger;
 
 import javassist.ClassPool;
 import javassist.CtClass;
@@ -16,13 +16,13 @@ import javassist.CtMethod;
 import javassist.bytecode.Descriptor;
 import javassist.CannotCompileException;
 
-import chappie.util.ChappieLogger;
+// import chappie.util.ChappieLogger;
 
 public class TIDMapping implements ClassFileTransformer {
 
-  static String mappingBody = "chappie.glibc.GLIBC.getTaskId();";
+  private static String body = "chappie.glibc.GLIBC.getTaskId();";
 
-  static CtClass getSuperClass(CtClass cls) {
+  private static CtClass getSuperClass(CtClass cls) {
     try {
       return cls.getSuperclass();
     } catch(Exception exception) {
@@ -30,13 +30,13 @@ public class TIDMapping implements ClassFileTransformer {
     }
   }
 
-  static boolean isRunnable(CtClass cls) {
+  private static boolean doesImplement(CtClass cls, String intrfc) {
 		CtClass klass = cls;
 		while (klass != null) {
 			try {
         CtClass[] interfaces = klass.getInterfaces();
   			for (int i = 0; i < interfaces.length; ++i)
-  				if (interfaces[i].getName().equals("java.lang.Runnable"))
+  				if (interfaces[i].getName().equals(intrfc))
             return true;
 
       } catch(Exception exception) { }
@@ -44,6 +44,21 @@ public class TIDMapping implements ClassFileTransformer {
 		}
 		return false;
 	}
+
+  // private static boolean isRunnable(CtClass cls) {
+	// 	CtClass klass = cls;
+	// 	while (klass != null) {
+	// 		try {
+  //       CtClass[] interfaces = klass.getInterfaces();
+  // 			for (int i = 0; i < interfaces.length; ++i)
+  // 				if (interfaces[i].getName().equals("java.lang.Runnable"))
+  //           return true;
+  //
+  //     } catch(Exception exception) { }
+	// 		klass = getSuperClass(klass);
+	// 	}
+	// 	return false;
+	// }
 
 	private ClassLoader classLoader;
   public TIDMapping() {
@@ -64,27 +79,27 @@ public class TIDMapping implements ClassFileTransformer {
     ProtectionDomain protectionDomain,
     byte[] classfileBuffer
   ) throws IllegalClassFormatException {
-    Logger logger = ChappieLogger.getLogger();
+    // Logger logger = ChappieLogger.getLogger();
 		try {
 			ClassPool classPool = ClassPool.getDefault();
       CtClass ctClass = classPool.makeClass(new ByteArrayInputStream(classfileBuffer));
 
-      if(isRunnable(ctClass)) {
+      if(doesImplement(ctClass, "java.lang.Runnable")) {
   			CtMethod runMethod = ctClass.getMethod("run", Descriptor.ofMethod(CtClass.voidType, new CtClass[0]));
-        runMethod.insertBefore(mappingBody);
+        runMethod.insertBefore(body);
 
         byte[] byteCode = ctClass.toBytecode();
   			ctClass.detach();
 
-        logger.info("transformed " + className);
+        // logger.info("transformed " + className);
 
         return byteCode;
       } else {
         return classfileBuffer;
       }
     } catch (Throwable ex) {
-      logger.info("could not transform " + className);
-      logger.info(ex.getClass().getCanonicalName() + ": " + ex.getMessage());
+      // logger.info("could not transform " + className);
+      // logger.info(ex.getClass().getCanonicalName() + ": " + ex.getMessage());
       // ex.printStackTrace();
 
       return classfileBuffer;

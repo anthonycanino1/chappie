@@ -17,20 +17,28 @@
  * DEALINGS IN THE SOFTWARE.
  * ***********************************************************************************************/
 
-package chappie.util;
+package chappie.profile.util;
 
-public class ThreadUtil {
-  // the code to do this is messy so it's just easier to tuck it here in case
-  // we need this again
-  public static void sleepUntil(long start, long end) throws InterruptedException {
-    long elapsed = System.nanoTime() - start;
-    long millis = elapsed / 1000000;
-    int nanos = (int)(elapsed - millis * 1000000);
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.lang.Iterable;
 
-    millis = end - millis - (nanos > 0 ? 1 : 0);
-    nanos = Math.min(1000000 - nanos, 999999);
+import chappie.profile.Record;
 
-    if (millis >= 0 && nanos > 0)
-      Thread.sleep(millis, nanos);
+public class CSV {
+  // Takes a list of records and writes them to a file as a csv. At this stage,
+  // it doesn't make sense to use a complex csv writer to dump data. Eventually,
+  // we may have to dump to a database, so I want to keep things open so the
+  // same structure can be used universally
+
+  public static void write(Iterable<Record> records, String[] header, String path) throws IOException {
+    PrintWriter writer = new PrintWriter(new FileWriter(path));
+
+    writer.println(String.join(";", header));
+    for(Record record: records)
+      writer.println(record);
+
+    writer.close();
   }
 }

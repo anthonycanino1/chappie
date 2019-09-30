@@ -4,14 +4,16 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 public abstract class Profiler {
   protected int rate;
   protected Logger logger;
-  public Profiler(int rate, int time) {
+  protected String workDirectory;
+
+  public Profiler(int rate, int time, String workDirectory) {
     this.rate = rate;
     this.logger = Logger.getLogger("chappie");
+    this.workDirectory = workDirectory;
     logger.info(this.getClass().getSimpleName() + " set to " + rate * time + " ms");
   }
 

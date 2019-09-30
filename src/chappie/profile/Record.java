@@ -12,10 +12,7 @@ public abstract class Record {
 
   @Override
   public String toString() {
-    return Integer.toString(epoch) + ";" + stringImpl();
+    return epoch + ";" + stringImpl();
   };
   protected abstract String stringImpl();
-
-  public String[] getHeader() { return headerImpl(); }
-  protected abstract String[] headerImpl();
 }

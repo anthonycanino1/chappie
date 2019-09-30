@@ -39,11 +39,22 @@ public class Driver {
       Chaperone chappie = new Chaperone();
       chappie.start();
 
-      for (int k = 0; k < 10; ++k) {
-        try {
-          Thread.sleep(100);
-        } catch(InterruptedException e) { }
+      Thread[] threads = new Thread[50];
+      for (int k = 0; k < 50; ++k) {
+        threads[k] = new Thread() {
+          public void run() {
+            try {
+              Thread.sleep(10000);
+            } catch(InterruptedException e) { }
+          }
+        };
+        threads[k].start();
       }
+
+      for (int k = 0; k < 10; ++k)
+        try {
+          threads[k].join();
+        } catch(InterruptedException e) { }
 
       chappie.stop();
     }
