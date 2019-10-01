@@ -30,7 +30,7 @@ def attribute(path, status = None):
 
     if status:
         status.set_description('jiff ')
-    jiff = jiffies.process(raw['os'], raw['name'], raw['sys'])
+    jiff = jiffies.process(raw['task'], raw['name'], raw['cpu'])
 
     if status:
         status.set_description('nrg  ')

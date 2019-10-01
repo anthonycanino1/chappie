@@ -63,7 +63,7 @@ def processing(work_directory):
         energy = energy[energy.id > 0].set_index(['timestamp', 'id'])
 
         timestamps = json.load(open(os.path.join(raw_root, f, 'time.json')))
-        timestamps = { int(k): int(v) for k, v in timestamps.items() }
+        timestamps = {int(k): int(v) for k, v in timestamps.items()}
         start, end = min(timestamps.values()), max(timestamps.values())
 
         if raw_method is not None:
@@ -96,7 +96,7 @@ def summary(work_directory):
     method.to_csv(os.path.join(summary_root, 'method.csv'))
 
 def main(config):
-    processing(config['work_directory'])
+    # processing(config['work_directory'])
     summary(config['work_directory'])
     # plot(config.work_directory)
 

@@ -26,10 +26,10 @@ def filter_to_application(trace):
 def method(path):
     df = pd.concat(tqdm(pd.read_csv(os.path.join(path, f)) for f in os.listdir(path)))
     df['energy'] = df.package + df.dram
-    df = df[~(df.name.str.contains('chappie')) & ~(df.name.isin(JVM_JAVA))]
+    mask = df.name.str.contains('chappie') | df.name.isin(JVM_JAVA)
+    df = df[~mask]
 
     df['filtered_trace'] = df.trace.str.split(';').map(filter_to_application)
-    # print(df)
     df['method'] = df.filtered_trace.str[0]
 
     df = df.groupby('method').energy.agg(('sum', 'count'))
