@@ -61,11 +61,11 @@ def fill_methods(df, limit = None):
 
 def align(attributed, method, id, limit = None, status = None):
     if status:
-        status.set_description('align')
+        status.set_description('align {}'.format(limit if limit else 'inf'))
     aligned = align_methods(attributed, method)
 
     if status:
-        status.set_description('smooth')
+        status.set_description('smooth {}'.format(limit if limit else 'inf'))
     aligned = aligned.reset_index().groupby('id').apply(fill_methods, (limit)).reset_index()
     id = {int(k): v for k, v in id.items()}
     aligned['name'] = aligned.id.map(id)

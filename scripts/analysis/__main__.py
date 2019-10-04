@@ -12,6 +12,7 @@ from tqdm import tqdm
 
 import attribution as attr
 import summary as smry
+import plotting as plt
 
 run_libs = dirname(__file__)
 chappie_root = dirname(run_libs)
@@ -33,6 +34,8 @@ def parse_args():
 
     return config
 
+limits = [0, 4, 16, 64, 256, 'inf']
+
 def processing(work_directory):
     raw_root = os.path.join(work_directory, 'raw')
     processed_root = os.path.join(work_directory, 'processed')
@@ -53,11 +56,17 @@ def processing(work_directory):
         raw_path = os.path.join(raw_root, f)
         if not os.path.exists(os.path.join(processed_root, 'energy')):
             os.mkdir(os.path.join(processed_root, 'energy'))
-        if not os.path.exists(os.path.join(processed_root, 'method')):
-            os.mkdir(os.path.join(processed_root, 'method'))
+        # if not os.path.exists(os.path.join(processed_root, 'method')):
+        #     os.mkdir(os.path.join(processed_root, 'method'))
+
+        for k in limits:
+            if not os.path.exists(os.path.join(processed_root, 'method', str(k))):
+                os.makedirs(os.path.join(processed_root, 'method', str(k)))
 
         energy = attr.attribute(raw_path, status)
         energy.to_csv(os.path.join(processed_root, 'energy', '{}.csv'.format(f)))
+
+        # energy = pd.read_csv(os.path.join(processed_root, 'energy', '{}.csv'.format(f)))
 
         energy = energy.reset_index()
         energy = energy[energy.id > 0].set_index(['timestamp', 'id'])
@@ -76,8 +85,9 @@ def processing(work_directory):
             trimmed_method.trace = trimmed_method.trace.map(chr)
 
         id = json.load(open(os.path.join(raw_root, f, 'id.json')))
-        method = attr.align(energy, trimmed_method, id, limit = None, status = status)
-        method.to_csv(os.path.join(processed_root, 'method', '{}.csv'.format(f)))
+        for k in limits:
+            method = attr.align(energy, trimmed_method, id, limit = k if k is not 'inf' else None, status = status)
+            method.to_csv(os.path.join(processed_root, 'method', str(k), '{}.csv'.format(f)))
 
 def summary(work_directory):
     processed_root = os.path.join(work_directory, 'processed')
@@ -90,15 +100,29 @@ def summary(work_directory):
     # print(component.sort_index())
     # component.to_csv(os.path.join(summary_root, 'component.csv'))
 
-    method = smry.method(os.path.join(processed_root, 'method'))
-    method = method.sort_values(['energy', 'hits'], ascending = False)
-    print(method)
+    method = []
+    for k in limits:
+        method.append(smry.method(os.path.join(processed_root, 'method', str(k))).assign(k = k))
+
+    method = pd.concat(method)
     method.to_csv(os.path.join(summary_root, 'method.csv'))
 
+    print(method.reset_index().set_index(['method', 'k']).sort_index().head(50))
+
+def plotting(work_directory):
+    summary_root = os.path.join(work_directory, 'summary')
+    plots_root = os.path.join(work_directory, 'plots')
+    if not os.path.exists(plots_root):
+        os.mkdir(plots_root)
+
+    plt.ranking(summary_root)
+
+    # plt.cfa(summary_root)
+
 def main(config):
-    # processing(config['work_directory'])
+    processing(config['work_directory'])
     summary(config['work_directory'])
-    # plot(config.work_directory)
+    plotting(config['work_directory'])
 
 if __name__ == "__main__":
     main(parse_args())

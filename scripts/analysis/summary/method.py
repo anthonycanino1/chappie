@@ -32,8 +32,12 @@ def method(path):
     df['filtered_trace'] = df.trace.str.split(';').map(filter_to_application)
     df['method'] = df.filtered_trace.str[0]
 
+    df = df[df.method != 'end']
+    df = df[~df.method.str.contains('glibc')]
+    df = df[~df.method.str.contains('jrapl')]
+
     df = df.groupby('method').energy.agg(('sum', 'count'))
-    df.columns = ['energy', 'hits']
+    df.columns = ['energy', 'time']
     df /= df.sum()
 
     return df
