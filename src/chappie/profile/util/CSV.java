@@ -23,6 +23,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.Iterable;
+import java.util.logging.Logger;
 
 import chappie.profile.Record;
 
@@ -33,11 +34,15 @@ public class CSV {
   // same structure can be used universally
 
   public static void write(Iterable<Record> records, String[] header, String path) throws IOException {
+    Logger logger = Logger.getLogger("chappie");
     PrintWriter writer = new PrintWriter(new FileWriter(path));
 
     writer.println(String.join(";", header));
-    for(Record record: records)
+    for(Record record: records) {
       writer.println(record);
+      if (Runtime.getRuntime().freeMemory() < Runtime.getRuntime().totalMemory() / 100)
+        writer.flush();
+    }
 
     writer.close();
   }

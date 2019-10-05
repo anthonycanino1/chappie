@@ -42,9 +42,8 @@ public class Task {
     stat = reader.readLine();
     reader.close();
 
-    if (stat == null || stat.length() == 0) {
+    if (stat == null || stat.length() == 0)
       throw new IOException("process " + id + " could not be sampled");
-    }
 
     timestamp = System.currentTimeMillis();
   }
