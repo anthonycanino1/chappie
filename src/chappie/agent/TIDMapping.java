@@ -24,7 +24,13 @@ import glibc.GLIBC;
 public class TIDMapping implements ClassFileTransformer {
 
   private static String body = "chappie.agent.TIDMapping.mapTask();";
-  public static void mapTask() { GLIBC.getTaskId(); }
+  public static void mapTask() {
+    try {
+      GLIBC.getTaskId();
+    } catch (Exception e) {
+      System.out.println("couldn't map" + Thread.currentThread().getName());
+    }
+  }
 
 	private ClassLoader classLoader;
   public TIDMapping() {
@@ -49,7 +55,7 @@ public class TIDMapping implements ClassFileTransformer {
 			ClassPool classPool = ClassPool.getDefault();
       CtClass ctClass = classPool.makeClass(new ByteArrayInputStream(classfileBuffer));
 
-      if(!className.contains("ZipFile") && CtClassUtil.doesImplement(ctClass, "java.lang.Runnable")) {
+      if (!className.contains("ZipFile") && !className.contains("java2d/Disposer") && CtClassUtil.doesImplement(ctClass, "java.lang.Runnable")) {
   			CtMethod runMethod = ctClass.getMethod("run", Descriptor.ofMethod(CtClass.voidType, new CtClass[0]));
         runMethod.insertBefore(body);
 
@@ -65,6 +71,7 @@ public class TIDMapping implements ClassFileTransformer {
     } catch (CannotCompileException | IOException | NotFoundException ex) {
       System.out.println("could not transform " + className);
       System.out.println(ex.getClass().getCanonicalName() + ": " + ex.getMessage());
+      // ex.printStackTrace();
 
       return classfileBuffer;
     }

@@ -6,8 +6,8 @@
     "os": 4,
     "rapl": 1
   },
-  "class_path": "wrapper/chappie-util.jar:wrapper/jar/dacapo-evaluation-git.jar",
+  "class_path": "",
   "properties": "",
-  "main": "Harness",
-  "args": "graphchi -s default -n 10 -c chappie_util.wrapper.DaCapo --scratch-directory {work_directory}/dacapo-scratch"
+  "main": "chappie.Driver",
+  "args": ""
 }

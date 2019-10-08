@@ -53,7 +53,7 @@ def build_java_call(config):
 
         call_args['properties'] += '-D' + ' -D'.join(chappie_args)
 
-    if 'hp' not in config:
+    if 'hp' not in config['chappie']:
         call_args['hp'] = 4
 
     if isinstance(config['args'], list):
@@ -71,14 +71,14 @@ def build_java_call(config):
     call_args['args'] = config['args'].format(work_directory = call_args['work_directory'])
 
     java_call = """
-    java
-        -Xbootclasspath/a:{chappie_root}/chappie.jar
-        -Xmx16g
-        -javaagent:{chappie_root}/chappie.jar
-        -agentpath:{chappie_root}/build/liblagent.so=logPath={work_directory}/raw/method.csv,interval={hp}
-        {properties}
-        -cp {chappie_root}/chappie.jar:{class_path}
-        {main} {args}
+        java
+            -Xbootclasspath/a:{chappie_root}/chappie.jar
+            -Xmx16g
+            -javaagent:{chappie_root}/chappie.jar
+            -agentpath:{chappie_root}/build/liblagent.so=logPath={work_directory}/raw/method.csv,interval={hp}
+            {properties}
+            -cp {chappie_root}/chappie.jar:{class_path}
+            {main} {args}
     """.format(**call_args)
 
     # java_call = """java -cp {class_path} {main} {args}""".format(**call_args)

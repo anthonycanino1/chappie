@@ -39,19 +39,19 @@ public class Driver {
       Chaperone chappie = new Chaperone();
       chappie.start();
 
-      Thread[] threads = new Thread[50];
-      for (int k = 0; k < 50; ++k) {
+      Thread[] threads = new Thread[1];
+      for (int k = 0; k < 1; ++k) {
         threads[k] = new Thread() {
           public void run() {
             try {
-              Thread.sleep(10000);
+              Thread.sleep(1);
             } catch(InterruptedException e) { }
           }
         };
         threads[k].start();
       }
 
-      for (int k = 0; k < 10; ++k)
+      for (int k = 0; k < 1; ++k)
         try {
           threads[k].join();
         } catch(InterruptedException e) { }
