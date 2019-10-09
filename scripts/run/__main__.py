@@ -37,7 +37,7 @@ def build_java_call(config):
     call_args['main'] = config['main']
 
     if 'properties' in config and config['properties']:
-        call_args['properties'] = '-D' + ' -D'.join(config['properties'])
+        call_args['properties'] = '-D' + ' -D'.join(config['properties']) + ' '
     else:
         call_args['properties'] = ''
 

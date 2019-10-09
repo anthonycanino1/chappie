@@ -107,7 +107,9 @@ def summary(work_directory):
     method = pd.concat(method)
     method.to_csv(os.path.join(summary_root, 'method.csv'))
 
-    print(method.reset_index().set_index(['method', 'k']).sort_index().head(50))
+    df = method.reset_index().pivot(index = 'method', columns = 'k', values = 'energy').sort_values('inf', ascending = False)
+    print(df.head(10))
+    print(df.corr())
 
 def plotting(work_directory):
     summary_root = os.path.join(work_directory, 'summary')
@@ -122,7 +124,7 @@ def plotting(work_directory):
 def main(config):
     processing(config['work_directory'])
     summary(config['work_directory'])
-    plotting(config['work_directory'])
+    # plotting(config['work_directory'])
 
 if __name__ == "__main__":
     main(parse_args())
