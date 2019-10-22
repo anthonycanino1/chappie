@@ -1,5 +1,6 @@
 import os
 
+import numpy as np
 import pandas as pd
 
 from tqdm import tqdm
@@ -24,7 +25,7 @@ def filter_to_application(trace):
     return 'end'
 
 def method(path):
-    df = pd.concat(tqdm(pd.read_csv(os.path.join(path, f)) for f in os.listdir(path)))
+    df = pd.concat([pd.read_csv(os.path.join(path, f)) for f in np.sort(os.listdir(path))[2:]])
     df['energy'] = df.package + df.dram
     mask = df.name.str.contains('chappie') | df.name.isin(JVM_JAVA)
     df = df[~mask]

@@ -16,6 +16,7 @@ def ranking(path):
 
         for col in ('method', 'class', 'package'):
             df_ = df.groupby(col).sum().sort_values('energy')
+            df_.index = df_.index.str.replace('$', '\$')
             if col == 'method':
                 df_.tail(10).plot(kind = 'barh', y = ['energy', 'time'], width = 0.3)
             else:

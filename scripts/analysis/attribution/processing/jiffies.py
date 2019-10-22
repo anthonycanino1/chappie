@@ -3,9 +3,12 @@ import pandas as pd
 def process_app(jiff, name):
     name = {int(k): v for k, v in name.items()}
     jiff['os_name'] = jiff.tid.map(name).fillna("").astype(str)
+    mask = jiff.tid == jiff[jiff.os_name == 'java'].tid.max().max()
+    jiff.loc[mask, 'os_name'] = 'main'
 
     jiff.loc[jiff['cpu'] < 20, 'socket'] = 1
     jiff.loc[jiff['cpu'] >= 20, 'socket'] = 2
+
 
     jiff = jiff.sort_values(['epoch', 'tid'])
 

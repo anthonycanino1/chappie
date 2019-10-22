@@ -27,10 +27,11 @@ def parse_args():
 
     if os.path.exists(os.path.join(args.work_directory, 'config.json')):
         config = json.load(open(os.path.join(args.work_directory, 'config.json')))
+        config['work_directory'] = args.work_directory
     elif args.config:
         config = json.load(open(args.config))
     else:
-        raise ArgumentError('no config found!')
+        raise ValueError('no config found!')
 
     return config
 
@@ -101,7 +102,7 @@ def summary(work_directory):
     # component.to_csv(os.path.join(summary_root, 'component.csv'))
 
     method = []
-    for k in limits:
+    for k in tqdm(limits):
         method.append(smry.method(os.path.join(processed_root, 'method', str(k))).assign(k = k))
 
     method = pd.concat(method)
@@ -124,7 +125,7 @@ def plotting(work_directory):
 def main(config):
     processing(config['work_directory'])
     summary(config['work_directory'])
-    # plotting(config['work_directory'])
+    plotting(config['work_directory'])
 
 if __name__ == "__main__":
     main(parse_args())

@@ -22,8 +22,6 @@ def attribute(path, status = None):
         for file in os.listdir(path)
     }
 
-    data = {}
-
     if status:
         status.set_description('jvm  ')
     vm = jvm.process(raw['vm'], raw['id'], raw['tid'], raw['chappie'])

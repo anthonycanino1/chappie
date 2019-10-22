@@ -75,7 +75,7 @@ def build_java_call(config):
             -Xbootclasspath/a:{chappie_root}/chappie.jar
             -Xmx16g
             -javaagent:{chappie_root}/chappie.jar
-            -agentpath:{chappie_root}/build/liblagent.so=logPath={work_directory}/raw/method.csv,interval={hp}
+            -agentpath:{chappie_root}/build/liblagent.so=logPath={work_directory}/raw/method.csv,interval=1,samples={hp}
             {properties}
             -cp {chappie_root}/chappie.jar:{class_path}
             {main} {args}
