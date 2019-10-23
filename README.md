@@ -1,6 +1,30 @@
 # chappie #
 
-`chappie` is a runtime observer for Java that collects data for the functional state of an executed program at the thread level. Collected data spans the thread, application, and system levels, indexed by an integer epoch.
+`chappie` is a statistical energy profiler that estimates component and method energy consumption for linux systems. `chappie` has only been tested on debian 9 systems.
+
+## building ##
+
+`chappie` requires the following tools to be built (which should be available through your package manager):
+
+ - java (works on 8 but is intended for use with 9+)
+ - ant
+ - maven
+ - jni
+ - make
+ - unittest++
+
+to build all necessary components, you can run:
+
+```bash
+ant deps
+ant jar
+```
+
+ant will take care of the rest.
+
+## running ##
+
+`chappie` requires specific java arguments that can be a little tedious
 
 ## Utilities ##
 
