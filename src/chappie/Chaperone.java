@@ -78,6 +78,10 @@ public class Chaperone implements Runnable {
       if (raplRate > 0)
         profilers.add(new RAPLProfiler(raplRate, timerRate, workDirectory));
 
+      int traceRate = Integer.parseInt(System.getProperty("chappie.trace", "1"));
+      if (traceRate > 0)
+        profilers.add(new TraceProfiler(traceRate, timerRate, workDirectory));
+
       thread = new Thread(this, "chappie-" + id);
     } else {
       // we probably need a runtime profiler to collect nop stats
@@ -141,8 +145,9 @@ public class Chaperone implements Runnable {
       // and how long the entire epoch took
       long start = System.nanoTime();
 
-      epoch++;
-      timestamps.put(epoch, System.currentTimeMillis());
+      // epoch++;
+      timestamps.put(epoch++, System.currentTimeMillis());
+      // timestamps.put(epoch++, start);
 
       for (Profiler profiler: profilers)
         profiler.sample(epoch);

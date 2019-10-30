@@ -29,11 +29,6 @@ import chappie.profile.*;
 import chappie.profile.util.*;
 
 public class TraceProfiler extends Profiler {
-  // Since jRAPL returns a double[] from getEnergyStats, I wrote a helper to
-  // reshape it into a socket x 4 array. This primarily helps with clean code
-  // but could (should?) be in jRAPL instead.
-  private static boolean noRapl = false;
-
   public TraceProfiler(int rate, int time, String workDirectory) {
     super(rate, time, workDirectory);
   }
@@ -63,9 +58,8 @@ public class TraceProfiler extends Profiler {
   }
 
   protected void sampleImpl(int epoch) {
-    if (!noRapl)
-      for (ASGCTReader.ASGCTFrame record: ASGCTReader.fetch())
-        data.add(new TraceRecord(epoch, record));
+    for (ASGCTReader.ASGCTFrame record: ASGCTReader.fetch())
+      data.add(new TraceRecord(epoch, record));
   }
 
   public void dumpImpl() throws IOException {

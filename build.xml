@@ -30,12 +30,6 @@
 		</exec>
 	</target>
 
-	<target name="hp" description="compile hp source">
-    <exec executable="/usr/bin/cmake"><arg value="src/async/CMakeLists.txt"/></exec>
-    <exec executable="/usr/bin/make"><arg value="-C"/><arg value="src/async"/></exec>
-		<copy file="src/async/build/liblagent.so" todir="build"/>
-	</target>
-
 	<target name="rapl" description="compile jrapl source">
     <exec executable="/usr/bin/make"><arg value="-C"/><arg value="src/jrapl-port"/><arg value="jrapl"/></exec>
 	</target>
@@ -56,7 +50,7 @@
 			<classpath refid="deps.jars"/>
 		</javac>
 		<copy file="src/jrapl-port/classes/libCPUScaler.so" todir="build/classes/jrapl"/>
-		<copy file="src/async/build/liblagent.so" todir="build"/>
+		<copy file="vendor/method-reader/build/liblagent.so" todir="build"/>
 	</target>
 
   <target name="jar" depends="compile">
