@@ -1,0 +1,13 @@
+{
+  "chappie": {
+    "rate": 1,
+    "vm": 1,
+    "os": 4,
+    "rapl": 1,
+    "trace": 0
+  },
+  "class_path": "wrapper/chappie-util.jar:wrapper/jar/dacapo-evaluation-git.jar",
+  "properties": [],
+  "main": "Harness",
+  "args": "pmd -s large -n 10 -c chappie_util.wrapper.DaCapo --scratch-directory {work_directory}/dacapo-scratch"
+}
