@@ -85,6 +85,7 @@ public class Chaperone implements Runnable {
       thread = new Thread(this, "chappie-" + id);
     } else {
       // we probably need a runtime profiler to collect nop stats
+      profilers.add(new RAPLProfiler(0, 0, workDirectory));
       logger.info("running in nop mode");
     }
   }
@@ -92,8 +93,15 @@ public class Chaperone implements Runnable {
   // Thread-like interface since we don't deal with the structure like a
   // runnable; I should find out if there's a better pattern
   public void start() {
-    if (timerRate > 0)
+    if (timerRate > 0) {
       thread.start();
+    } else {
+      timestamps.put(epoch++, System.currentTimeMillis());
+
+      for (Profiler profiler: profilers)
+        profiler.sample(epoch);
+    }
+
     logger.info("starting profiling");
   }
 
@@ -106,6 +114,11 @@ public class Chaperone implements Runnable {
       } catch(InterruptedException e) {
         logger.info("chappie couldn't join: " + e.getMessage());
       }
+    } else {
+      timestamps.put(epoch++, System.currentTimeMillis());
+
+      for (Profiler profiler: profilers)
+        profiler.sample(epoch);
     }
 
     try {

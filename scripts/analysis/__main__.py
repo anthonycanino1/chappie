@@ -35,7 +35,8 @@ def parse_args():
 
     return config
 
-limits = [0, 4, 16, 64, 256, 'inf']
+# limits = [0, 4, 16, 64, 256, 'inf']
+limits = [4]
 
 def processing(work_directory):
     raw_root = os.path.join(work_directory, 'raw')
@@ -50,6 +51,7 @@ def processing(work_directory):
         raw_method.columns = ['name', 'timestamp', 'id', 'trace']
         raw_method = raw_method[raw_method.trace != 'end'].drop_duplicates(subset = ['timestamp', 'id'])
     except:
+        raise
         raw_method = None
 
     status = tqdm(iters)
@@ -57,8 +59,8 @@ def processing(work_directory):
         raw_path = os.path.join(raw_root, f)
         if not os.path.exists(os.path.join(processed_root, 'energy')):
             os.mkdir(os.path.join(processed_root, 'energy'))
-        # if not os.path.exists(os.path.join(processed_root, 'method')):
-        #     os.mkdir(os.path.join(processed_root, 'method'))
+        if not os.path.exists(os.path.join(processed_root, 'method')):
+            os.mkdir(os.path.join(processed_root, 'method'))
 
         for k in limits:
             if not os.path.exists(os.path.join(processed_root, 'method', str(k))):
@@ -67,14 +69,14 @@ def processing(work_directory):
         energy = attr.attribute(raw_path, status)
         energy.to_csv(os.path.join(processed_root, 'energy', '{}.csv'.format(f)))
 
-        # energy = pd.read_csv(os.path.join(processed_root, 'energy', '{}.csv'.format(f)))
-
         energy = energy.reset_index()
         energy = energy[energy.id > 0].set_index(['timestamp', 'id'])
 
         timestamps = json.load(open(os.path.join(raw_root, f, 'time.json')))
         timestamps = {int(k): int(v) for k, v in timestamps.items()}
         start, end = min(timestamps.values()), max(timestamps.values())
+
+        id = json.load(open(os.path.join(raw_path, 'id.json')))
 
         if raw_method is not None:
             trimmed_method = raw_method[(raw_method.timestamp >= start) & (raw_method.timestamp <= end)].copy()
@@ -85,10 +87,15 @@ def processing(work_directory):
             trimmed_method['trace'] = randint(0, 26, len(trimmed_method)) + 65
             trimmed_method.trace = trimmed_method.trace.map(chr)
 
-        id = json.load(open(os.path.join(raw_root, f, 'id.json')))
+        # if os.path.exists(os.path.join(raw_path, 'method.csv')):
+        # method = pd.read_csv(os.path.join(raw_path, 'method.csv'), delimiter = ';')
+        # method.timestamp = method.timestamp - start + 1
+        # method = method.set_index(['timestamp', 'id']).sort_index()
+
         for k in limits:
-            method = attr.align(energy, trimmed_method, id, limit = k if k is not 'inf' else None, status = status)
-            method.to_csv(os.path.join(processed_root, 'method', str(k), '{}.csv'.format(f)))
+            # df = attr.align(energy, method, id, limit = k if k is not 'inf' else None, status = status)
+            df = attr.align(energy, trimmed_method, id, limit = k if k is not 'inf' else None, status = status)
+            df.to_csv(os.path.join(processed_root, 'method', str(k), '{}.csv'.format(f)))
 
 def summary(work_directory):
     processed_root = os.path.join(work_directory, 'processed')
@@ -96,10 +103,13 @@ def summary(work_directory):
     if not os.path.exists(summary_root):
         os.mkdir(summary_root)
 
-    # component = smry.component(os.path.join(processed_root, 'energy'))
-    # component = component.sort_index()
-    # print(component.sort_index())
-    # component.to_csv(os.path.join(summary_root, 'component.csv'))
+    runtime, component = smry.component(os.path.join(processed_root, 'energy'))
+    print(runtime)
+    runtime.to_csv(os.path.join(summary_root, 'runtime.csv'))
+
+    component = component.sort_index()
+    print(component.sort_index())
+    component.to_csv(os.path.join(summary_root, 'component.csv'))
 
     method = []
     for k in tqdm(limits):
@@ -108,7 +118,8 @@ def summary(work_directory):
     method = pd.concat(method)
     method.to_csv(os.path.join(summary_root, 'method.csv'))
 
-    df = method.reset_index().pivot(index = 'method', columns = 'k', values = 'energy').sort_values('inf', ascending = False)
+    df = method.reset_index().pivot(index = 'method', columns = 'k', values = 'energy')
+    df = df.sort_values(by = df.columns[0], ascending = False)
     print(df.head(10))
     print(df.corr())
 

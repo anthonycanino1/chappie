@@ -27,7 +27,7 @@ def filter_to_application(trace):
 def method(path):
     df = pd.concat([pd.read_csv(os.path.join(path, f)) for f in np.sort(os.listdir(path))[2:]])
     df['energy'] = df.package + df.dram
-    mask = df.name.str.contains('chappie') | df.name.isin(JVM_JAVA)
+    mask = df.name.str.contains('chappie') | df.trace.str.contains('chappie') | df.name.isin(JVM_JAVA)
     df = df[~mask]
 
     df['filtered_trace'] = df.trace.str.split(';').map(filter_to_application)

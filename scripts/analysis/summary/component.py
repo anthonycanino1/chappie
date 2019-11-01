@@ -1,6 +1,7 @@
 import os
 import re
 
+import numpy as np
 import pandas as pd
 
 from tqdm import tqdm
@@ -37,9 +38,14 @@ def thread_to_component(thread):
         return 'application'
 
 def component(path):
-    df = pd.concat(tqdm(pd.read_csv(os.path.join(path, f)).assign(iter = k) for k, f in enumerate(os.listdir(path))))
+    df = pd.concat(tqdm(pd.read_csv(os.path.join(path, f)).assign(iter = k) for k, f in enumerate(np.sort(os.listdir(path))[2:])))
+
+    runtime = df.groupby('iter').timestamp.agg(('min', 'max'))
+    runtime['runtime'] = runtime['max'] - runtime['min']
+    runtime = runtime[['runtime']].agg(('mean', 'std'))
+
     df['component'] = df.name.map(thread_to_component)
     df = df.groupby(['socket', 'component', 'iter'])[['package', 'dram']].sum()
     df = df.groupby(['socket', 'component'])[['package', 'dram']].mean()
 
-    return df
+    return runtime, df

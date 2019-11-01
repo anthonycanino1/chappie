@@ -35,7 +35,7 @@ def attribute(path, status = None):
     if 'energy' in raw:
         nrg = energy.process(raw['energy'])
     else:
-        # print('no energy data; creating dummy data')
+        print('no energy data; creating dummy data')
         dummy_epochs = vm.reset_index().epoch.unique()
         dummy_index = pd.MultiIndex.from_product(
             [dummy_epochs, (1, 2)],
