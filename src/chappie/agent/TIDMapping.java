@@ -19,14 +19,14 @@ import javassist.NotFoundException;
 
 import chappie.agent.CtClassUtil;
 
-import glibc.GLIBC;
+import jlibc.libc;
 
 public class TIDMapping implements ClassFileTransformer {
 
   private static String body = "chappie.agent.TIDMapping.mapTask();";
   public static void mapTask() {
     try {
-      GLIBC.getTaskId();
+      libc.getTaskId();
     } catch (Exception e) {
       System.out.println("couldn't map" + Thread.currentThread().getName());
     }

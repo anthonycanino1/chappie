@@ -26,7 +26,7 @@ import chappie.Chaperone;
 import chappie.profile.*;
 import chappie.profile.util.*;
 
-import glibc.proc.*;
+import jlibc.proc.*;
 
 public class OSProfiler extends Profiler {
   Task main = Task.mainTask();
