@@ -78,7 +78,7 @@ public class Chaperone implements Runnable {
       if (raplRate > 0)
         profilers.add(new RAPLProfiler(raplRate, timerRate, workDirectory));
 
-      int traceRate = Integer.parseInt(System.getProperty("chappie.trace", "1"));
+      int traceRate = Integer.parseInt(System.getProperty("chappie.trace", "0"));
       if (traceRate > 0)
         profilers.add(new TraceProfiler(traceRate, timerRate, workDirectory));
 

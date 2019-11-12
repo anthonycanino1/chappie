@@ -1,43 +1,34 @@
+import os
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
+from tqdm import tqdm
+
 def cfa(path):
     method = pd.read_csv(os.path.join(path, 'method.csv'))
+    method['method'] = method.trace.str.split(';').str[0].str.split('.').str[-2:].str.join('.')
 
-    method['method'] = method.method.str.split('.').str[-2:].str.join('.')
-    method['package'] = method.method.str.split('.').str[:-2].str.join('.')
-    method['class'] = method.method.str.split('.').str[-2]
+    top_methods = method.groupby('method').energy.sum().sort_values(ascending = False).head(3).index.values
 
-    for col in ('all', 'unfiltered', 'deep'):
-        df = method.groupby([col, '{}_context'.format(col)]).sum().reset_index()
+    context1 = method.trace.str.split(';').str[1].str.split('.').str[-2:].str.join('.')
+    context2 = method.trace.str.split(';').str[2].str.split('.').str[-2:].str.join('.')
+    method['context'] = "[" + context1 + ", " + context2 + "]"
 
-        df['method'] = df[col].str.split('.').map(lambda x: x[-1] if len(x) > 1 else x[0])
-        df['class'] = df[col].str.split('.').map(lambda x: x[-2] if len(x) > 1 else x[0])
-        df['package'] = df[col].str.split('.').map(lambda x: '.'.join(x[:-2])  if len(x) > 1 else x[0])
+    method = method[method.method.isin(top_methods)].groupby(['method', 'context']).energy.sum()
+    method /= method.groupby('method').sum()
 
-        df['method_context'] = df['{}_context'.format(col)].str.split('.').map(lambda x: x[-1] if len(x) > 1 else x[0])
-        df['class_context'] = df['{}_context'.format(col)].str.split('.').map(lambda x: x[-2] if len(x) > 1 else x[0])
-        df['package_context'] = df['{}_context'.format(col)].str.split('.').map(lambda x: '.'.join(x[:-2])  if len(x) > 1 else x[0])
-        if col != 'unfiltered':
-            df = df[~(df.package.str.contains(r'java.') | df.package.str.contains(r'chappie.'))]
+    for i, (m, df) in enumerate(method.reset_index().groupby('method')):
+        ax = df.plot(kind = 'pie', x = 'context', y = 'energy', wedgeprops = {'edgecolor': 'k', 'linewidth': 1}, labels = None, figsize = (24, 16))
 
-        for col2 in ('method', 'class', 'package'):
-            for m in top[col, col2]:
-                df2 = df[df[col2] == m]
-                df2.energy /= df2.energy.sum()
-                df2 = df2[df2.energy > 0]
-                df2 = df2.groupby('{}_context'.format(col2)).energy.sum()
-                # df2.index = df2['{}_context'.format(col2)]
-                # df2 = df2.energy
+        plt.title(m, fontsize = 72)
+        plt.xlabel('')
+        plt.ylabel('')
 
-                if len(df2) > 0:
-                    df2.plot(kind = 'pie', title = m, labels = None)
-                    plt.ylabel('')
-                    plt.legend(df2.index)
+        if len(df.context) < 10:
+            ax.legend(df.context, loc = 'upper left', bbox_to_anchor = (0.925, 0.925), frameon = False, fontsize = 48)
+        else:
+            ax.legend(df.context, fontsize = 10, ncol = int(np.ceil(len(df.context) / 30)))
 
-                    plt.savefig(os.path.join(args.benchmark, 'plots', '{}_{}_{}_context.pdf'.format(m.replace('<', '').replace('>', ''), col, col2)), bbox_inches = 'tight', legend = True)
-
-                # df2 = df[df[col2] == top[col, col2]]
-                # df2 = df2.groupby([col2, '{}_context'.format(col2)]).energy.sum().sort_values()
-                # print(df2.tail(10))
-                # df2.tail(10).plot(kind = 'barh', width = 0.3)
-
-            # df.tail(10).plot(kind = 'barh', width = 0.3)
-            # plt.savefig(os.path.join(path, 'plots', '{}_ranking.svg'.format(col2)), bbox_inches = 'tight')
+        plt.savefig(os.path.join(path, '..', 'plots', 'top_{}_cfa2.pdf'.format(i + 1)), bbox_inches = 'tight', legend = True)

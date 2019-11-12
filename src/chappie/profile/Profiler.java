@@ -14,12 +14,13 @@ public abstract class Profiler {
     this.rate = rate;
     this.logger = Logger.getLogger("chappie");
     this.workDirectory = workDirectory;
-    logger.info(this.getClass().getSimpleName() + " set to " + rate * time + " ms");
+    if (rate * time > 0)
+      logger.info(this.getClass().getSimpleName() + " set to " + rate * time + " ms");
   }
 
   protected ArrayList<Record> data = new ArrayList<Record>();
   public void sample(int epoch) {
-    if (epoch % rate == 0) {
+    if (rate == 0 || epoch % rate == 0) {
       sampleImpl(epoch);
     }
   };

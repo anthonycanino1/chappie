@@ -40,12 +40,8 @@ def thread_to_component(thread):
 def component(path):
     df = pd.concat(tqdm(pd.read_csv(os.path.join(path, f)).assign(iter = k) for k, f in enumerate(np.sort(os.listdir(path))[2:])))
 
-    runtime = df.groupby('iter').timestamp.agg(('min', 'max'))
-    runtime['runtime'] = runtime['max'] - runtime['min']
-    runtime = runtime[['runtime']].agg(('mean', 'std'))
-
     df['component'] = df.name.map(thread_to_component)
     df = df.groupby(['socket', 'component', 'iter'])[['package', 'dram']].sum()
     df = df.groupby(['socket', 'component'])[['package', 'dram']].mean()
 
-    return runtime, df
+    return df.sort_index()

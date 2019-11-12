@@ -1,79 +1,139 @@
 import argparse
 import json
 import os
+import sys
 
 from argparse import Namespace
-from os.path import dirname
+from os.path import dirname, realpath
 
-run_libs = dirname(__file__)
-chappie_root = dirname(dirname(run_libs))
+chappie_root = realpath(dirname(dirname(dirname(__file__))))
 
 def parse_args():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-cfg', '--config')
-    parser.add_argument('-dir', '--work-directory')
+    # where we place the data; this should be independent of
+    # everything else
+    parser.add_argument('-d', '--work-directory', default = './chappie-logs')
+    parser.add_argument('--samples', default = 1)
 
-    args = parser.parse_args()
+    group = parser.add_mutually_exclusive_group()
 
-    if args.config:
+    group.add_argument('-cp', '--classpath')
+    # this is just used for my testing
+    group.add_argument('--config')
+
+    args, _ = parser.parse_known_args()
+    samples = args.samples
+
+    if args.classpath is None and args.config is None:
+        if os.path.exists(os.path.join(args.work_directory, 'config.json')):
+            config = json.load(open(os.path.join(args.work_directory, 'config.json')))
+            config['work_directory'] = args.work_directory
+            config['samples'] = samples
+
+            return config
+        else:
+            raise ValueError('no arguments or config specified')
+    elif not os.path.exists(os.path.dirname(args.work_directory)):
+        raise FileNotFoundError('target for work directory ({}) is not available'.format(args.work_directory))
+    elif not os.path.exists(args.work_directory):
+        os.mkdir(args.work_directory)
+    elif not os.path.isdir(args.work_directory):
+        raise FileExistsError('target for work directory ({}) is not available'.format(args.work_directory))
+
+    if not os.path.exists(os.path.join(args.work_directory, 'raw')):
+        os.mkdir(os.path.join(args.work_directory, 'raw'))
+
+    # grab the config if it's available
+    if args.config is not None:
         config = json.load(open(args.config))
-    elif args.work_directory and os.path.exists(os.path.join(args.work_directory, 'config.json')):
-        config = json.load(open(os.path.join(args.work_directory, 'config.json')))
-    else:
-        raise ValueError('no config!')
-
-    if args.work_directory:
         config['work_directory'] = args.work_directory
-    elif 'work_directory' not in config:
-        config['work_directory'] = 'chappie-logs'
+        config['samples'] = samples
+
+        json.dump(config, open(os.path.join(args.work_directory, 'config.json'), 'w'))
+
+        return config
+
+    # otherwise let's parse out java-like args
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('-d', '--work-directory', default = 'chappie-logs')
+    parser.add_argument('--samples', default = 1)
+
+    parser.add_argument('-cp')
+
+    args, java_args = parser.parse_known_args()
+
+    xargs = [arg for arg in java_args if '-X' in arg]
+    dargs = [arg for arg in java_args if '-D' in arg]
+
+    app_args = [arg for arg in java_args if arg not in xargs + dargs]
+
+    xargs = [arg.replace('-X', '') for arg in xargs]
+
+    dargs = [arg.replace('-D', '').replace('-Darg=', '').replace(':', '=').split(',') for arg in dargs]
+    dargs = [arg for args in dargs for arg in args] + ['chappie.dir={}'.format(args.work_directory)]
+
+    java_main, app_args = app_args[0], app_args[1:]
+
+    config = {
+        'xargs': xargs,
+        'dargs': dargs,
+        'classpath': args.cp,
+        'main': java_main,
+        'args': app_args,
+        'work_directory': args.work_directory,
+        'samples': samples
+    }
+
+    json.dump(config, open(os.path.join(args.work_directory, 'config.json'), 'w'))
 
     return config
 
 def build_java_call(config):
-    call_args = {}
-    call_args['chappie_root'] = chappie_root
-    call_args['class_path'] = config['class_path']
-    call_args['main'] = config['main']
+    java_args = {'root': chappie_root, 'work_directory': config['work_directory']}
 
-    if 'properties' in config and config['properties']:
-        call_args['properties'] = '-D' + ' -D'.join(config['properties']) + ' '
+    if 'xargs' in config and len(config['xargs']) > 0:
+        xargs = '-X' + ' -X'.join(config['xargs'])
+        java_args['xargs'] = xargs
     else:
-        call_args['properties'] = ''
+        java_args['xargs'] = '-Xbootclasspath/a:'
+
+    java_args['xargs'] = java_args['xargs'].replace('-Xbootclasspath/a:', '-Xbootclasspath/a:{}/chappie.jar'.format(chappie_root))
+
+    if 'dargs' in config:
+        dargs = '-D' + ' -D'.join(config['dargs'])
+        java_args['dargs'] = dargs
+    else:
+        java_args['dargs'] = ''
 
     if 'chappie' in config:
-        chappie_args = config['chappie']
-        if isinstance(config['chappie'], dict):
-            chappie_args = ['chappie.{}={}'.format(k, v) for k, v in config['chappie'].items()]
-        else:
-            chappie_args = config['chappie']
+        java_args['dargs'] += ' '.join('-Dchappie.{}={}'.format(*i) for i in config['chappie'].items())
 
-        call_args['properties'] += '-D' + ' -D'.join(chappie_args)
+    java_args['classpath'] = config['classpath']
+    java_args['main'] = config['main']
+    java_args['args'] = ' '.join(config['args']).format(**java_args)
 
-    if isinstance(config['args'], list):
-        call_args['args'] = ' '.join(config['args'])
+    java_args['samples'] = config['samples']
 
-    if not os.path.exists(config['work_directory']):
-        os.mkdir(config['work_directory'])
-    if not os.path.exists(os.path.join(config['work_directory'], 'raw')):
-        os.mkdir(os.path.join(config['work_directory'], 'raw'))
-    json.dump(config, open(os.path.join(config['work_directory'], 'config.json'), 'w'), indent = 2)
-
-    call_args['work_directory'] = config['work_directory']
-
-    call_args['properties'] += ' -Dchappie.dir={}'.format(call_args['work_directory'])
-    call_args['args'] = config['args'].format(work_directory = call_args['work_directory'])
-
-    java_call = """
-        java
-            -Xbootclasspath/a:{chappie_root}/chappie.jar
-            -Xmx64g
-            -javaagent:{chappie_root}/chappie.jar
-            -agentpath:{chappie_root}/build/liblagent.so=logPath={work_directory}/raw/method.csv,interval=1
-            {properties}
-            -cp {chappie_root}/chappie.jar:{class_path}
-            {main} {args}
-    """.format(**call_args)
+    if 'rate=0' not in java_args['dargs']:
+        java_call = """
+            java
+                {xargs}
+                -javaagent:{root}/chappie.jar
+                -agentpath:{root}/build/liblagent.so=logPath={work_directory}/raw/method.csv,interval=1,samples={samples}
+                {dargs}
+                -cp {root}/chappie.jar:{classpath}
+                {main} {args}
+        """.format(**java_args)
+    else:
+        java_call = """
+            java
+                {xargs}
+                {dargs}
+                -cp {root}/chappie.jar:{classpath}
+                {main} {args}
+        """.format(**java_args)
 
     return java_call
 

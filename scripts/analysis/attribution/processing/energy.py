@@ -7,6 +7,9 @@ def rapl_wrap_around(reading):
         return max(reading + _RAPL_WRAPAROUND, 0)
 
 def process(energy):
+    # shouldn't this have been handled at runtime???
+    energy.socket += 1
+
     energy.package = energy.groupby('socket').package.diff()
     energy.dram = energy.groupby('socket').dram.diff()
 

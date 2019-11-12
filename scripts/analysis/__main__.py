@@ -20,7 +20,6 @@ chappie_root = dirname(run_libs)
 def parse_args():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-cfg', '--config')
     parser.add_argument('-dir', '--work-directory', default = 'chappie-logs')
 
     args = parser.parse_args()
@@ -28,8 +27,6 @@ def parse_args():
     if os.path.exists(os.path.join(args.work_directory, 'config.json')):
         config = json.load(open(os.path.join(args.work_directory, 'config.json')))
         config['work_directory'] = args.work_directory
-    elif args.config:
-        config = json.load(open(args.config))
     else:
         raise ValueError('no config found!')
 
@@ -47,11 +44,12 @@ def processing(work_directory):
     iters = [f for f in os.listdir(raw_root) if 'method' not in f]
 
     try:
-        raw_method = pd.read_csv(os.path.join(raw_root, 'method.csv'), header = None)
+        print(os.path.join(raw_root, 'method.csv'))
+        raw_method = pd.read_csv(os.path.join(raw_root, 'method.csv'))
         raw_method.columns = ['name', 'timestamp', 'id', 'trace']
         raw_method = raw_method[raw_method.trace != 'end'].drop_duplicates(subset = ['timestamp', 'id'])
     except:
-        raise
+        # raise
         raw_method = None
 
     status = tqdm(iters)
@@ -59,6 +57,17 @@ def processing(work_directory):
         raw_path = os.path.join(raw_root, f)
         if not os.path.exists(os.path.join(processed_root, 'energy')):
             os.mkdir(os.path.join(processed_root, 'energy'))
+
+        if raw_method is None:
+            df = pd.read_csv(os.path.join(raw_path, 'energy.csv'), delimiter = ';')
+            df['energy'] = df.package + df.dram
+            df = df.groupby('epoch')[['energy']].sum()
+            timestamps = {int(k) + 1: int(v) for k, v in json.load(open(os.path.join(raw_path, 'time.json'))).items()}
+            df['timestamp'] = df.index.map(timestamps)
+            df = df.diff().fillna(0)
+            df.to_csv(os.path.join(processed_root, 'energy', '{}.csv'.format(f)), index = False)
+            continue
+
         if not os.path.exists(os.path.join(processed_root, 'method')):
             os.mkdir(os.path.join(processed_root, 'method'))
 
@@ -68,6 +77,9 @@ def processing(work_directory):
 
         energy = attr.attribute(raw_path, status)
         energy.to_csv(os.path.join(processed_root, 'energy', '{}.csv'.format(f)))
+
+        # print(energy)
+        # print(energy.socket.unique())
 
         energy = energy.reset_index()
         energy = energy[energy.id > 0].set_index(['timestamp', 'id'])
@@ -103,35 +115,31 @@ def summary(work_directory):
     if not os.path.exists(summary_root):
         os.mkdir(summary_root)
 
-    runtime, component = smry.component(os.path.join(processed_root, 'energy'))
+    runtime = smry.runtime(work_directory)
+    runtime.to_csv(os.path.join(summary_root, 'runtime.csv'), header = True)
     print(runtime)
-    runtime.to_csv(os.path.join(summary_root, 'runtime.csv'))
 
-    component = component.sort_index()
-    print(component.sort_index())
-    component.to_csv(os.path.join(summary_root, 'component.csv'))
+    if os.path.exists(os.path.join(work_directory, 'raw', 'method.csv')):
+        component = smry.component(os.path.join(processed_root, 'energy'))
+        component.to_csv(os.path.join(summary_root, 'component.csv'))
+        print(component)
 
-    method = []
-    for k in tqdm(limits):
-        method.append(smry.method(os.path.join(processed_root, 'method', str(k))).assign(k = k))
-
-    method = pd.concat(method)
-    method.to_csv(os.path.join(summary_root, 'method.csv'))
-
-    df = method.reset_index().pivot(index = 'method', columns = 'k', values = 'energy')
-    df = df.sort_values(by = df.columns[0], ascending = False)
-    print(df.head(10))
-    print(df.corr())
+        method = smry.method(os.path.join(processed_root, 'method', str(4)))
+        method.to_csv(os.path.join(summary_root, 'method.csv'))
+        print(method.sort_values('energy', ascending = False).head(20))
 
 def plotting(work_directory):
     summary_root = os.path.join(work_directory, 'summary')
     plots_root = os.path.join(work_directory, 'plots')
     if not os.path.exists(plots_root):
         os.mkdir(plots_root)
+    else:
+        import shutil
+        shutil.rmtree(plots_root)
+        os.mkdir(plots_root)
 
     plt.ranking(summary_root)
-
-    # plt.cfa(summary_root)
+    plt.cfa(summary_root)
 
 def main(config):
     processing(config['work_directory'])
