@@ -38,7 +38,8 @@ def thread_to_component(thread):
         return 'application'
 
 def component(path):
-    df = pd.concat(tqdm(pd.read_csv(os.path.join(path, f)).assign(iter = k) for k, f in enumerate(np.sort(os.listdir(path))[2:])))
+    iters = np.sort(os.listdir(path))
+    df = pd.concat(tqdm(pd.read_csv(os.path.join(path, f)).assign(iter = k) for k, f in enumerate(iters)))
 
     df['component'] = df.name.map(thread_to_component)
     df = df.groupby(['socket', 'component', 'iter'])[['package', 'dram']].sum()

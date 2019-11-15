@@ -20,7 +20,7 @@ chappie_root = dirname(run_libs)
 def parse_args():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-dir', '--work-directory', default = 'chappie-logs')
+    parser.add_argument('-dir', '--work-directory')
 
     args = parser.parse_args()
 
@@ -32,9 +32,6 @@ def parse_args():
 
     return config
 
-# limits = [0, 4, 16, 64, 256, 'inf']
-limits = [4]
-
 def processing(work_directory):
     raw_root = os.path.join(work_directory, 'raw')
     processed_root = os.path.join(work_directory, 'processed')
@@ -42,17 +39,20 @@ def processing(work_directory):
         os.mkdir(processed_root)
 
     iters = [f for f in os.listdir(raw_root) if 'method' not in f]
+    iters.sort()
+    warm_up = len(iters) // 5
+    iters = iters[warm_up:]
 
     try:
-        print(os.path.join(raw_root, 'method.csv'))
         raw_method = pd.read_csv(os.path.join(raw_root, 'method.csv'))
         raw_method.columns = ['name', 'timestamp', 'id', 'trace']
         raw_method = raw_method[raw_method.trace != 'end'].drop_duplicates(subset = ['timestamp', 'id'])
     except:
-        # raise
+        raise
         raw_method = None
 
     status = tqdm(iters)
+
     for f in status:
         raw_path = os.path.join(raw_root, f)
         if not os.path.exists(os.path.join(processed_root, 'energy')):
@@ -71,15 +71,10 @@ def processing(work_directory):
         if not os.path.exists(os.path.join(processed_root, 'method')):
             os.mkdir(os.path.join(processed_root, 'method'))
 
-        for k in limits:
-            if not os.path.exists(os.path.join(processed_root, 'method', str(k))):
-                os.makedirs(os.path.join(processed_root, 'method', str(k)))
-
         energy = attr.attribute(raw_path, status)
         energy.to_csv(os.path.join(processed_root, 'energy', '{}.csv'.format(f)))
 
-        # print(energy)
-        # print(energy.socket.unique())
+        # energy = pd.read_csv(os.path.join(processed_root, 'energy', '{}.csv'.format(f))).set_index(['timestamp', 'id', 'name'])
 
         energy = energy.reset_index()
         energy = energy[energy.id > 0].set_index(['timestamp', 'id'])
@@ -100,14 +95,12 @@ def processing(work_directory):
             trimmed_method.trace = trimmed_method.trace.map(chr)
 
         # if os.path.exists(os.path.join(raw_path, 'method.csv')):
-        # method = pd.read_csv(os.path.join(raw_path, 'method.csv'), delimiter = ';')
-        # method.timestamp = method.timestamp - start + 1
-        # method = method.set_index(['timestamp', 'id']).sort_index()
+        #     method = pd.read_csv(os.path.join(raw_path, 'method.csv'), delimiter = ';')
+        #     method.timestamp = method.timestamp - start + 1
+        #     method = method.set_index(['timestamp', 'id']).sort_index()
 
-        for k in limits:
-            # df = attr.align(energy, method, id, limit = k if k is not 'inf' else None, status = status)
-            df = attr.align(energy, trimmed_method, id, limit = k if k is not 'inf' else None, status = status)
-            df.to_csv(os.path.join(processed_root, 'method', str(k), '{}.csv'.format(f)))
+        df = attr.align(energy, trimmed_method, id, limit = 0, status = status)
+        df.to_csv(os.path.join(processed_root, 'method', '{}.csv'.format(f)))
 
 def summary(work_directory):
     processed_root = os.path.join(work_directory, 'processed')
@@ -124,9 +117,8 @@ def summary(work_directory):
         component.to_csv(os.path.join(summary_root, 'component.csv'))
         print(component)
 
-        method = smry.method(os.path.join(processed_root, 'method', str(4)))
+        method = smry.method(os.path.join(processed_root, 'method'))
         method.to_csv(os.path.join(summary_root, 'method.csv'))
-        print(method.sort_values('energy', ascending = False).head(20))
 
 def plotting(work_directory):
     summary_root = os.path.join(work_directory, 'summary')
@@ -138,11 +130,14 @@ def plotting(work_directory):
         shutil.rmtree(plots_root)
         os.mkdir(plots_root)
 
-    plt.ranking(summary_root)
-    plt.cfa(summary_root)
+    ranking = plt.ranking(summary_root)
+    print(ranking.head(20))
+
+    cfa = plt.cfa(summary_root)
+    print(cfa)
 
 def main(config):
-    processing(config['work_directory'])
+    # processing(config['work_directory'])
     summary(config['work_directory'])
     plotting(config['work_directory'])
 

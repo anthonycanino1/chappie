@@ -32,3 +32,5 @@ def cfa(path):
             ax.legend(df.context, fontsize = 10, ncol = int(np.ceil(len(df.context) / 30)))
 
         plt.savefig(os.path.join(path, '..', 'plots', 'top_{}_cfa2.pdf'.format(i + 1)), bbox_inches = 'tight', legend = True)
+
+    return method

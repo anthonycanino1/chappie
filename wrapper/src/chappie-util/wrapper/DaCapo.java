@@ -18,8 +18,8 @@ public class DaCapo extends Callback {
   }
 
   @Override
-  public void complete(String benchmark, boolean valid) {
-    super.complete(benchmark, valid);
+  public void stop(long duration) {
+    super.stop(duration);
     chappie.stop();
   }
 }

@@ -28,13 +28,16 @@ def filter_to_application(trace):
     return 'end'
 
 def method(path):
-    df = pd.concat([pd.read_csv(os.path.join(path, f)).assign(iter = i) for i, f in enumerate(tqdm(np.sort(os.listdir(path))[2:]))])
+    iters = np.sort(os.listdir(path))
+    warm_up = len(iters) // 5
+    df = pd.concat([pd.read_csv(os.path.join(path, f)).assign(iter = i) for i, f in enumerate(tqdm(iters))])
     df['energy'] = df.package + df.dram
-    mask = df.name.str.contains('chappie') | df.trace.str.contains('chappie') | df.trace.str.contains('jlibc') | df.trace.str.contains('jrapl') | df.name.isin(JVM_JAVA)
+
+    mask = (df.trace == 'end') | df.trace.str.contains('chappie') | df.trace.str.contains('jlibc') | df.trace.str.contains('jrapl') | df.name.isin(JVM_JAVA)
     df = df[~mask]
 
     df['trace'] = df.trace.str.split(';').map(filter_to_application).str.join(';')
-    df = df[(df.trace != 'end') | (df.trace != 'e;n;d')]
+    df = df[df.trace != 'end']
     df = df.groupby('trace').energy.agg(('sum', 'count'))
     df.columns = ['energy', 'time']
 
