@@ -137,7 +137,7 @@ def plotting(work_directory):
     print(cfa)
 
 def main(config):
-    # processing(config['work_directory'])
+    processing(config['work_directory'])
     summary(config['work_directory'])
     plotting(config['work_directory'])
 
