@@ -11,18 +11,25 @@ public class CtClassUtil {
     }
   }
 
-  public static boolean doesImplement(CtClass cls, String intrfc) {
-    CtClass klass = cls;
-    while (klass != null) {
+  public static boolean doesImplement(CtClass cls, String interfaceName) {
+    while (cls != null) {
       try {
-        CtClass[] interfaces = klass.getInterfaces();
+        CtClass[] interfaces = cls.getInterfaces();
         for (int i = 0; i < interfaces.length; ++i)
-          if (interfaces[i].getName().equals(intrfc))
+          if (interfaces[i].getName().equals(interfaceName))
             return true;
 
       } catch(Exception exception) { }
-      klass = getSuperClass(klass);
+      cls = getSuperClass(cls);
     }
     return false;
+  }
+
+  public static boolean isNative(String className) {
+    System.out.println(className.substring(0, 5));
+    return className.substring(0, 5).contains("java/") ||
+           className.substring(0, 6).contains("javax/") ||
+           className.contains("jdk/") ||
+           className.contains("sun/")
   }
 }

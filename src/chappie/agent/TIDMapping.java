@@ -51,29 +51,32 @@ public class TIDMapping implements ClassFileTransformer {
     ProtectionDomain protectionDomain,
     byte[] classfileBuffer
   ) throws IllegalClassFormatException {
-    try {
-			ClassPool classPool = ClassPool.getDefault();
-      CtClass ctClass = classPool.makeClass(new ByteArrayInputStream(classfileBuffer));
+    if !isNative(className) {
+      try {
+  			ClassPool classPool = ClassPool.getDefault();
+        CtClass ctClass = classPool.makeClass(new ByteArrayInputStream(classfileBuffer));
 
-      if (!className.contains("ZipFile") && !className.contains("java2d/Disposer") && CtClassUtil.doesImplement(ctClass, "java.lang.Runnable")) {
-  			CtMethod runMethod = ctClass.getMethod("run", Descriptor.ofMethod(CtClass.voidType, new CtClass[0]));
-        runMethod.insertBefore(body);
+        if (CtClassUtil.doesImplement(ctClass, "java.lang.Runnable")) {
+    			CtMethod runMethod = ctClass.getMethod("run", Descriptor.ofMethod(CtClass.voidType, new CtClass[0]));
+          runMethod.insertBefore(body);
 
-        byte[] byteCode = ctClass.toBytecode();
-  			ctClass.detach();
+          byte[] byteCode = ctClass.toBytecode();
+    			ctClass.detach();
 
-        System.out.println("transformed " + className);
+          System.out.println("transformed " + className);
 
-        return byteCode;
-      } else {
+          return byteCode;
+        } else
+          return classfileBuffer;
+
+      } catch (CannotCompileException | IOException | NotFoundException ex) {
+        System.out.println("could not transform " + className);
+        System.out.println(ex.getClass().getCanonicalName() + ": " + ex.getMessage());
+        // ex.printStackTrace();
+
         return classfileBuffer;
       }
-    } catch (CannotCompileException | IOException | NotFoundException ex) {
-      System.out.println("could not transform " + className);
-      System.out.println(ex.getClass().getCanonicalName() + ": " + ex.getMessage());
-      // ex.printStackTrace();
-
-      return classfileBuffer;
     }
-	}
+  } else
+    return classfileBuffer
 }

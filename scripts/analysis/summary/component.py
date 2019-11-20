@@ -11,12 +11,14 @@ JVM_JAVA = (
     'Finalizer',
     'Java2D Disposer',
     'process reaper',
+    'Reference Handl',
     'Reference Handler',
+    'Signal Dispatch',
     'Signal Dispatcher'
 )
 
-JIT = ('CompilerThre', )
-GC = ('Main Marker', 'Marker#', 'Refine#', 'Young RemSet', 'GC Thread#')
+JIT = ('(C\d CompilerThre)', )
+GC = ('(G\d Conc#\d)', '(G\d Refine#\d)', '(G\d Young RemSet)', '(G\d Main Marker)', '(GC Thread#\d)')
 OTHER = (
     'java',
     'Service Thread',
@@ -26,6 +28,16 @@ OTHER = (
 )
 
 JVM_C = re.compile('|'.join(JIT + GC + OTHER))
+
+def thread_to_component(thread):
+    if 'chappie' in thread or thread == 'Honest Profiler':
+        return 'chappie'
+    elif thread in JVM_JAVA:
+        return 'jvm-java'
+    elif JVM_C.match(thread) is not None:
+        return 'jvm-c'
+    else:
+        return 'application'
 
 def thread_to_component(thread):
     if 'chappie' in thread or thread is 'Honest Profiler':

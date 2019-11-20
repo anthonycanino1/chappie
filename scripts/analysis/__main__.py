@@ -43,12 +43,11 @@ def processing(work_directory):
     warm_up = len(iters) // 5
     iters = iters[warm_up:]
 
-    try:
+    if os.path.exists(os.path.join(raw_root, 'method.csv')):
         raw_method = pd.read_csv(os.path.join(raw_root, 'method.csv'))
         raw_method.columns = ['name', 'timestamp', 'id', 'trace']
         raw_method = raw_method[raw_method.trace != 'end'].drop_duplicates(subset = ['timestamp', 'id'])
-    except:
-        raise
+    else:
         raw_method = None
 
     status = tqdm(iters)
@@ -111,16 +110,21 @@ def summary(work_directory):
     runtime = smry.runtime(work_directory)
     runtime.to_csv(os.path.join(summary_root, 'runtime.csv'), header = True)
     print(runtime)
+    #
+    # return
 
     if os.path.exists(os.path.join(work_directory, 'raw', 'method.csv')):
-        component = smry.component(os.path.join(processed_root, 'energy'))
-        component.to_csv(os.path.join(summary_root, 'component.csv'))
-        print(component)
+        # component = smry.component(os.path.join(processed_root, 'energy'))
+        # component.to_csv(os.path.join(summary_root, 'component.csv'))
+        # print(component)
 
         method = smry.method(os.path.join(processed_root, 'method'))
         method.to_csv(os.path.join(summary_root, 'method.csv'))
 
 def plotting(work_directory):
+    if not os.path.exists(os.path.join(work_directory, 'raw', 'method.csv')):
+        return
+
     summary_root = os.path.join(work_directory, 'summary')
     plots_root = os.path.join(work_directory, 'plots')
     if not os.path.exists(plots_root):
@@ -130,10 +134,14 @@ def plotting(work_directory):
         shutil.rmtree(plots_root)
         os.mkdir(plots_root)
 
+    correlation = plt.correlation(summary_root)
+    print(correlation.head(20))
+
     ranking = plt.ranking(summary_root)
     print(ranking.head(20))
 
     cfa = plt.cfa(summary_root)
+    cfa.to_csv(os.path.join(summary_root, 'cfa2.csv'))
     print(cfa)
 
 def main(config):

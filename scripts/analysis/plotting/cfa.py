@@ -7,10 +7,10 @@ import pandas as pd
 from tqdm import tqdm
 
 def cfa(path):
-    method = pd.read_csv(os.path.join(path, 'method.csv'))
-    method['method'] = method.trace.str.split(';').str[0].str.split('.').str[-2:].str.join('.')
+    method = pd.read_csv(os.path.join(path, 'method.csv')).groupby('trace')[['energy', 'time']].sum().reset_index()
+    method['method'] = method.trace.str.split(';').str[0].str.split('.').str[-2:].str.join('.').replace('$', '\$')
 
-    top_methods = method.groupby('method').energy.sum().sort_values(ascending = False).head(3).index.values
+    top_methods = method.groupby('method').energy.sum().sort_values(ascending = False).head(10).index.values
 
     context1 = method.trace.str.split(';').str[1].str.split('.').str[-2:].str.join('.')
     context2 = method.trace.str.split(';').str[2].str.split('.').str[-2:].str.join('.')
@@ -32,5 +32,6 @@ def cfa(path):
             ax.legend(df.context, fontsize = 10, ncol = int(np.ceil(len(df.context) / 30)))
 
         plt.savefig(os.path.join(path, '..', 'plots', 'top_{}_cfa2.pdf'.format(i + 1)), bbox_inches = 'tight', legend = True)
+        plt.close()
 
     return method

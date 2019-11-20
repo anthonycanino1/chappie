@@ -17,8 +17,8 @@ def attribute(path, status = None):
     raw = {
         file.split(r'.')[0]:
             pd.read_csv(file_path(file), delimiter = ';').sort_values('epoch')
-            if 'csv' in file else
-            json.load(open(file_path(file)))
+            if 'csv' in file and 'method' not in file else
+            json.load(open(file_path(file))) if 'method' not in file else ''
         for file in os.listdir(path)
     }
 

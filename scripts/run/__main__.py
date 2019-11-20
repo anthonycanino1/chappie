@@ -121,7 +121,7 @@ def build_java_call(config):
             java
                 {xargs}
                 -javaagent:{root}/chappie.jar
-                -agentpath:{root}/build/liblagent.so=logPath={work_directory}/raw/method.csv,interval=1,samples={samples}
+                -agentpath:{root}/build/liblagent.so=logPath={work_directory}/raw/method.csv,intervalMin=5,intervalMax=13,samples={samples}
                 {dargs}
                 -cp {root}/chappie.jar:{classpath}
                 {main} {args}

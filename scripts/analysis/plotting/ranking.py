@@ -7,7 +7,7 @@ import pandas as pd
 from tqdm import tqdm
 
 def ranking(path):
-    method = pd.read_csv(os.path.join(path, 'method.csv'))
+    method = pd.read_csv(os.path.join(path, 'method.csv')).groupby('trace')[['energy', 'time']].sum().reset_index()
 
     method['method'] = method.trace.str.split(';').str[0]
     method = method.groupby('method')[['energy', 'time']].sum()
@@ -24,12 +24,15 @@ def ranking(path):
         df_.index = df_.index.str.replace('$', '\$')
         if col == 'method':
             y = ['time', 'energy']
-            c = [u'#ff7f0e', u'#1f77b4']
+            # c = [u'#ff7f0e', u'#1f77b4']
+            c = ['tab:red', 'tab:green']
+            df.to_csv(os.path.join(path, '..', 'summary', 'method_ranking.csv'))
 
             rankings = df_
         else:
             y = 'energy'
-            c = u'#1f77b4'
+            # c = u'#1f77b4'
+            c = 'tab:green'
 
         ax = df_.tail(10).plot(
             kind = 'barh', y = y,
@@ -43,7 +46,7 @@ def ranking(path):
         for rect, name in zip(ax.patches, df_.tail(10).index):
             height = rect.get_height()
             ax.text(
-                0.005, rect.get_y() + height + (0.20 if col == 'method' else 0.05),
+                df_.max().max() * 0.005, rect.get_y() + height + (0.20 if col == 'method' else 0.05),
                 name,
                 ha='left', va='bottom', fontsize = 20
             )
