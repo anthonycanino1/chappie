@@ -51,7 +51,7 @@ public class TIDMapping implements ClassFileTransformer {
     ProtectionDomain protectionDomain,
     byte[] classfileBuffer
   ) throws IllegalClassFormatException {
-    if !isNative(className) {
+    if (!CtClassUtil.isNative(className)) {
       try {
   			ClassPool classPool = ClassPool.getDefault();
         CtClass ctClass = classPool.makeClass(new ByteArrayInputStream(classfileBuffer));
@@ -76,7 +76,7 @@ public class TIDMapping implements ClassFileTransformer {
 
         return classfileBuffer;
       }
-    }
-  } else
-    return classfileBuffer
+    } else
+      return classfileBuffer;
+  }
 }

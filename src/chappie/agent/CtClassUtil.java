@@ -26,10 +26,9 @@ public class CtClassUtil {
   }
 
   public static boolean isNative(String className) {
-    System.out.println(className.substring(0, 5));
     return className.substring(0, 5).contains("java/") ||
            className.substring(0, 6).contains("javax/") ||
            className.contains("jdk/") ||
-           className.contains("sun/")
+           className.contains("sun/");
   }
 }
