@@ -10,7 +10,7 @@ def cfa(path):
     method = pd.read_csv(os.path.join(path, 'method.csv')).groupby('trace')[['energy', 'time']].sum().reset_index()
     method['method'] = method.trace.str.split(';').str[0].str.split('.').str[-2:].str.join('.').replace('$', '\$')
 
-    top_methods = method.groupby('method').energy.sum().sort_values(ascending = False).head(10).index.values
+    top_methods = method.groupby('method').energy.sum().sort_values(ascending = False).head(3).index.values
 
     context1 = method.trace.str.split(';').str[1].str.split('.').str[-2:].str.join('.')
     context2 = method.trace.str.split(';').str[2].str.split('.').str[-2:].str.join('.')
@@ -20,6 +20,8 @@ def cfa(path):
     method /= method.groupby('method').sum()
 
     for i, (m, df) in enumerate(method.reset_index().groupby('method')):
+        print(m)
+
         ax = df.plot(kind = 'pie', x = 'context', y = 'energy', wedgeprops = {'edgecolor': 'k', 'linewidth': 1}, labels = None, figsize = (24, 16))
 
         plt.title(m, fontsize = 72)

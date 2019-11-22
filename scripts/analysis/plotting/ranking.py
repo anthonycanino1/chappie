@@ -24,15 +24,15 @@ def ranking(path):
         df_.index = df_.index.str.replace('$', '\$')
         if col == 'method':
             y = ['time', 'energy']
-            # c = [u'#ff7f0e', u'#1f77b4']
-            c = ['tab:red', 'tab:green']
+            c = [u'#d62728', u'#2ca02c']
+            # c = ['tab:red', 'tab:green']
             df.to_csv(os.path.join(path, '..', 'summary', 'method_ranking.csv'))
 
             rankings = df_
         else:
             y = 'energy'
-            # c = u'#1f77b4'
-            c = 'tab:green'
+            c = u'#2ca02c'
+            # c = 'tab:green'
 
         ax = df_.tail(10).plot(
             kind = 'barh', y = y,

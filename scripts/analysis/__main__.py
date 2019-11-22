@@ -32,6 +32,40 @@ def parse_args():
 
     return config
 
+def process_iteration(work_directory):
+    energy = attr.attribute(work_directory)
+
+    # energy.to_csv(os.path.join(processed_root, 'energy', '{}.csv'.format(f)))
+    # energy = pd.read_csv(os.path.join(processed_root, 'energy', '{}.csv'.format(f))).set_index(['timestamp', 'id', 'name'])
+
+    energy = energy.reset_index()
+    energy = energy[energy.id > 0].set_index(['timestamp', 'id'])
+
+    timestamps = json.load(open(os.path.join(raw_root, f, 'time.json')))
+    timestamps = {int(k): int(v) for k, v in timestamps.items()}
+    start, end = min(timestamps.values()), max(timestamps.values())
+
+    id = json.load(open(os.path.join(work_directory, 'id.json')))
+
+    if raw_method is not None:
+        trimmed_method = raw_method[(raw_method.timestamp >= start) & (raw_method.timestamp <= end)].copy()
+        trimmed_method['timestamp'] = trimmed_method.timestamp - start + 1
+        trimmed_method = trimmed_method.set_index(['timestamp', 'id'])
+        trimmed_method.to_csv('method_{}.csv'.format(f))
+        # sys.exit(0)
+    else:
+        trimmed_method = pd.DataFrame(index = energy.index)
+        trimmed_method['trace'] = randint(0, 26, len(trimmed_method)) + 65
+        trimmed_method.trace = trimmed_method.trace.map(chr)
+
+    # if os.path.exists(os.path.join(raw_path, 'method.csv')):
+    #     method = pd.read_csv(os.path.join(raw_path, 'method.csv'), delimiter = ';')
+    #     method.timestamp = method.timestamp - start + 1
+    #     method = method.set_index(['timestamp', 'id']).sort_index()
+
+    # df = attr.align(energy, trimmed_method, id, limit = 0, status = status)
+    # df.to_csv(os.path.join(processed_root, 'method', '{}.csv'.format(f)))
+
 def processing(work_directory):
     raw_root = os.path.join(work_directory, 'raw')
     processed_root = os.path.join(work_directory, 'processed')
@@ -88,6 +122,8 @@ def processing(work_directory):
             trimmed_method = raw_method[(raw_method.timestamp >= start) & (raw_method.timestamp <= end)].copy()
             trimmed_method['timestamp'] = trimmed_method.timestamp - start + 1
             trimmed_method = trimmed_method.set_index(['timestamp', 'id'])
+            trimmed_method.to_csv('method_{}.csv'.format(f))
+            # sys.exit(0)
         else:
             trimmed_method = pd.DataFrame(index = energy.index)
             trimmed_method['trace'] = randint(0, 26, len(trimmed_method)) + 65
@@ -110,7 +146,7 @@ def summary(work_directory):
     runtime = smry.runtime(work_directory)
     runtime.to_csv(os.path.join(summary_root, 'runtime.csv'), header = True)
     print(runtime)
-    #
+
     # return
 
     if os.path.exists(os.path.join(work_directory, 'raw', 'method.csv')):
