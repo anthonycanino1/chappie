@@ -4,3 +4,6 @@
 [submodule "vendor/jlibc"]
 	path = vendor/jlibc
 	url = https://github.com/timurbey/jlibc.git
+[submodule "vendor/async-profiler"]
+	path = vendor/async-profiler
+	url = https://github.com/timurbey/async-profiler.git

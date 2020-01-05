@@ -4,27 +4,66 @@
 
 ## building ##
 
-`chappie` requires the following tools to be built (which should be available through your package manager):
+`chappie` requires the following build tools:
 
- - java (works on 8 but is intended for use with 9+)
- - ant
- - maven
- - jni
- - make
- - unittest++
+ - `java` (works on 8 but is intended for use with 9+)
+ - `ant`
+ - `maven`
+ - `jni`
+ - `make`
+ - `unittest++`
 
-to build all necessary components, you can run:
+to build all necessary components:
 
 ```bash
 ant deps
 ant jar
 ```
 
+<!-- we need something about jrapl, jlibc, and the honest-profiler -->
+
 ant will take care of the rest.
 
 ## running ##
 
-`chappie` requires specific java arguments that can be a little tedious
+to profile, a wrapper needs to be built that calls `chappie` around some code:
+
+```java
+import chappie.Chaperone;
+
+public class FooWrapper {
+  public static void main() {
+    Chaperone chappie = new Chaperone();
+    chappie.start();
+
+    // program body
+
+    chappie.stop();
+  }
+}
+```
+
+`chappie` provides a script that mimics `java` but sets up dependencies:
+
+```bash
+# from class file
+./chappie.sh -cp foo-wrapper.class FooWrapper args
+# from jar
+./chappie.sh -cp foo-wrapper.jar FooWrapper args
+# from manifest
+./chappie.sh -jar foo-wrapper.jar args
+```
+
+`chappie` places collected data in `pwd/chappie-logs`
+
+<!-- `chappie` requires specific java arguments that can be a little tedious, so a script is provided. `chappie.sh` has the following arguments:
+
+```
+-d/--work-directory: location that chappie's observations will be written to
+-c/--config: JSON containing java input arguments
+```
+
+
 
 ## Utilities ##
 
@@ -64,4 +103,4 @@ When the program terminates, chappie writes a set of output files to `chappie.<j
  - `chappie.trace.csv`: Data for socket energy consumption at the Java-level
  - `log.hpl`: Data for thread stack traces at the Java-level
  - `chappie.application.csv`: Data for threads at the OS-level
- - `chappie.jiffies.csv`: Data for cpu jiffies consumption at the OS-level
+ - `chappie.jiffies.csv`: Data for cpu jiffies consumption at the OS-level -->

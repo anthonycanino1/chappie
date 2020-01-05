@@ -50,7 +50,8 @@
 			<classpath refid="deps.jars"/>
 		</javac>
 		<copy file="src/jrapl-port/classes/libCPUScaler.so" todir="build/classes/jrapl"/>
-		<copy file="vendor/method-reader/build/liblagent.so" todir="build"/>
+		<!-- <copy file="vendor/method-reader/build/liblagent.so" todir="build"/> -->
+		<copy file="vendor/async-profiler/build/libasyncProfiler.so" todir="build/"/>
 	</target>
 
   <target name="jar" depends="compile">

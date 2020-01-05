@@ -22,7 +22,8 @@ package chappie.profile.impl;
 import java.io.IOException;
 import java.util.ArrayList;
 
-import asgct.ASGCTReader;
+import one.profiler.AsyncProfiler;
+import one.profiler.Events;
 
 import chappie.Chaperone;
 import chappie.profile.*;
@@ -30,20 +31,26 @@ import chappie.profile.util.*;
 
 public class TraceProfiler extends Profiler {
   public TraceProfiler(int rate, int time, String workDirectory) {
-    super(rate, time, workDirectory);
+    super(rate < 1000000 ? 10 : 10 * rate / 1000000, time, workDirectory);
+    AsyncProfiler.getInstance("/home/timur/projects/chappie-dev/build/libasyncProfiler.so").start(Events.CPU, rate);
   }
 
   private static class TraceRecord extends Record {
-    private ASGCTReader.ASGCTFrame frame;
+    private long timestamp;
+    private int id;
+    private String[] trace;
 
-    private TraceRecord(int epoch, ASGCTReader.ASGCTFrame frame) {
+    private TraceRecord(int epoch, String frame) {
       this.epoch = epoch;
-      this.frame = frame;
+      String[] record = frame.split(";");
+      this.timestamp = Long.parseLong(record[0]);
+      this.id = Integer.parseInt(record[1]);
+      this.trace = record[2].split("@");
     }
 
     protected String stringImpl() {
-      String message = frame.getId() + ";" + frame.getTimestamp() + ";";
-      for (String method: frame.getTrace())
+      String message = timestamp + ";" + id + ";";
+      for (String method: trace)
         message += method + "@";
 
       message = message.substring(0, message.length() - 1);
@@ -51,18 +58,26 @@ public class TraceProfiler extends Profiler {
       return message;
     }
 
-    private static final String[] header = new String[] { "epoch", "id", "timestamp", "trace" };
+    private static final String[] header = new String[] { "epoch", "timestamp", "id", "trace" };
     public static String[] getHeader() {
       return header;
     };
   }
 
   protected void sampleImpl(int epoch) {
-    for (ASGCTReader.ASGCTFrame record: ASGCTReader.fetch())
-      data.add(new TraceRecord(epoch, record));
+    AsyncProfiler.getInstance().stop();
+    for (String record: AsyncProfiler.getInstance().dumpRecords().split("\n"))
+      if (record.length() > 0)
+        data.add(new TraceRecord(epoch, record));
+    AsyncProfiler.getInstance().resume(Events.CPU, 1000000);
   }
 
   public void dumpImpl() throws IOException {
+    AsyncProfiler.getInstance().stop();
+    for (String record: AsyncProfiler.getInstance().dumpRecords().split("\n"))
+      if (record.length() > 0)
+        data.add(new TraceRecord(-1, record));
+
     CSV.write(data, TraceRecord.getHeader(), Chaperone.getWorkDirectory() + "/method.csv");
   }
 }
