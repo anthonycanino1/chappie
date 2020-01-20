@@ -1,22 +1,19 @@
 #!/bin/bash
 
+# ./dacapo.sh work-dir "dargs" "args"
+
 chappie_root=$(realpath `dirname "$0"`)
 
 jars=wrapper/chappie-util.jar:wrapper/jar/dacapo-evaluation-git.jar
 
-# iters=10
-# bench=h2
-# size=large
+work_dir=$1
+dargs=$2
+bench=$3
+args=$4
 
-bench=$1
-iters=$2
-size=$3
+dacapo_base_args="--callback chappie_util.wrapper.DaCapo --scratch-directory $work_dir/dacapo-scratch --no-validation"
 
-vm=1
-os=4
+chappie_call_args="-d $work_dir $dargs -cp $jars Harness $bench $args $java_args $dacapo_base_args"
 
-work_dir=${chappie_root}/../chappie-data/stop/${bench}
-# work_dir=${chappie_root}/../chappie-data/baseline/${bench}/1-4
-java_args="${bench} --callback chappie_util.wrapper.DaCapo --size ${size} --iterations ${iters} --scratch-directory ${work_dir}/dacapo-scratch"
-
-${chappie_root}/chappie.sh -d ${work_dir} -Dchappie.vm=$vm -Dchappie.os=$os -cp $jars Harness $java_args
+# ${chappie_root}/scripts/create-chappie-call.sh $chappie_call_args
+${chappie_root}/chappie.sh $chappie_call_args

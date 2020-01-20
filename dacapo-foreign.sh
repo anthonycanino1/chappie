@@ -1,93 +1,125 @@
 #!/bin/bash
-
 chappie_root=$(realpath `dirname "$0"`)
+data_root=/home/timur/projects/chappie-data
 
-jars=wrapper/chappie-util.jar:wrapper/jar/dacapo-evaluation-git.jar
-main=Harness
+# guard arguments in case i screw up
+work_dir=./chappie-logs
+
+vm=1
+os=4
+trace=1000000
+
+bench=graphchi
+size=default
+iters=10
 
 parsec=/home/timur/projects/parsec/parsec-3.0/bin/parsecmgmt
 
-benchs=(biojava jython kafka xalan)
+# real args
+current_data_root=$data_root/2020/foreign
+mkdir $current_data_root
+
+benchs=(
+  biojava
+  jython
+  xalan
+)
 size=default
 iters=10
 
 for bench in ${benchs[@]}; do
-  echo $bench
-  work_dir=${chappie_root}/../chappie-data/foreign/${bench}
-  java_args="${bench} --callback chappie_util.wrapper.DaCapo --size ${size} --iterations ${iters} --scratch-directory ${work_dir}/dacapo-scratch"
+  mkdir ${current_data_root}/${bench}
+  for i in `seq 0 3`; do
+    work_dir=${current_data_root}/${bench}/${i}
+    sudo rm -rf $work_dir
+    ./dacapo.sh $work_dir "-Dchappie.vm=$vm -Dchappie.os=$os -Dchappie.trace=$trace" $bench "--size $size --iterations $iters" &
+    pid=$!
 
-  ${chappie_root}/chappie.sh -d ${work_dir} -Dchappie.trace=0 -Dchappie.os=4 -cp $jars $main $java_args &
-  pid=$!
-
-  while kill -0 $pid 2> /dev/null; do
-    $parsec -a run -p ferret -i simlarge > /dev/null 2> /dev/null
+    while kill -0 $pid 2> /dev/null; do
+      $parsec -a run -p ferret -i simlarge > /dev/null 2> /dev/null
+    done
   done
 done
 
-benchs=(fop jme)
+benchs=(
+  fop
+  jme
+  kafka
+)
 size=default
-iters=50
+iters=100
 
 for bench in ${benchs[@]}; do
-  echo $bench
-  work_dir=${chappie_root}/../chappie-data/foreign/${bench}
-  java_args="${bench} --callback chappie_util.wrapper.DaCapo --size ${size} --iterations ${iters} --scratch-directory ${work_dir}/dacapo-scratch"
+  mkdir ${current_data_root}/${bench}
+  for i in `seq 0 3`; do
+    work_dir=${current_data_root}/${bench}/${i}
+    sudo rm -rf $work_dir
+    ./dacapo.sh $work_dir "-Dchappie.vm=$vm -Dchappie.os=$os -Dchappie.trace=$trace" $bench "--size $size --iterations $iters" &
+    pid=$!
 
-  ${chappie_root}/chappie.sh -d ${work_dir} -Dchappie.trace=0 -Dchappie.os=4 -cp $jars $main $java_args &
-  pid=$!
-
-  while kill -0 $pid 2> /dev/null; do
-    $parsec -a run -p ferret -i simlarge > /dev/null 2> /dev/null
+    while kill -0 $pid 2> /dev/null; do
+      $parsec -a run -p ferret -i simlarge > /dev/null 2> /dev/null
+    done
   done
 done
 
-benchs=(batik eclipse pmd sunflow)
+benchs=(
+  batik
+  eclipse
+  h2
+  pmd
+  sunflow
+  tomcat
+)
 size=large
 iters=10
 
 for bench in ${benchs[@]}; do
-  echo $bench
-  work_dir=${chappie_root}/../chappie-data/foreign/${bench}
-  java_args="${bench} --callback chappie_util.wrapper.DaCapo --size ${size} --iterations ${iters} --scratch-directory ${work_dir}/dacapo-scratch"
+  mkdir ${current_data_root}/${bench}
+  for i in `seq 0 3`; do
+    work_dir=${current_data_root}/${bench}/${i}
+    sudo rm -rf $work_dir
+    ./dacapo.sh $work_dir "-Dchappie.vm=$vm -Dchappie.os=$os -Dchappie.trace=$trace" $bench "--size $size --iterations $iters" &
+    pid=$!
 
-  ${chappie_root}/chappie.sh -d ${work_dir} -Dchappie.trace=0 -Dchappie.os=4 -cp $jars $main $java_args &
-  pid=$!
-
-  while kill -0 $pid 2> /dev/null; do
-    $parsec -a run -p ferret -i simlarge > /dev/null 2> /dev/null
+    while kill -0 $pid 2> /dev/null; do
+      $parsec -a run -p ferret -i simlarge > /dev/null 2> /dev/null
+    done
   done
 done
 
-benchs=(lusearch)
+benchs=(
+  graphchi
+)
 size=huge
 iters=10
 
 for bench in ${benchs[@]}; do
-  echo $bench
-  work_dir=${chappie_root}/../chappie-data/foreign/${bench}
-  java_args="${bench} --callback chappie_util.wrapper.DaCapo --size ${size} --iterations ${iters} --scratch-directory ${work_dir}/dacapo-scratch"
+  mkdir ${current_data_root}/${bench}
+  for i in `seq 0 3`; do
+    work_dir=${current_data_root}/${bench}/${i}
+    sudo rm -rf $work_dir
+    ./dacapo.sh $work_dir "-Dchappie.vm=$vm -Dchappie.os=$os -Dchappie.trace=$trace" $bench "--size $size --iterations $iters" &
+    pid=$!
 
-  ${chappie_root}/chappie.sh -d ${work_dir} -Dchappie.trace=0 -Dchappie.os=4 -cp $jars $main $java_args &
-  pid=$!
-
-  while kill -0 $pid 2> /dev/null; do
-    $parsec -a run -p ferret -i simlarge > /dev/null 2> /dev/null
+    while kill -0 $pid 2> /dev/null; do
+      $parsec -a run -p ferret -i simlarge > /dev/null 2> /dev/null
+    done
   done
 done
 
-benchs=(graphchi)
-size=huge
-iters=5
+for case_dir in $current_data_root/*; do
+  for work_dir in $case_dir/*; do
+    echo $work_dir
+    python3 src/python/analysis -d $work_dir &
+  done
+  wait $!
+done
 
-for bench in ${benchs[@]}; do
-  echo $bench
-  work_dir=${chappie_root}/../chappie-data/foreign/${bench}
-  java_args="${bench} --callback chappie_util.wrapper.DaCapo --size ${size} --iterations ${iters} --scratch-directory ${work_dir}/dacapo-scratch"
-
-  ${chappie_root}/chappie.sh -d ${work_dir} -Dchappie.trace=0 -Dchappie.os=4 -cp $jars $main $java_args &
-  pid=$!
-
-  while kill -0 $pid 2> /dev/null; do
-    $parsec -a run -p ferret -i simlarge > /dev/null 2> /dev/null
+for case_dir in $current_data_root/*; do
+  for work_dir in $case_dir/*; do
+    python3 src/python/analysis -d $work_dir
   done
 done
+
+wait $!

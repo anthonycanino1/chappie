@@ -2,7 +2,7 @@
 <project name="chappie" default="compile">
 	<target name="init">
     <property name="package.dir" value="chappie"/>
-    <property name="src.dir" value="src"/>
+    <property name="src.dir" value="src/java"/>
     <property name="build.dir" value="build"/>
     <property name="build.classes.dir" value="${build.dir}/classes"/>
 		<property name="deps.dir" value="dependencies"/>
@@ -31,7 +31,7 @@
 	</target>
 
 	<target name="rapl" description="compile jrapl source">
-    <exec executable="/usr/bin/make"><arg value="-C"/><arg value="src/jrapl-port"/><arg value="jrapl"/></exec>
+    <exec executable="/usr/bin/make"><arg value="-C"/><arg value="src/java/jrapl-port"/><arg value="jrapl"/></exec>
 	</target>
 
 	<path id="deps.jars">
@@ -49,7 +49,7 @@
 		>
 			<classpath refid="deps.jars"/>
 		</javac>
-		<copy file="src/jrapl-port/classes/libCPUScaler.so" todir="build/classes/jrapl"/>
+		<copy file="src/java/jrapl-port/classes/libCPUScaler.so" todir="build/classes/jrapl"/>
 		<!-- <copy file="vendor/method-reader/build/liblagent.so" todir="build"/> -->
 		<copy file="vendor/async-profiler/build/libasyncProfiler.so" todir="build/"/>
 	</target>
