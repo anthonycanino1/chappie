@@ -28,7 +28,6 @@ def align_methods(attributed, method):
     attributed = attributed.reset_index().dropna(subset = ['timestamp']).groupby('id').apply(smooth_energy_trace)
     attributed = attributed.reset_index().set_index(['timestamp', 'id']).sort_index()
 
-
     method = method['trace']
 
     trace = pd.concat([attributed, method], axis = 1)

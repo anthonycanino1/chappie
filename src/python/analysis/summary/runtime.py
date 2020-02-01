@@ -55,9 +55,15 @@ def runtime(path):
     processed_root = os.path.join(path, 'processed')
 
     summary = []
-    iters = np.sort([f for f in np.sort(os.listdir(raw_root)) if f != 'method.csv'])
+    iters = [int(f) for f in os.listdir(raw_root) if 'method' not in f]
+    iters.sort()
+    iters = [str(f) for f in iters]
     warm_up = len(iters) // 5
     iters = iters[warm_up:]
+    # iters = np.sort([f for f in np.sort(os.listdir(raw_root)) if f != 'method.csv'])
+    # iters = np.sort([int(f) for f in np.sort(os.listdir(raw_root)) if f != 'method.csv'])
+    # warm_up = len(iters) // 5
+    # iters = iters[warm_up:]
 
     for f in tqdm(iters):
         timestamps = [int(ts) for ts in json.load(open(os.path.join(raw_root, f, 'time.json'))).values()]

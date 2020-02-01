@@ -11,6 +11,7 @@ def filter_to_application_(trace):
     try:
         while len(trace) > 0:
             record = trace[0]
+            exclude = False
             exclude = any((
                 (r'.' not in record),
                 (r'java.' in record and '.java\.' not in record),

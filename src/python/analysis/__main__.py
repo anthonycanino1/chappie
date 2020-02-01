@@ -43,6 +43,7 @@ def process_iteration(work_directory):
 
     timestamps = json.load(open(os.path.join(raw_root, f, 'time.json')))
     timestamps = {int(k): int(v) for k, v in timestamps.items()}
+    # timestamps = {int(k): int(v) // (1000 * 100) for k, v in timestamps.items()}
     start, end = min(timestamps.values()), max(timestamps.values())
 
     id = json.load(open(os.path.join(work_directory, 'id.json')))
@@ -63,8 +64,8 @@ def process_iteration(work_directory):
     #     method.timestamp = method.timestamp - start + 1
     #     method = method.set_index(['timestamp', 'id']).sort_index()
 
-    # df = attr.align(energy, trimmed_method, id, limit = 0, status = status)
-    # df.to_csv(os.path.join(processed_root, 'method', '{}.csv'.format(f)))
+    df = attr.align(energy, trimmed_method, id, limit = 0, status = status)
+    df.to_csv(os.path.join(processed_root, 'method', '{}.csv'.format(f)))
 
 def processing(work_directory):
     raw_root = os.path.join(work_directory, 'raw')
@@ -72,10 +73,12 @@ def processing(work_directory):
     if not os.path.exists(processed_root):
         os.mkdir(processed_root)
 
-    iters = [f for f in os.listdir(raw_root) if 'method' not in f]
+    iters = [int(f) for f in os.listdir(raw_root) if 'method' not in f]
     iters.sort()
+    iters = [str(f) for f in iters]
     warm_up = len(iters) // 5
     iters = iters[warm_up:]
+    # print(iters)
 
     # if os.path.exists(os.path.join(raw_root, 'method.csv')):
     #     # raw_method = pd.read_csv(os.path.join(raw_root, 'method.csv'))
@@ -85,9 +88,13 @@ def processing(work_directory):
     # else:
     #     raw_method = None
 
+    # if 'jme' in work_directory:
+    #     status = tqdm([str(i) for i in range(60, 70)])
+    # else:
     status = tqdm(iters)
 
     for f in status:
+        print(f)
         raw_path = os.path.join(raw_root, f)
         if not os.path.exists(os.path.join(processed_root, 'energy')):
             os.mkdir(os.path.join(processed_root, 'energy'))
@@ -107,14 +114,17 @@ def processing(work_directory):
 
         energy = attr.attribute(raw_path, status)
         energy.to_csv(os.path.join(processed_root, 'energy', '{}.csv'.format(f)))
-
         # energy = pd.read_csv(os.path.join(processed_root, 'energy', '{}.csv'.format(f))).set_index(['timestamp', 'id', 'name'])
+
+        print(energy[['package', 'dram']].sum())
+        print(energy[['package', 'dram']].sum().sum())
 
         energy = energy.reset_index()
         energy = energy[energy.id > 0].set_index(['timestamp', 'id'])
 
         timestamps = json.load(open(os.path.join(raw_root, f, 'time.json')))
         timestamps = {int(k): int(v) for k, v in timestamps.items()}
+        # timestamps = {int(k): int(v) // (1000 * 100) for k, v in timestamps.items()}
         start, end = min(timestamps.values()), max(timestamps.values())
 
         id = json.load(open(os.path.join(raw_path, 'id.json')))
@@ -132,13 +142,17 @@ def processing(work_directory):
 
         if os.path.exists(os.path.join(raw_path, 'method.csv')):
             method = pd.read_csv(os.path.join(raw_path, 'method.csv'), delimiter = ';')
+            method.timestamp = method.timestamp # // (1000 * 100)
             method.timestamp = method.timestamp - start + 1
             method = method.drop_duplicates(['timestamp', 'id']).set_index(['timestamp', 'id']).sort_index()
             # trimmed_method = method.set_index(['timestamp', 'id']).sort_index()
 
         # df = attr.align(energy, trimmed_method, id, limit = 0, status = status)
+        # try:
         df = attr.align(energy, method, id, limit = 0, status = status)
         df.to_csv(os.path.join(processed_root, 'method', '{}.csv'.format(f)))
+        # except:
+        #     pass
 
 def summary(work_directory):
     processed_root = os.path.join(work_directory, 'processed')
@@ -182,9 +196,13 @@ def plotting(work_directory):
     print(cfa)
 
 def main(config):
+    print(config['work_directory'])
+    # if not os.path.exists(os.path.join(config['work_directory'], 'summary', 'method.csv')):
     processing(config['work_directory'])
+    # else:
+        # print(config['work_directory'] + ': skipping processing')
     summary(config['work_directory'])
-    # plotting(config['work_directory'])
+    plotting(config['work_directory'])
 
 if __name__ == "__main__":
     main(parse_args())
