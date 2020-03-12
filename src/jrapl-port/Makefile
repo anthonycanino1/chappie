@@ -1,7 +1,7 @@
 all: jrapl
 
 jrapl:
-	./classes_dir.sh
+	mkdir classes
 	make -C src/jrapl all
 	javac -d classes src/jrapl/*.java
 	cp src/jrapl/*.so classes/jrapl
