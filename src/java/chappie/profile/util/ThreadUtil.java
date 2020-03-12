@@ -19,6 +19,10 @@
 
 package chappie.profile.util;
 
+import chappie.util.ChappieLogger;
+
+import java.util.concurrent.locks.LockSupport;
+
 public class ThreadUtil {
   // the code to do this is messy so it's just easier to tuck it here in case
   // we need this again
@@ -32,5 +36,17 @@ public class ThreadUtil {
 
     if (millis >= 0 && nanos > 0)
       Thread.sleep(millis, nanos);
+  }
+
+  public static void sleepUntilNanos(long start, long end) throws InterruptedException {
+    long elapsed = System.nanoTime() - start;
+    long millis = elapsed / 1000000;
+    int nanos = (int)(elapsed - millis * 1000000);
+
+    if (millis <= 0) {
+      nanos = (int)end - nanos;
+      LockSupport.parkNanos(nanos - 80000);
+    }
+    // ChappieLogger.getLogger().info("total: " + (System.nanoTime() - start));
   }
 }

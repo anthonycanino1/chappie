@@ -68,6 +68,7 @@ public class OSProfiler extends Profiler {
 
     public String stringImpl() {
       return cpu.getCPU() + ";" +
+        cpu.getFreq() + ";" +
         cpu.getUserJiffies() + ";" +
         cpu.getNiceJiffies() + ";" +
         cpu.getKernelJiffies() + ";" +
@@ -81,7 +82,7 @@ public class OSProfiler extends Profiler {
     }
 
     private static final String[] header = new String[] {
-      "epoch", "cpu",
+      "epoch", "cpu", "freq",
       "user", "nice", "system", "idle", "iowait",
       "irq", "softirq", "steal", "guest", "guest_nice"
     };
@@ -105,5 +106,6 @@ public class OSProfiler extends Profiler {
 
     JSON.write(Task.getTaskIds(), Chaperone.getWorkDirectory() + "/tid.json");
     JSON.write(Task.getTaskNames(), Chaperone.getWorkDirectory() + "/name.json");
+    JSON.write(CPU.getMaxFreqs(), Chaperone.getWorkDirectory() + "/freqs.json");
   }
 }

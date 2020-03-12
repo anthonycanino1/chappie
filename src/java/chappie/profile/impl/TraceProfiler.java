@@ -31,11 +31,14 @@ import chappie.profile.util.*;
 
 public class TraceProfiler extends Profiler {
   int asyncRate;
+  int time;
   public TraceProfiler(int rate, int time, String workDirectory) {
     super(10, time, workDirectory);
     asyncRate = rate;
-    logger.info("async-profiler set to " + (asyncRate / 1000) + "us");
-    AsyncProfiler.getInstance("/home/timur/projects/chappie-dev/build/libasyncProfiler.so").start(Events.CPU, asyncRate);
+    logger.info("async-profiler set to " + (asyncRate * time / 1000) + "us");
+    AsyncProfiler.getInstance("/home/timur/projects/chappie-dev/build/libasyncProfiler.so").start(Events.CPU, asyncRate * time);
+
+    this.time = time;
   }
 
   private static class TraceRecord extends Record {
@@ -73,7 +76,7 @@ public class TraceProfiler extends Profiler {
       if (record.length() > 0)
         data.add(new TraceRecord(epoch, record));
 
-    AsyncProfiler.getInstance().resume(Events.CPU, asyncRate);
+    AsyncProfiler.getInstance().resume(Events.CPU, asyncRate * time);
   }
 
   public void dumpImpl() throws IOException {

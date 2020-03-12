@@ -100,8 +100,11 @@ def processing(work_directory):
             os.mkdir(os.path.join(processed_root, 'energy'))
 
         if not os.path.exists(os.path.join(raw_path, 'method.csv')):
-            df = pd.read_csv(os.path.join(raw_path, 'energy.csv'), delimiter = ';')
-            df['energy'] = df.package + df.dram
+            from attribution.processing.energy import process as prc
+            df = prc(pd.read_csv(os.path.join(raw_path, 'energy.csv'), delimiter = ';'))
+            df = df.groupby('socket')[['package', 'dram']].sum()
+            df.to_csv(os.path.join(processed_root, 'energy', '{}.csv'.format(f)))
+
             df = df.groupby('epoch')[['energy']].sum()
             timestamps = {int(k) + 1: int(v) for k, v in json.load(open(os.path.join(raw_path, 'time.json'))).items()}
             df['timestamp'] = df.index.map(timestamps)
@@ -142,8 +145,9 @@ def processing(work_directory):
 
         if os.path.exists(os.path.join(raw_path, 'method.csv')):
             method = pd.read_csv(os.path.join(raw_path, 'method.csv'), delimiter = ';')
-            method.timestamp = method.timestamp # // (1000 * 100)
             method.timestamp = method.timestamp - start + 1
+            method.timestamp = method.timestamp // (1000 * 500)
+            method = method[(method.timestamp > 0) & (method.timestamp <= (end // (1000 * 500))) & (method.epoch > -1)]
             method = method.drop_duplicates(['timestamp', 'id']).set_index(['timestamp', 'id']).sort_index()
             # trimmed_method = method.set_index(['timestamp', 'id']).sort_index()
 

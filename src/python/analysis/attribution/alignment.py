@@ -30,7 +30,8 @@ def align_methods(attributed, method):
 
     method = method['trace']
 
-    trace = pd.concat([attributed, method], axis = 1)
+    trace = attributed.join(method)
+    # trace = pd.concat([attributed, method], axis = 1)
     return trace
 
 def fill_methods(df, limit = None):
@@ -62,11 +63,14 @@ def fill_methods(df, limit = None):
 def align(attributed, method, id, limit = None, status = None):
     if status:
         status.set_description('align {}'.format(limit if limit is not None else 'inf'))
+    print(len(method))
     aligned = align_methods(attributed, method)
 
     if status:
         status.set_description('smooth {}'.format(limit if limit is not None else 'inf'))
-    aligned = aligned.reset_index().groupby('id').apply(fill_methods, (limit)).reset_index()
+    # aligned = aligned.reset_index().groupby('id').apply(fill_methods, (limit)).reset_index()
+    aligned = aligned.dropna().reset_index()
+    print(len(aligned))
     id = {int(k): v for k, v in id.items()}
     aligned['name'] = aligned.id.map(id)
 

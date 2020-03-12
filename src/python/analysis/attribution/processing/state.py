@@ -63,7 +63,7 @@ def align_state(vm, jiff):
     df['state'] = df.activeness * df.jiffies
     df = pd.merge(df.reset_index(), df.groupby(['epoch', 'socket']).state.count().reset_index(), on = ['epoch', 'socket'], how = 'outer', suffixes = {'', '_'})
     df.state = df.state / df.state_
-    
+
     return df.reset_index().set_index(['epoch', 'id', 'tid'])[['socket', 'state']]
 
 def align_energy(state, energy):
@@ -75,8 +75,8 @@ def align_energy(state, energy):
     return df.set_index(['epoch', 'id', 'tid'])[['socket', 'package', 'dram']].sort_index()
 
 def align(vm, jiff, energy, timestamps):
-    # timestamps = {int(k): int(v) // (1000 * 100) for k, v in timestamps.items()}
-    timestamps = {int(k): int(v) for k, v in timestamps.items()}
+    timestamps = {int(k): int(v) // (1000 * 500) for k, v in timestamps.items()}
+    # timestamps = {int(k): int(v) for k, v in timestamps.items()}
 
     state = align_state(vm, jiff)
     attributed = align_energy(state, energy)

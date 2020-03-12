@@ -86,7 +86,8 @@ public class EnergyCheckUtils {
 		while(true) {
 			double[] before = getEnergyStats();
 			try {
-				Thread.sleep(5);
+				// Thread.sleep(5);
+				Thread.sleep(20000);
 			} catch (Exception e) {
 				System.err.format("Caught: " + e);
 			}

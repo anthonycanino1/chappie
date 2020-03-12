@@ -1,22 +1,27 @@
 #!/bin/bash
-
 chappie_root=$(realpath `dirname "$0"`)
+data_root=/home/timur/projects/chappie-data
 
-benchs=(batik biojava eclipse fop graphchi h2 jme jython kafka kafka luindex lusearch pmd sunflow tomcat xalan)
+# guard arguments in case i screw up
+work_dir=./chappie-logs
 
+vm=1
+os=4
+trace=1000000
 
-for bench in /home/timur/projects/pldi-2020/baseline/*; do
-  work_dir=${chappie_root}/../chappie-data/nop/${bench}
-  python3 ${chappie_root}/scripts/analysis -d $work_dir &
+bench=graphchi
+size=default
+iters=10
 
-  bench=${chappie_root}/../chappie-data/baseline/${bench}
-  for case in $bench/*; do
-    echo $case
-    python3 ${chappie_root}/scripts/analysis -d $case &
-  done
+# real args
+current_data_root=$data_root/fse2020/baseline
 
-  wait $!
-  # exit
+i=0
+for bench_dir in $current_data_root/*; do
+  # for case_dir in $bench_dir/*; do
+    for work_dir in $bench_dir/*; do
+      echo $work_dir
+      python3 src/python/analysis -d $work_dir &
+    done
+  # done
 done
-
-# wait $!

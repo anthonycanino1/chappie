@@ -45,6 +45,8 @@ public class Chaperone implements Runnable {
   private int timerRate;
   private int epoch = 0;
 
+  private boolean nop = false;
+
   public Thread thread;
   private Logger logger;
 
@@ -72,7 +74,8 @@ public class Chaperone implements Runnable {
 
       int osRate = Integer.parseInt(System.getProperty("chappie.os", "1"));
       if (osRate > 0)
-        profilers.add(new OSProfiler(osRate, timerRate, workDirectory));
+        // profilers.add(new OSProfiler(osRate, timerRate, workDirectory));
+        profilers.add(new FreqProfiler(osRate, timerRate, workDirectory));
 
       int raplRate = Integer.parseInt(System.getProperty("chappie.rapl", "1"));
       if (raplRate > 0)
@@ -84,8 +87,13 @@ public class Chaperone implements Runnable {
 
       thread = new Thread(this, "chappie-" + id);
     } else {
+      nop = true;
+      timerRate = 512;
       // we probably need a runtime profiler to collect nop stats
       profilers.add(new RAPLProfiler(0, 0, workDirectory));
+      profilers.add(new FreqProfiler(1, timerRate, workDirectory));
+      thread = new Thread(this, "chappie-" + id);
+
       logger.info("running in nop mode");
     }
   }
@@ -93,20 +101,22 @@ public class Chaperone implements Runnable {
   // Thread-like interface since we don't deal with the structure like a
   // runnable; I should find out if there's a better pattern
   public void start() {
-    if (timerRate > 0) {
+    if (!nop) {
       thread.start();
     } else {
-      timestamps.put(epoch++, System.currentTimeMillis());
+      timestamps.put(epoch++, System.nanoTime());
 
       for (Profiler profiler: profilers)
         profiler.sample(epoch);
+
+      thread.start();
     }
 
     logger.info("starting profiling");
   }
 
   public void stop() {
-    if (timerRate > 0) {
+    // if (timerRate > 0) {
       thread.interrupt();
 
       try {
@@ -114,8 +124,9 @@ public class Chaperone implements Runnable {
       } catch(InterruptedException e) {
         logger.info("chappie couldn't join: " + e.getMessage());
       }
-    } else {
-      timestamps.put(epoch++, System.currentTimeMillis());
+    // } else {
+    if (nop) {
+      timestamps.put(epoch++, System.nanoTime());
 
       for (Profiler profiler: profilers)
         profiler.sample(epoch);
@@ -160,16 +171,26 @@ public class Chaperone implements Runnable {
       // and how long the entire epoch took
       long start = System.nanoTime();
 
-      // epoch++;
-      timestamps.put(epoch++, System.currentTimeMillis());
-      // timestamps.put(epoch++, start);
+      // timestamps.put(epoch++, System.currentTimeMillis());
+      timestamps.put(epoch++, start);
 
-      for (Profiler profiler: profilers)
-        profiler.sample(epoch);
+      if (!nop) { // timerRate > 0) {
+        for (Profiler profiler: profilers)
+          profiler.sample(epoch);
+      } else {
+          profilers.get(1).sample(epoch);
+      }
 
       long elapsed = System.nanoTime() - start;
 
       // we try our best to sample at uniform intervals, even when terminating
+      // try {
+      //   ThreadUtil.sleepUntilNanos(start, timerRate);
+      // } catch (InterruptedException e) {
+      //   try { ThreadUtil.sleepUntilNanos(start, timerRate); } catch (InterruptedException ex) { }
+      //   break;
+      // }
+
       try {
         ThreadUtil.sleepUntil(start, timerRate);
       } catch (InterruptedException e) {
@@ -177,8 +198,10 @@ public class Chaperone implements Runnable {
         break;
       }
 
-      long total = System.nanoTime() - start;
-      data.add(new ChappieRecord(epoch, elapsed, total));
+      if (!nop) {
+        long total = System.nanoTime() - start;
+        data.add(new ChappieRecord(epoch, elapsed, total));
+      }
 
       // double memoryRemaining = (double)(Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / Runtime.getRuntime().totalMemory();
       // // logger.info("mem: " + memoryRemaining);

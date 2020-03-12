@@ -32,8 +32,6 @@ def process_sys(jiff):
 def jiffies_smoothing(df):
     app = sys = 0
     records = []
-    # print(df.set_index(['epoch', 'socket']))
-    # print(df.sum())
     i = 0
     for epoch, socket, app_jiff, sys_jiff in df[['epoch', 'socket', 'app', 'sys']].values:
         app += app_jiff
@@ -44,12 +42,8 @@ def jiffies_smoothing(df):
             app = sys = 0
             i = 0
 
-    # if app > 0 and sys > 0:
-    #     records.append([epoch, socket, app, sys])
     grp = pd.DataFrame(data = records, columns = ['epoch', 'socket', 'app', 'sys']).set_index(['epoch', 'socket'])
     grp['jiffies'] = (grp.app / grp.sys).fillna(1).replace(np.inf, 1).clip(0, 1)
-    print(grp.groupby(['epoch', 'socket']).jiffies.sum().mean())
-    print(grp.sum())
 
     df = pd.concat([df.set_index(['epoch', 'socket']), grp], axis = 1).bfill().fillna(0)
     df = df[df.jiffies > 0]
