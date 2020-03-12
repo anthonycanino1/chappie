@@ -74,7 +74,10 @@ public class Chaperone implements Runnable {
 
       int osRate = Integer.parseInt(System.getProperty("chappie.os", "1"));
       if (osRate > 0)
-        // profilers.add(new OSProfiler(osRate, timerRate, workDirectory));
+        profilers.add(new OSProfiler(osRate, timerRate, workDirectory));
+
+      int freqRate = Integer.parseInt(System.getProperty("chappie.os", "1"));
+      if (freqRate > 0)
         profilers.add(new FreqProfiler(osRate, timerRate, workDirectory));
 
       int raplRate = Integer.parseInt(System.getProperty("chappie.rapl", "1"));

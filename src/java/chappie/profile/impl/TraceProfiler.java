@@ -20,6 +20,7 @@
 package chappie.profile.impl;
 
 import java.io.IOException;
+import java.io.File;
 import java.util.ArrayList;
 
 import one.profiler.AsyncProfiler;
@@ -36,7 +37,10 @@ public class TraceProfiler extends Profiler {
     super(10, time, workDirectory);
     asyncRate = rate;
     logger.info("async-profiler set to " + (asyncRate * time / 1000) + "us");
-    AsyncProfiler.getInstance("/home/timur/projects/chappie-dev/build/libasyncProfiler.so").start(Events.CPU, asyncRate * time);
+    // TODO(timur): this needs to be changed to the chappie jar location but
+    //  it's not the running jar so we'll need to do some reading
+    String chappieRoot = System.getProperty("user.dir");
+    AsyncProfiler.getInstance(chappieRoot + "/build/libasyncProfiler.so").start(Events.CPU, asyncRate * time);
 
     this.time = time;
   }
