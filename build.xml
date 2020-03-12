@@ -28,6 +28,8 @@
 			<arg value="clean"/>
 			<arg value="dependency:copy-dependencies"/>
 		</exec>
+		<copy file="vendor/async-profiler/build/async-profiler.jar" todir="dependencies/"/>
+		<copy file="vendor/jlibc/target/jlibc-snapshot-jar-with-dependencies.jar" todir="dependencies/"/>
 	</target>
 
 	<target name="rapl" description="compile jrapl source">
@@ -50,7 +52,6 @@
 			<classpath refid="deps.jars"/>
 		</javac>
 		<copy file="src/java/jrapl-port/classes/libCPUScaler.so" todir="build/classes/jrapl"/>
-		<!-- <copy file="vendor/method-reader/build/liblagent.so" todir="build"/> -->
 		<copy file="vendor/async-profiler/build/libasyncProfiler.so" todir="build/"/>
 	</target>
 
