@@ -1,4 +1,13 @@
 build
 *.o
 *.jar
+<<<<<<< HEAD
+*.csv
+*.json
+dependencies
+**\classes
+*__pycache__*
+*.log
+=======
 *.swp
+>>>>>>> master

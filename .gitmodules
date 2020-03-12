@@ -1,0 +1,9 @@
+[submodule "vendor/method-reader"]
+	path = vendor/method-reader
+	url = https://github.com/timurbey/honest-profiler
+[submodule "vendor/jlibc"]
+	path = vendor/jlibc
+	url = https://github.com/timurbey/jlibc.git
+[submodule "vendor/async-profiler"]
+	path = vendor/async-profiler
+	url = https://github.com/timurbey/async-profiler.git
