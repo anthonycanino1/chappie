@@ -56,10 +56,8 @@ def align(app, sys):
         sys.groupby(['epoch', 'socket']).jiffies.sum()
     ], axis = 1)
     jiff.columns = ['app', 'sys']
-    jiff.to_csv('pre-align-jiffies.csv')
     jiff = jiff.reset_index().groupby('socket').apply(jiffies_smoothing)
-    jiff.to_csv('post-align-jiffies.csv')
-
+    
     jiff = pd.merge(app.reset_index(), jiff, on = ['epoch', 'socket'], suffixes = ('_', ''))
     jiff.socket = jiff.socket.astype(int)
 

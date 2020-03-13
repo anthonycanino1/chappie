@@ -2,6 +2,7 @@
 
 import json
 import os
+import os.path as op
 
 from itertools import product
 
@@ -20,10 +21,8 @@ rates = {
     'batik': 8,
     'biojava': 8,
     'eclipse': 16,
-    'fop10': 4,
     'graphchi': 16,
     'h2': 32,
-    'jme10': 128,
     'jython': 8,
     'pmd': 16,
     'sunflow': 16,
@@ -56,16 +55,15 @@ def parse_energy(path):
     return energy[['package', 'dram']].sum().sum()
 
 def main():
-    if not os.path.exists('plots'):
+    if not op.exists('plots'):
         os.mkdir('plots')
-    root = os.path.join('..', 'chappie-data', 'fse2020')
+    root = op.join('..', 'chappie-data', 'fse2020')
 
-    ref_dir = os.path.join(root, 'freq')
-    data_dir = os.path.join(root, 'calmness')
-    file_from = lambda k: os.path.join('raw', str(k))
+    ref_dir = op.join(root, 'freq')
+    data_dir = op.join(root, 'calmness')
+    file_from = lambda k: op.join('raw', str(k))
 
     benchs = np.sort(os.listdir(ref_dir))
-    # benchs = ['h2', 'batik']
     benchs = tqdm(benchs)
 
     summary = []
@@ -73,22 +71,16 @@ def main():
     for bench in benchs:
         benchs.set_description(bench + " - ref")
 
-        if not os.path.exists('plots/{}'.format(bench)):
+        if not op.exists('plots/{}'.format(bench)):
             os.mkdir('plots/{}'.format(bench))
-
-        if bench in ('fop', 'jme', 'kafka'):
-            a = 20
-            b = 100
-        else:
-            a = 2
-            b = 10
+        a = 2; b = 10
 
         e = [parse_energy(
-            os.path.join(ref_dir, bench, file_from(str(k)), 'energy.csv')
+            op.join(ref_dir, bench, file_from(str(k)), 'energy.csv')
         ) for k in range(a, b)]
 
         t = [parse_timestamp(
-            os.path.join(ref_dir, bench, file_from(str(k)), 'time.json')
+            op.join(ref_dir, bench, file_from(str(k)), 'time.json')
         ) for k in range(a, b)]
 
         ref = {
@@ -101,15 +93,15 @@ def main():
         ref['p_s'] = np.sqrt((ref['e_s'] / ref['e_m'])**2 + (ref['t_s'] / ref['t_m'])**2)
 
         stats = []
-        for rate in os.listdir(os.path.join(data_dir, bench)):
+        for rate in os.listdir(op.join(data_dir, bench)):
             benchs.set_description(bench + " - " + rate)
 
             e = [parse_energy(
-                os.path.join(data_dir, bench, rate, file_from(str(k)), 'energy.csv')
+                op.join(data_dir, bench, rate, file_from(str(k)), 'energy.csv')
             ) for k in range(a, b)]
 
             t = [parse_timestamp(
-                os.path.join(data_dir, bench, rate, file_from(str(k)), 'time.json')
+                op.join(data_dir, bench, rate, file_from(str(k)), 'time.json')
             ) for k in range(a, b)]
 
             d = {
@@ -134,14 +126,8 @@ def main():
         df = pd.concat(stats, axis = 1).T.set_index('rate').sort_index()[['e_m', 't_m', 'p_m', 'e_s', 't_s', 'p_s']] * 100
         df.index = df.index.astype(int)
         df.columns = pd.MultiIndex.from_tuples(product(('mean', 'std'), ('energy', 'time', 'power')))
-        df.to_csv('plots/{}/calmness.csv'.format(bench))
 
-        summary.append(df.assign(bench = bench))
-        continue
-        print(df)
         df = df[df.index <= 64]
-        print(df)
-
         ax = df.plot.bar(
             y = 'mean',
             yerr = 'std',
@@ -166,9 +152,12 @@ def main():
         plt.savefig('plots/{}/power-stability.pdf'.format(bench), bbox_inches = 'tight')
         plt.close()
 
-    summary = pd.concat(summary)
-    summary = summary[summary.index == summary.bench.map(rates)]
-    print(summary.mean())
+        summary.append(df.assign(bench = bench))
+
+    df = pd.concat(summary)
+    df = df[df.index == df.bench.map(rates)].reset_index().set_index(['bench', 'rate']).round(4)
+    df['mean'].to_csv(op.join('plots', 'overhead.csv'))
+    print(df)
 
 if __name__ == '__main__':
     main()

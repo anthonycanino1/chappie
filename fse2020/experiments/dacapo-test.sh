@@ -1,5 +1,5 @@
 #!/bin/bash
-chappie_root=$(realpath `dirname "$0"`)/../../..
+chappie_root=$(realpath `dirname "$0"`)/../..
 
 # guard arguments in case i screw up
 work_dir=./chappie-logs

@@ -94,7 +94,7 @@ def processing(work_directory):
     status = tqdm(iters)
 
     for f in status:
-        print(f)
+        # print(f)
         raw_path = os.path.join(raw_root, f)
         if not os.path.exists(os.path.join(processed_root, 'energy')):
             os.mkdir(os.path.join(processed_root, 'energy'))
@@ -119,8 +119,8 @@ def processing(work_directory):
         energy.to_csv(os.path.join(processed_root, 'energy', '{}.csv'.format(f)))
         # energy = pd.read_csv(os.path.join(processed_root, 'energy', '{}.csv'.format(f))).set_index(['timestamp', 'id', 'name'])
 
-        print(energy[['package', 'dram']].sum())
-        print(energy[['package', 'dram']].sum().sum())
+        # print(energy[['package', 'dram']].sum())
+        # print(energy[['package', 'dram']].sum().sum())
 
         energy = energy.reset_index()
         energy = energy[energy.id > 0].set_index(['timestamp', 'id'])
@@ -206,7 +206,7 @@ def main(config):
     # else:
         # print(config['work_directory'] + ': skipping processing')
     summary(config['work_directory'])
-    plotting(config['work_directory'])
+    # plotting(config['work_directory'])
 
 if __name__ == "__main__":
     main(parse_args())

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ./dacapo.sh work-dir "dargs" "args"
-chappie_root=$(realpath `dirname "$0"`)/../../..
+chappie_root=$(realpath `dirname "$0"`)/../..
 
 jars=${chappie_root}/wrapper/chappie-util.jar:${chappie_root}/wrapper/jar/dacapo-evaluation-git.jar
 

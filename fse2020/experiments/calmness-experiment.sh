@@ -1,5 +1,5 @@
 #!/bin/bash
-chappie_root=$(realpath `dirname "$0"`)/../../..
+chappie_root=$(realpath `dirname "$0"`)/../..
 # this should be changed to the location desired
 data_root=/home/timur/projects/chappie-data
 mkdir $data_root
