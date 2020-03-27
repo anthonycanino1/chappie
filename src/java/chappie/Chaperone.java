@@ -19,223 +19,134 @@
 
 package chappie;
 
-import java.io.File;
-import java.io.IOException;
+import static java.util.concurrent.TimeUnit.SECONDS;
+
+import chappie.profile.processing.EnergyProfile;
+import chappie.profile.processing.TraceProfile;
+import chappie.profile.processing.Attributer;
+import chappie.profile.Profiler;
+import chappie.profile.Record;
+import chappie.profile.sampling.*;
+import chappie.util.Histogram;
+import chappie.util.LoggerUtil;
+import java.util.Arrays;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.List;
 import java.util.logging.Logger;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
+import jlibc.proc.CPU;
 
-import chappie.profile.*;
-import chappie.profile.impl.*;
-import chappie.profile.util.*;
-import chappie.util.ChappieLogger;
+import java.nio.file.Paths;
+import java.nio.file.Files;
 
-public class Chaperone implements Runnable {
-  // used for tracking instances; in reality, this is a singleton class since
-  // there is no reason to have a second chaperone. even in the case of
-  // parallel sampling, the singleton should manage the system.
-  private static int id = 0;
+public final class Chaperone {
+  private static final AtomicInteger counter = new AtomicInteger();
+  private static final int rate = Integer.parseInt(System.getProperty("chappie.rate", "32"));
+  private static final int freqRate = Integer.parseInt(System.getProperty("chappie.freq_rate", "512"));
 
-  private static String baseWorkDirectory;
-  private static String workDirectory;
-  public static String getWorkDirectory() {
-    return workDirectory;
-  }
+  private static Chaperone chappie;
 
-  private int timerRate;
-  private int epoch = 0;
+  private final int id = counter.getAndIncrement();
+  private final Logger logger = Logger.getLogger("chappie-" + id);
+  private final String workDirectory = System.getProperty("chappie.dir", "chappie-logs");
 
-  private boolean nop = false;
+  private final ArrayList<Profiler> profilers = new ArrayList<Profiler>();
+  private ExecutorService executor;
 
-  public Thread thread;
-  private Logger logger;
+  private final ArrayList<Histogram> freqs = new ArrayList<>();
+  private final Attributer attributer = new Attributer();
 
-  private ArrayList<Profiler> profilers = new ArrayList<Profiler>();
+  private static Chaperone.Mode mode;
 
-  public Chaperone() {
-    logger = ChappieLogger.buildLogger();
+  private double energy;
 
-    // grab the work directory if it doesn't exist yet and then make a new one
-    if (baseWorkDirectory == null) {
-      baseWorkDirectory = System.getProperty("chappie.dir", "chappie-logs") + "/raw";
-      logger.info("base work directory set to " + baseWorkDirectory);
-    }
-    workDirectory = baseWorkDirectory + "/" + id;
-    new File(workDirectory).mkdir();
+  private enum Mode {
+    FREQ(
+      Profiler.buildProfiler(512, () -> chappie.freqs.add(new Histogram(CPU.getFreqs(), 120, 310, 19)))
+    ),
+    PROF(
+      Profiler.buildProfiler(freqRate, () -> chappie.freqs.add(new Histogram(CPU.getFreqs(), 120, 310, 19))),
+      Profiler.buildProfiler(rate, () -> chappie.attributer.add(RAPLSampler.sample())),
+      Profiler.buildProfiler(rate, () -> chappie.attributer.add(TaskSampler.sample())),
+      Profiler.buildProfiler(rate, () -> chappie.attributer.add(CPUSampler.sample())),
+      Profiler.buildProfiler(rate, () -> chappie.attributer.add(TraceSampler.sample())),
+      Profiler.buildProfiler(4, () -> {
+        ArrayList<TraceProfile> profiles = chappie.attributer.attribute();
+        if (profiles.size() > 0) {
+          System.out.println(profiles);
+        }
+        // for (TraceProfile profile: profiles) {
+          // chappie.logger.info(profile.toString());
+          // if (profile.getEnergy() > 0) {
+            // chappie.energy += profile.getEnergy();
+          // }
+        // }
+      })
+    );
 
-    logger.info("creating chappie instance " + ++id);
-    // check if we are in nop
-    timerRate = Integer.parseInt(System.getProperty("chappie.rate", "1"));
-    if (timerRate > 0) {
-      // setup the profilers
-      int vmRate = Integer.parseInt(System.getProperty("chappie.vm", "1"));
-      if (vmRate > 0)
-        profilers.add(new VMProfiler(vmRate, timerRate, workDirectory));
-
-      int osRate = Integer.parseInt(System.getProperty("chappie.os", "1"));
-      if (osRate > 0)
-        profilers.add(new OSProfiler(osRate, timerRate, workDirectory));
-
-      int freqRate = Integer.parseInt(System.getProperty("chappie.os", "1"));
-      if (freqRate > 0)
-        profilers.add(new FreqProfiler(osRate, timerRate, workDirectory));
-
-      int raplRate = Integer.parseInt(System.getProperty("chappie.rapl", "1"));
-      if (raplRate > 0)
-        profilers.add(new RAPLProfiler(raplRate, timerRate, workDirectory));
-
-      int traceRate = Integer.parseInt(System.getProperty("chappie.trace", "1000000"));
-      if (traceRate > 0)
-        profilers.add(new TraceProfiler(traceRate, timerRate, workDirectory));
-
-      thread = new Thread(this, "chappie-" + id);
-    } else {
-      nop = true;
-      timerRate = 512;
-      // we probably need a runtime profiler to collect nop stats
-      profilers.add(new RAPLProfiler(0, 0, workDirectory));
-      profilers.add(new FreqProfiler(1, timerRate, workDirectory));
-      thread = new Thread(this, "chappie-" + id);
-
-      logger.info("running in nop mode");
-    }
-  }
-
-  // Thread-like interface since we don't deal with the structure like a
-  // runnable; I should find out if there's a better pattern
-  public void start() {
-    if (!nop) {
-      thread.start();
-    } else {
-      timestamps.put(epoch++, System.nanoTime());
-
+    private final ArrayList<Profiler> profilers = new ArrayList<Profiler>();
+    Mode(Profiler ...profilers) {
       for (Profiler profiler: profilers)
-        profiler.sample(epoch);
-
-      thread.start();
+        this.profilers.add(profiler);
     }
 
-    logger.info("starting profiling");
+    public ArrayList<Profiler> profilers() {
+      // make a defensive copy so no one tries to modify the enum field
+      ArrayList<Profiler> profilers = new ArrayList<Profiler>();
+      for (Profiler profiler: this.profilers)
+        profilers.add(profiler);
+
+      return profilers;
+    }
   }
 
-  public void stop() {
-    // if (timerRate > 0) {
-      thread.interrupt();
+  public static void start() {
+    mode = Chaperone.Mode.valueOf(
+      System.getProperty("chappie.mode", "PROF").toUpperCase());
 
-      try {
-        thread.join();
-      } catch(InterruptedException e) {
-        logger.info("chappie couldn't join: " + e.getMessage());
-      }
-    // } else {
-    if (nop) {
-      timestamps.put(epoch++, System.nanoTime());
+    chappie = new Chaperone();
+    for (Profiler profiler: mode.profilers())
+      chappie.addProfiler(profiler);
+    chappie.startProfiling();
+  }
 
-      for (Profiler profiler: profilers)
-        profiler.sample(epoch);
+  public static void stop() {
+    chappie.stopProfiling();
+    chappie = null;
+  }
+
+  private Chaperone() {
+    LoggerUtil.setupLogger(id);
+  }
+
+  private void startProfiling() {
+    final AtomicInteger counter = new AtomicInteger();
+    executor = Executors.newFixedThreadPool(profilers.size(),
+      r -> new Thread(r, "chappie-" + id + "-" + counter.getAndIncrement()));
+    for (Profiler profiler: profilers) {
+      executor.submit(profiler);
     }
+  }
 
+  private void stopProfiling() {
+    executor.shutdownNow();
     try {
-      dump();
-    } catch(IOException io) {
-      logger.info("couldn't write data: " + io.getMessage());
-    }
+      while (!executor.awaitTermination(1, SECONDS)) {}
+    } catch (Exception e) { }
+
+    logger.info("energy consumed: " + String.format("%.02f", energy) + " J");
+
+    // logger.info(attributer.toString());
+
+    // try {
+    //   Files.write(Paths.get("temp/chappie-" + id + "-" + mode), chappie.freqs.toString().getBytes());
+    // } catch(Exception e) { }
   }
 
-  // measurement of chappie's activeness for each epoch
-  private static class ChappieRecord extends Record {
-    private long elapsed;
-    private long total;
-
-    public ChappieRecord(int epoch, long elapsed, long total) {
-      this.epoch = epoch;
-      this.elapsed = elapsed;
-      this.total = total;
-    }
-
-    protected String stringImpl() {
-      return elapsed + ";" + total;
-    }
-
-    private static final String[] header = new String[] { "epoch", "elapsed", "total" };
-    public static String[] getHeader() {
-      return header;
-    };
-  }
-
-  private ArrayList<Record> data = new ArrayList<Record>();
-  private HashMap<Integer, Long> timestamps = new HashMap<Integer, Long>();
-  public void run() {
-    while (!thread.interrupted()) {
-      // logger.info("sampling...");
-
-      // in addition to sampling all profilers, chappie needs to
-      // know when the samples are taken, how long the sampling took,
-      // and how long the entire epoch took
-      long start = System.nanoTime();
-
-      // timestamps.put(epoch++, System.currentTimeMillis());
-      timestamps.put(epoch++, start);
-
-      if (!nop) { // timerRate > 0) {
-        for (Profiler profiler: profilers)
-          profiler.sample(epoch);
-      } else {
-          profilers.get(1).sample(epoch);
-      }
-
-      long elapsed = System.nanoTime() - start;
-
-      // we try our best to sample at uniform intervals, even when terminating
-      // try {
-      //   ThreadUtil.sleepUntilNanos(start, timerRate);
-      // } catch (InterruptedException e) {
-      //   try { ThreadUtil.sleepUntilNanos(start, timerRate); } catch (InterruptedException ex) { }
-      //   break;
-      // }
-
-      try {
-        ThreadUtil.sleepUntil(start, timerRate);
-      } catch (InterruptedException e) {
-        try { ThreadUtil.sleepUntil(start, timerRate); } catch (InterruptedException ex) { }
-        break;
-      }
-
-      if (!nop) {
-        long total = System.nanoTime() - start;
-        data.add(new ChappieRecord(epoch, elapsed, total));
-      }
-
-      // double memoryRemaining = (double)(Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / Runtime.getRuntime().totalMemory();
-      // // logger.info("mem: " + memoryRemaining);
-      //
-      // if (memoryRemaining < 0.01) {
-      //   try {
-      //     dump();
-      //   } catch(IOException io) {
-      //     logger.info("couldn't write data: " + io.getMessage());
-      //   }
-      // }
-    }
-  }
-
-  // temporary variable
-  private static int sessionId = 0;
-  private void dump() throws IOException {
-    // String workDirectoryRoot = workDirectory;
-    // workDirectory = workDirectoryRoot + '/' + sessionId;
-    // new File(workDirectory).mkdir();
-
-    logger.info("writing chappie data to " + workDirectory);
-
-    CSV.write(data, ChappieRecord.getHeader(), Chaperone.getWorkDirectory() + "/chappie.csv");
-    JSON.write(timestamps, Chaperone.getWorkDirectory() + "/time.json");
-
-    for (Profiler profiler: profilers)
-      profiler.dump();
-
-    logger.info("done writing data");
-
-    // workDirectory = workDirectoryRoot;
+  private void addProfiler(Profiler profiler) {
+    profilers.add(profiler);
   }
 }

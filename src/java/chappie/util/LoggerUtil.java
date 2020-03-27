@@ -28,46 +28,37 @@ import java.util.logging.Logger;
 import java.util.logging.LogRecord;
 import java.text.SimpleDateFormat;
 
-public class ChappieLogger {
-  private static boolean initialized = false;
+public final class LoggerUtil {
+  private static Logger logger;
 
-  public static Logger getLogger() {
-    if (!initialized) {
-      initializeLogger();
-      Logger.getLogger("chappie").info("chappie logger set up");
-    }
-
-    return Logger.getLogger("chappie");
-  }
-
-  public static Logger buildLogger() {
-    initializeLogger();
-    return Logger.getLogger("chappie");
-  }
-
-  private static void initializeLogger() {
-    // build the formatter and handler
+  public static void setupLogger(int id) {
+    // build the formatter and handlers
     SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss a z");
     Formatter formatter = new Formatter() {
       @Override
       public String format(LogRecord record) {
         String date = dateFormatter.format(new Date(record.getMillis()));
-        return "chappie (" + date + "): " + record.getMessage() + "\n";
+        return "chappie-" + id + " (" + date + "): " + record.getMessage() + "\n";
       }
     };
 
     ConsoleHandler handler = new ConsoleHandler();
     handler.setFormatter(formatter);
+    // TODO(timur): should add a file logger for transactions
 
-    // grab the current chappie logger, clean it up, and add our handler
-    Logger chappieLogger = Logger.getLogger("chappie");
+    // grab the current chappie logger, clean it up, and add our handlers
+    logger = Logger.getLogger("chappie-" + id);
 
-    chappieLogger.setUseParentHandlers(false);
-    for (Handler hdlr: chappieLogger.getHandlers())
-      chappieLogger.removeHandler(hdlr);
+    logger.setUseParentHandlers(false);
+    for (Handler hdlr: logger.getHandlers())
+      logger.removeHandler(hdlr);
 
-    chappieLogger.addHandler(handler);
-
-    initialized = true;
+    logger.addHandler(handler);
   }
+
+  public static Logger getLogger() {
+    return logger;
+  }
+
+  private LoggerUtil() { }
 }

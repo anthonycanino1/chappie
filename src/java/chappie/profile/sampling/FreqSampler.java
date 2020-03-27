@@ -17,54 +17,20 @@
  * DEALINGS IN THE SOFTWARE.
  * ***********************************************************************************************/
 
-package chappie.profile.impl;
+package chappie.profile.sampling;
 
-import java.io.IOException;
+import chappie.profile.Record;
+import java.util.Arrays;
 import java.util.ArrayList;
+import jlibc.proc.CPU;
 
-import chappie.Chaperone;
-import chappie.profile.*;
-import chappie.profile.util.*;
-
-import jlibc.proc.*;
-
-public class FreqProfiler extends Profiler {
-  Task main = Task.mainTask();
-
-  public FreqProfiler(int rate, int time, String workDirectory) {
-    super(rate, time, workDirectory);
-  }
-
-  private static class FreqRecord extends Record {
-    private int id;
-    private int cpu;
-    private long freq;
-    public FreqRecord(int epoch, int cpu, long freq) {
-      this.epoch = epoch;
-      this.cpu = cpu;
-      this.freq = freq;
+public final class FreqSampler {
+  public static long[] sample() {
+    long[] freqs = CPU.getFreqs();
+    for (int i = 0; i < freqs.length; i++) {
+      freqs[i] /= 10000;
     }
 
-    public String stringImpl() {
-      return Integer.toString(cpu) + ";" + Long.toString(freq);
-    }
-
-    private static final String[] header = new String[] { "epoch", "cpu", "freq" };
-    public static String[] getHeader() {
-      return header;
-    };
-  }
-
-  public void sampleImpl(int epoch) {
-    // for (long freq: CPU.getFreqs())
-    for (int i = 0; i < 40; i++) {
-      long freq = CPU.getFreq(i);
-      data.add(new FreqRecord(epoch, i, freq));
-    }
-  }
-
-  public void dumpImpl() throws IOException {
-    CSV.write(data, FreqRecord.getHeader(), Chaperone.getWorkDirectory() + "/freqs.csv");
-    JSON.write(CPU.getMaxFreqs(), Chaperone.getWorkDirectory() + "/freqs.json");
+    return freqs;
   }
 }

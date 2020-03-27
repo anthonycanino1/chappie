@@ -17,51 +17,22 @@
  * DEALINGS IN THE SOFTWARE.
  * ***********************************************************************************************/
 
-package chappie.profile.impl;
+package chappie.profile.sampling;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.stream.Collectors;
+import chappie.profile.Record;
+import java.util.ArrayList;
 
-import chappie.Chaperone;
-import chappie.profile.*;
-import chappie.profile.util.*;
-
-public class VMProfiler extends Profiler {
-  ThreadGroup rootGroup;
-
-  public VMProfiler(int rate, int time, String workDirectory) {
-    super(rate, time, workDirectory);
-
-    rootGroup = Thread.currentThread().getThreadGroup();
+public final class ThreadSampler {
+  private static final ThreadGroup rootGroup = getRootGroup();
+  private static ThreadGroup getRootGroup() {
+    ThreadGroup rootGroup = Thread.currentThread().getThreadGroup();
     ThreadGroup parentGroup;
     while ((parentGroup = rootGroup.getParent()) != null)
       rootGroup = parentGroup;
+    return rootGroup;
   }
 
-  private static class ThreadRecord extends Record {
-    private long id;
-    private Thread.State state;
-
-    public ThreadRecord(int epoch, Thread thread) {
-      this.epoch = epoch;
-      this.id = thread.getId();
-      this.state = thread.getState();
-    }
-
-    public String stringImpl() {
-      return Long.toString(id) + ";" + state.toString();
-    }
-
-    private static String[] header = new String[] { "epoch", "id", "state" };
-    public static String[] getHeader() {
-      return header;
-    };
-  }
-
-  HashMap<Integer, String> names = new HashMap<Integer, String>();
-  protected void sampleImpl(int epoch) {
+  public static Record sample() {
     // get all active threads (essentially everything but zombies)
     Thread[] threads = new Thread[rootGroup.activeCount()];
     while (rootGroup.enumerate(threads, true) == threads.length)
@@ -69,16 +40,28 @@ public class VMProfiler extends Profiler {
 
     // I'm only holding onto the thread's field values
     // so we don't mess with the GC
+    ArrayList<ThreadRecord> records = new ArrayList<ThreadRecord>();
     for (Thread thread: threads)
-      if (thread != null) {
-        if (!names.containsKey(thread.getId()))
-          names.put((int)thread.getId(), thread.getName());
-        data.add(new ThreadRecord(epoch, thread));
-      }
+      if (thread != null)
+        records.add(new ThreadRecord(thread));
+
+    return Record.of(records);
   }
 
-  public void dumpImpl() throws IOException {
-    CSV.write(data, ThreadRecord.getHeader(), Chaperone.getWorkDirectory() + "/vm.csv");
-    JSON.write(names, Chaperone.getWorkDirectory() + "/id.json");
+  private static class ThreadRecord implements Record {
+    private final long id;
+    private final String name;
+    private final Thread.State state;
+
+    public ThreadRecord(Thread thread) {
+      this.id = thread.getId();
+      this.name = thread.getName();
+      this.state = thread.getState();
+    }
+
+    @Override
+    public String toString() {
+      return "java id:" + id + ", thread name:" + name + ", thread state:" + state;
+    }
   }
 }

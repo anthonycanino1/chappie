@@ -20,13 +20,11 @@
 package chappie;
 
 import java.lang.reflect.Method;
-
 import java.io.IOException;
-
 import java.net.URL;
 import java.net.URLClassLoader;
-
 import java.util.ArrayList;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class Driver {
   public static void main(String[] args) throws IOException {
@@ -34,17 +32,25 @@ public class Driver {
     if (args.length > 0)
       iters = Integer.parseInt(args[0]);
 
-    System.out.println("running test program for " + iters + "iterations");
+    System.out.println("running test program for " + iters + " iterations");
     for (int i = 0; i < iters; i++) {
-      Chaperone chappie = new Chaperone();
-      chappie.start();
+      Chaperone.start();
 
       Thread[] threads = new Thread[1];
       for (int k = 0; k < 1; ++k) {
         threads[k] = new Thread() {
           public void run() {
             try {
-              Thread.sleep(1000);
+              long start = System.currentTimeMillis();
+              int i = 0;
+              ReentrantLock lock = new ReentrantLock();
+              while(System.currentTimeMillis() - start < 1000) {
+                lock.lock();
+                i++;
+                lock.unlock();
+                Thread.sleep(1);
+              }
+              // System.out.println("going to sleep now...");
             } catch(InterruptedException e) { }
           }
         };
@@ -56,7 +62,7 @@ public class Driver {
           threads[k].join();
         } catch(InterruptedException e) { }
 
-      chappie.stop();
+      Chaperone.stop();
     }
   }
 }

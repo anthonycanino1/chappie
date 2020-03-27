@@ -17,41 +17,33 @@
  * DEALINGS IN THE SOFTWARE.
  * ***********************************************************************************************/
 
-package chappie.profile.util;
+package chappie.util;
 
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.Set;
-import java.util.Map;
-import java.util.Map.Entry;
+import java.util.concurrent.locks.LockSupport;
 
-public class JSON {
-  private static String format(Object value) {
-    return "\"" + value.toString() + "\"";
+public class ThreadUtil {
+  // the code to do this is messy so it's just easier to tuck it here in case
+  // we need this again
+  public static void sleepUntil(long start, long end) throws InterruptedException {
+    long elapsed = System.nanoTime() - start;
+    long millis = elapsed / 1000000;
+    int nanos = (int)(elapsed - millis * 1000000);
+
+    millis = end - millis - (nanos > 0 ? 1 : 0);
+    nanos = Math.min(1000000 - nanos, 999999);
+
+    if (millis >= 0 && nanos > 0)
+      Thread.sleep(millis, nanos);
   }
 
-  private static String[] toRecords(Map map) {
-    ArrayList<String> records = new ArrayList<String>(map.size());
+  public static void sleepUntilNanos(long start, long end) throws InterruptedException {
+    long elapsed = System.nanoTime() - start;
+    long millis = elapsed / 1000000;
+    int nanos = (int)(elapsed - millis * 1000000);
 
-    Set<Entry> recordSet = map.entrySet();
-    for (Entry record: recordSet)
-      records.add(format(record.getKey()) + ": " + format(record.getValue()));
-
-    return records.toArray(new String[records.size()]);
-  }
-
-  public static void write(Map map, String path) throws IOException {
-    String[] records = toRecords(map);
-
-    PrintWriter writer = new PrintWriter(new FileWriter(path));
-
-    writer.println("{");
-    for (int i = 0; i < records.length; i++)
-      writer.println("  " + records[i] + (i + 1 < records.length ? "," : ""));
-    writer.println("}");
-
-    writer.close();
+    if (millis <= 0) {
+      nanos = (int)end - nanos;
+      LockSupport.parkNanos(nanos - 80000);
+    }
   }
 }
