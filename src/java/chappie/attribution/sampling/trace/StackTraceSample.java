@@ -1,6 +1,6 @@
 /* ************************************************************************************************
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this
- * Copyright 2017 SUNY Binghamton
+ * Copyright 2019 SUNY Binghamton
  * software and associated documentation files (the "Software"), to deal in the Software
  * without restriction, including without limitation the rights to use, copy, modify, merge,
  * publish, distribute, sublicense, and/or sell copies of the Software, and to permit
@@ -17,41 +17,42 @@
  * DEALINGS IN THE SOFTWARE.
  * ***********************************************************************************************/
 
-package chappie;
+package chappie.attribution.sampling.trace;
 
-import chappie.Chappie;
-import chappie.util.profiling.Profile;
-import chappie.util.logging.ChappieLogger;
-import java.io.PrintWriter;
-import java.io.FileWriter;
-import java.util.List;
-import java.util.Random;
-import java.util.logging.Logger;
+import java.util.ArrayList;
+import one.profiler.AsyncProfiler;
+import one.profiler.Events;
 
-public class Driver {
-  public static void main(String[] args) {
-    ChappieLogger.setup();
-    Logger logger = Logger.getLogger("chappie");
+/* Snapshot of a stack trace sampled from the async-profiler. */
+public final class StackTraceSample {
+  private final long timestamp;
+  private final int id;
+  private final StackTrace trace;
 
-    Chappie.start();
-    for (int i = 0; i < 1; i++) {
-      long start = System.currentTimeMillis();
-      try {
-        Thread.sleep(2500);
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
-    }
-    Chappie.stop();
+  StackTraceSample(String sample) {
+    String[] record = sample.split(",");
+    this.timestamp = Long.parseLong(record[0]);
+    this.id = Integer.parseInt(record[1]);
+    this.trace = new StackTrace(record[2]);
+  }
 
-    try (FileWriter fw = new FileWriter("chappie-logs/log.txt")) {
-      PrintWriter writer = new PrintWriter(fw);
-      writer.println("start,end,socket,total,attributed");
-      for (Profile profile: Chappie.getProfiles()) {
-        writer.println(profile.dump());
-      }
-    } catch (Exception e) {
-      logger.info("couldn't open log file");
-    }
+  public long getTimestamp() {
+    return timestamp;
+  }
+
+  public int getThreadId() {
+    return id;
+  }
+
+  public StackTrace getStackTrace() {
+    return trace;
+  }
+
+  @Override
+  public String toString() {
+    return String.join(",",
+      Long.toString(timestamp),
+      Integer.toString(id),
+      trace.toString());
   }
 }

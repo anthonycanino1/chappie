@@ -4,3 +4,9 @@
 [submodule "vendor/async-profiler"]
 	path = vendor/async-profiler
 	url = https://github.com/timurbey/async-profiler.git
+[submodule "vendor/aeneas"]
+	path = vendor/aeneas
+	url = https://github.com/pl-aeneas/aeneas.git
+[submodule "vendor/jRAPL"]
+	path = vendor/jRAPL
+	url = https://github.com/timurbey/jRAPL.git

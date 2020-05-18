@@ -39,8 +39,8 @@ def parse_args():
     elif not os.path.isdir(args.work_directory):
         raise FileExistsError('target for work directory ({}) is not available'.format(args.work_directory))
 
-    if not os.path.exists(os.path.join(args.work_directory, 'raw')):
-        os.mkdir(os.path.join(args.work_directory, 'raw'))
+    # if not os.path.exists(os.path.join(args.work_directory, 'raw')):
+    #     os.mkdir(os.path.join(args.work_directory, 'raw'))
 
     # grab the config if it's available
     if args.config is not None:
@@ -97,7 +97,7 @@ def build_java_call(config):
     else:
         java_args['xargs'] = '-Xbootclasspath/a:'
 
-    java_args['xargs'] = java_args['xargs'].replace('-Xbootclasspath/a:', '-Xbootclasspath/a:{}/chappie.jar'.format(chappie_root))
+    # java_args['xargs'] = java_args['xargs'].replace('-Xbootclasspath/a:', '-Xbootclasspath/a:{}/chappie.jar'.format(chappie_root))
 
     if 'dargs' in config:
         dargs = '-D' + ' -D'.join(config['dargs'])
@@ -112,11 +112,11 @@ def build_java_call(config):
     java_args['main'] = config['main']
     java_args['args'] = ' '.join(config['args']).format(**java_args)
 
+    # -javaagent:{root}/dependencies/jlibc-snapshot-jar-with-dependencies.jar
     if 'rate=0' not in java_args['dargs']:
         java_call = """
             java
                 {xargs}
-                -javaagent:{root}/chappie.jar
                 -agentpath:{root}/build/libasyncProfiler.so
                 {dargs}
                 -cp {root}/chappie.jar:{classpath}

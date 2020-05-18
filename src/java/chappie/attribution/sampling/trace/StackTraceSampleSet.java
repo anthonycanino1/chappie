@@ -1,6 +1,6 @@
 /* ************************************************************************************************
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this
- * Copyright 2017 SUNY Binghamton
+ * Copyright 2019 SUNY Binghamton
  * software and associated documentation files (the "Software"), to deal in the Software
  * without restriction, including without limitation the rights to use, copy, modify, merge,
  * publish, distribute, sublicense, and/or sell copies of the Software, and to permit
@@ -17,41 +17,43 @@
  * DEALINGS IN THE SOFTWARE.
  * ***********************************************************************************************/
 
-package chappie;
+package chappie.attribution.sampling.trace;
 
-import chappie.Chappie;
-import chappie.util.profiling.Profile;
-import chappie.util.logging.ChappieLogger;
-import java.io.PrintWriter;
-import java.io.FileWriter;
-import java.util.List;
-import java.util.Random;
-import java.util.logging.Logger;
+import chappie.util.profiling.Sample;
+import java.lang.Iterable;
+import java.time.Instant;
+import java.util.HashMap;
+import java.util.Set;
 
-public class Driver {
-  public static void main(String[] args) {
-    ChappieLogger.setup();
-    Logger logger = Logger.getLogger("chappie");
+/* Collection of stack trace samples. I don't remember why this is useful now. */
+public final class StackTraceSampleSet implements Sample {
+  private final HashMap<Integer, StackTraceSample> records = new HashMap<>();
 
-    Chappie.start();
-    for (int i = 0; i < 1; i++) {
-      long start = System.currentTimeMillis();
-      try {
-        Thread.sleep(2500);
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
-    }
-    Chappie.stop();
+  @Override
+  public Instant getTimestamp() {
+    return null;
+  }
 
-    try (FileWriter fw = new FileWriter("chappie-logs/log.txt")) {
-      PrintWriter writer = new PrintWriter(fw);
-      writer.println("start,end,socket,total,attributed");
-      for (Profile profile: Chappie.getProfiles()) {
-        writer.println(profile.dump());
-      }
-    } catch (Exception e) {
-      logger.info("couldn't open log file");
+  StackTraceSampleSet(Iterable<StackTraceSample> samples) {
+    for (StackTraceSample sample: samples) {
+      records.put(sample.getThreadId(), sample);
     }
   }
+
+  // how do we get timestamp mapping?
+  public StackTrace getStackTrace(int tid) {
+    return records.get(tid).getStackTrace();
+  }
+
+  public Set<Integer> getTaskIds() {
+    return records.keySet();
+  }
+
+  @Override
+  public Sample merge(Sample other) { return null; }
+
+  // @Override
+  // public long getTimestamp() {
+  //   return 0;
+  // }
 }

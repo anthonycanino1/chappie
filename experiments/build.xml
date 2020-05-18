@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project name="chappie-util" default="jar">
+<project name="experiments" default="jar">
 	<target name="init">
-    <property name="package.dir" value="chappie-util"/>
+    <property name="package.dir" value="experiments"/>
     <property name="src.dir" value="src" />
     <property name="build.dir" value="build" />
     <property name="build.classes.dir" value="${build.dir}/classes" />
-	  <property name="chappie-util.libs" value="" />
+	  <property name="experiments.libs" value="" />
 		<property name="deps.dir" value="jar"/>
-    <property name="runtime.jar" location="chappie-util.jar"/>
+    <property name="runtime.jar" location="chappie-experiments.jar"/>
   </target>
 
 	<target name="clean" depends="init" description="Remove build files created this scripts">
 		<delete dir="${build.dir}"/>
-		<delete file="chappie-util.jar"/>
+		<delete file="experiments.jar"/>
   </target>
 
 	<target name="cleanall" depends="clean" description="Remove build files created this scripts">
@@ -34,7 +34,6 @@
 	</path>
 
 	<target name="compile" depends="init" description="Compile source">
-		<echo message="My build-path is ${toString:project.class.path}" />
 		<mkdir dir="${build.classes.dir}"/>
     <javac
       source="1.8" target="1.8"
@@ -46,8 +45,7 @@
 
   <target name="jar" depends="compile">
 		<jar jarfile="${runtime.jar}">
-			<fileset dir="${build.classes.dir}" includes="chappie_util/**/*.class"/>
-			<!-- <fileset dir="build/classes" includes="*.class" /> -->
+			<fileset dir="${build.classes.dir}" includes="experiments/**/*.class"/>
 		</jar>
   </target>
 </project>

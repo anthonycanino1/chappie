@@ -1,6 +1,6 @@
 /* ************************************************************************************************
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this
- * Copyright 2017 SUNY Binghamton
+ * Copyright 2019 SUNY Binghamton
  * software and associated documentation files (the "Software"), to deal in the Software
  * without restriction, including without limitation the rights to use, copy, modify, merge,
  * publish, distribute, sublicense, and/or sell copies of the Software, and to permit
@@ -17,41 +17,39 @@
  * DEALINGS IN THE SOFTWARE.
  * ***********************************************************************************************/
 
-package chappie;
+package chappie.attribution.sampling.task;
 
-import chappie.Chappie;
-import chappie.util.profiling.Profile;
-import chappie.util.logging.ChappieLogger;
-import java.io.PrintWriter;
-import java.io.FileWriter;
-import java.util.List;
-import java.util.Random;
-import java.util.logging.Logger;
+import jlibc.proc.Task;
 
-public class Driver {
-  public static void main(String[] args) {
-    ChappieLogger.setup();
-    Logger logger = Logger.getLogger("chappie");
+/** Data structure for relative jiffies consumption of a task. */
+class TaskSample {
+  private static final int CORES = Runtime.getRuntime().availableProcessors();
 
-    Chappie.start();
-    for (int i = 0; i < 1; i++) {
-      long start = System.currentTimeMillis();
-      try {
-        Thread.sleep(2500);
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
-    }
-    Chappie.stop();
+  final long start;
+  final long end;
+  final int id;
+  final int socket;
+  final long userJiffies;
+  final long kernelJiffies;
 
-    try (FileWriter fw = new FileWriter("chappie-logs/log.txt")) {
-      PrintWriter writer = new PrintWriter(fw);
-      writer.println("start,end,socket,total,attributed");
-      for (Profile profile: Chappie.getProfiles()) {
-        writer.println(profile.dump());
-      }
-    } catch (Exception e) {
-      logger.info("couldn't open log file");
-    }
+  TaskSample(Task first, Task second) {
+    this.start = first.getTimestamp();
+    this.end = second.getTimestamp();
+    this.id = second.getId();
+    // need to find a generic map from cpu to socket
+    this.socket = second.getCPU() < 20 ? 0 : 1;
+    this.userJiffies = second.getUserJiffies() - first.getUserJiffies();
+    this.kernelJiffies = second.getKernelJiffies() - first.getKernelJiffies();
+  }
+
+  @Override
+  public String toString() {
+    return String.join(",",
+      Long.toString(start),
+      Long.toString(end),
+      Integer.toString(id),
+      Integer.toString(socket),
+      Long.toString(userJiffies),
+      Long.toString(kernelJiffies));
   }
 }
