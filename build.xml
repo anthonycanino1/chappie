@@ -24,16 +24,11 @@
 	</target>
 
 	<target name="deps" depends="setup" description="fetch deps through maven">
-		<exec executable="mvn">
-			<arg value="clean"/>
-			<arg value="dependency:copy-dependencies"/>
-		</exec>
 		<copy file="vendor/async-profiler/build/async-profiler.jar" todir="dependencies/"/>
 		<copy file="vendor/jlibc/target/jlibc-snapshot-jar-with-dependencies.jar" todir="dependencies/"/>
-	</target>
-
-	<target name="rapl" description="compile jrapl source">
-    <exec executable="/usr/bin/make"><arg value="-C"/><arg value="src/java/jrapl-port"/><arg value="jrapl"/></exec>
+		<copy file="vendor/aeneas/libs/guava-20.0.jar" todir="dependencies/"/>
+		<copy file="vendor/aeneas/stokelib.jar" todir="dependencies/"/>
+		<copy file="vendor/jRAPL/jrapl.jar" todir="dependencies/"/>
 	</target>
 
 	<path id="deps.jars">
@@ -51,7 +46,6 @@
 		>
 			<classpath refid="deps.jars"/>
 		</javac>
-		<copy file="src/java/jrapl-port/classes/libCPUScaler.so" todir="build/classes/jrapl"/>
 		<copy file="vendor/async-profiler/build/libasyncProfiler.so" todir="build/"/>
 	</target>
 

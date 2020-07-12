@@ -1,11 +1,12 @@
 package chappie.util;
 
-import java.lang.Math;
+import static java.lang.Math.min;
+
 import java.util.Map;
 import java.util.Set;
 
 /** Math functions that got reused enough times to belong here. */
-public class MathUtil {
+public final class MathUtil {
   /**
   * Computes the pearson correlation coefficient for two linear, ordered data
   * sets. If the data sets are not equally sized, we use the smaller dimension.
@@ -17,7 +18,7 @@ public class MathUtil {
     double syy = 0.0;
     double sxy = 0.0;
 
-    int n = Math.min(xs.length, ys.length);
+    int n = min(xs.length, ys.length);
 
     for(int i = 0; i < n; ++i) {
       double x = xs[i];
@@ -73,7 +74,7 @@ public class MathUtil {
   }
 
   /**
-  * Computes the pearson correlation coefficient for two maps.
+  * Computes the pearson correlation coefficient for two maps of integer values.
   */
   public static <T> double pcc(Map<T, Double> X, Map<T, Double> Y) {
     Set<T> shared = X.keySet();

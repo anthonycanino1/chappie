@@ -1,58 +1,30 @@
-/* ************************************************************************************************
- * Permission is hereby granted, free of charge, to any person obtaining a copy of this
- * Copyright 2019 SUNY Binghamton
- * software and associated documentation files (the "Software"), to deal in the Software
- * without restriction, including without limitation the rights to use, copy, modify, merge,
- * publish, distribute, sublicense, and/or sell copies of the Software, and to permit
- * persons to whom the Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all copies or
- * substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
- * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
- * FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
- * DEALINGS IN THE SOFTWARE.
- * ***********************************************************************************************/
-
 package chappie.attribution.sampling.trace;
 
-import java.util.ArrayList;
-import one.profiler.AsyncProfiler;
-import one.profiler.Events;
+import chappie.profiling.TimestampedSample;
+import java.time.Instant;
 
-/* Snapshot of a stack trace sampled from the async-profiler. */
-public final class StackTraceSample {
-  private final long timestamp;
-  private final int id;
-  private final StackTrace trace;
+public final class StackTraceSample implements TimestampedSample {
+  private final Instant timestamp;
+  private final int pid;
+  private final StackTrace stackTrace;
 
-  StackTraceSample(String sample) {
-    String[] record = sample.split(",");
-    this.timestamp = Long.parseLong(record[0]);
-    this.id = Integer.parseInt(record[1]);
-    this.trace = new StackTrace(record[2]);
-  }
-
-  public long getTimestamp() {
-    return timestamp;
-  }
-
-  public int getThreadId() {
-    return id;
-  }
-
-  public StackTrace getStackTrace() {
-    return trace;
+  StackTraceSample(String asyncRecord) {
+    String[] values = asyncRecord.split(",");
+    timestamp = Instant.ofEpochMilli(Long.parseLong(values[0]));
+    pid = Integer.parseInt(values[1]);
+    stackTrace = new StackTrace(values[2]);
   }
 
   @Override
-  public String toString() {
-    return String.join(",",
-      Long.toString(timestamp),
-      Integer.toString(id),
-      trace.toString());
+  public Instant getTimestamp() {
+    return timestamp;
+  }
+
+  public int getCallerId() {
+    return pid;
+  }
+
+  public StackTrace getStackTrace() {
+    return stackTrace;
   }
 }

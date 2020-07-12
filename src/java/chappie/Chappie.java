@@ -1,48 +1,62 @@
 package chappie;
 
 import chappie.attribution.AttributionProfiler;
-import chappie.attribution.processing.EnergyAttribution;
-import chappie.util.profiling.Profile;
-import chappie.util.profiling.Profiler;
-import chappie.util.logging.ChappieLogger;
+import chappie.profiling.Profile;
+import chappie.profiling.Profiler;
+import chappie.util.LoggerUtil;
+import java.io.FileWriter;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.logging.Logger;
 
+// temporary driver; should be able to get rid of this in some way or another
 public final class Chappie {
   private static Logger logger;
   private static Profiler profiler;
-  private static ArrayList<Profile> profiles;
+  private static Iterable<Profile> profiles = new ArrayList<Profile>();
 
+  // starts a profiler if there is not one already
   public static void start() {
-    ChappieLogger.setup();
-    logger = Logger.getLogger("chappie");
+    if (profiler == null) {
+      LoggerUtil.setup();
+      logger = Logger.getLogger("chappie");
+      profiles = new ArrayList<Profile>();
+      profiler = new AttributionProfiler(Integer.parseInt(System.getProperty("chappie.rate", "4")));
 
-    logger.info("starting attribution profiling");
-    int rate = Integer.parseInt(System.getProperty("chappie.rate", "32"));
-    profiles = new ArrayList<>();
-    profiler = new AttributionProfiler(rate, rate / 2);
-    profiler.start();
-  }
-
-  public static void stop() {
-    logger.info("stopping attribution profiling");
-    profiler.stop();
-    for (Profile profile: profiler.getProfiles()) {
-      profiles.add(profile);
-    }
-
-    profiler = null;
-  }
-
-  public static Iterable<Profile> getProfiles() {
-    if (profiler != null) {
-      profiler.stop();
-      for (Profile profile: profiler.getProfiles()) {
-        profiles.add(profile);
-      }
+      logger.info("starting attribution profiling");
       profiler.start();
     }
+  }
+
+  // stops the profiler if there is one
+  public static void stop() {
+    if (profiler != null) {
+      logger.info("stopping attribution profiling");
+      profiler.stop();
+      profiles = profiler.getProfiles();
+      profiler = null;
+    }
+  }
+
+  // get all profiles stored
+  public static Iterable<Profile> getProfiles() {
+    if (profiler != null) {
+      profiles = profiler.getProfiles();
+    }
     return profiles;
+  }
+
+  // write all profiles as csv to the path
+  public static void dumpProfiles(String path) {
+    try (PrintWriter writer = new PrintWriter(new FileWriter(path))) {
+      writer.println("start,end,socket,total,attributed");
+      for (Profile profile: Chappie.getProfiles()) {
+        writer.println(profile.dump());
+      }
+    } catch (Exception e) {
+      System.out.println("unable to write profiles");
+      e.printStackTrace();
+    }
   }
 
   private Chappie() { }
