@@ -1,9 +1,0 @@
-build
-*.o
-*.jar
-*.csv
-*.json
-dependencies
-**\classes
-*__pycache__*
-*.log
