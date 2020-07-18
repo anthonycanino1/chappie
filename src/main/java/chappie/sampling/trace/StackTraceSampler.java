@@ -9,7 +9,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.logging.Logger;
-import javax.inject.Inject;
 import one.profiler.AsyncProfiler;
 import one.profiler.Events;
 

@@ -1,14 +1,13 @@
 package chappie.naive;
 
 import chappie.attribution.EnergyAttributer;
-import chappie.processing.trace.StackTraceAligner;
+// import chappie.processing.trace.StackTraceAligner;
 import chappie.profiling.Profile;
 import chappie.profiling.SampleProcessor;
 import chappie.profiling.Sampler;
 import chappie.profiling.SamplingRate;
 import chappie.sampling.energy.EnergySampler;
 import chappie.sampling.trace.StackTraceSampler;
-import chappie.sampling.trace.AsyncProfilerRate;
 import dagger.Binds;
 import dagger.Module;
 import dagger.Provides;
@@ -20,24 +19,23 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 @Module
 public interface NaiveAttributionModule {
-  @Binds
-  abstract SampleProcessor<Iterable<Profile>> provideProcessor(StackTraceAligner aligner);
+  // @Binds
+  // abstract SampleProcessor<Iterable<Profile>> provideProcessor(StackTraceAligner aligner);
 
   @Provides
-  static EnergyAttributer provideAttributer() {
+  static SampleProcessor<Iterable<Profile>> provideProcessor() {
     return new NaiveEnergyAttributer();
   }
+
+  // @Provides
+  // static EnergyAttributer provideAttributer() {
+  //   return new NaiveEnergyAttributer();
+  // }
 
   @Provides
   @SamplingRate
   static Duration provideSamplingRate() {
     return Duration.ofMillis(4);
-  }
-
-  @Provides
-  @AsyncProfilerRate
-  static Duration provideAsyncRate() {
-    return Duration.ofMillis(1);
   }
 
   @Provides

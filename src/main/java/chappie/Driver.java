@@ -1,20 +1,16 @@
 package chappie;
 
 import chappie.profiling.Profile;
-import chappie.util.LoggerUtil;
 import java.io.PrintWriter;
 import java.io.FileWriter;
 import java.util.List;
 import java.util.Random;
-import java.util.logging.Logger;
 
 import java.io.File;
 import java.util.Arrays;
 
 public class Driver {
   public static void main(String[] args) {
-    LoggerUtil.setup();
-    Logger logger = Logger.getLogger("chappie");
 
     Chappie.start();
     // TODO(timur): need a real benchmark to work with

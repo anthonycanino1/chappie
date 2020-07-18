@@ -8,7 +8,7 @@ import java.time.Instant;
 * consumed, the energy attributed to the application, and the amount of energy
 * each task in the attribution should be assigned.
 */
-public interface EnergyAttribution {
+public interface EnergyAttribution extends Profile {
   double getApplicationEnergy();
 
   double getTotalEnergy();
@@ -16,6 +16,4 @@ public interface EnergyAttribution {
   Instant getStart();
 
   Instant getEnd();
-
-  String dump();
 }

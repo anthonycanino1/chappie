@@ -5,7 +5,7 @@ import static java.util.stream.Collectors.toList;
 
 import java.util.stream.StreamSupport;
 
-import chappie.attribution.AttributionProfile;
+// import chappie.attribution.AttributionProfile;
 import chappie.attribution.EnergyAttributer;
 import chappie.attribution.EnergyAttribution;
 import chappie.sampling.trace.StackTraceSample;
@@ -54,7 +54,7 @@ public final class StackTraceAligner implements SampleProcessor<Iterable<Profile
     ArrayList<Profile> profiles = new ArrayList<>();
 
     for (EnergyAttribution attribution : attributer.process()) {
-      profiles.add(new AttributionProfile(attribution));
+      profiles.add(attribution);
     }
 
     return profiles;

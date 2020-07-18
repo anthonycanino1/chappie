@@ -53,7 +53,7 @@ public final class NaiveEnergyAttribution implements EnergyAttribution {
   }
 
   @Override
-  public String dump() {
+  public String toString() {
     String[] attribution = new String[SOCKETS];
     for (int socket = 0; socket < SOCKETS; socket++) {
       attribution[socket] = String.join(",",
@@ -64,21 +64,5 @@ public final class NaiveEnergyAttribution implements EnergyAttribution {
         Double.toString(energy[socket]));
     }
     return String.join(System.lineSeparator(), attribution);
-  }
-
-  @Override
-  public String toString() {
-    String[] attribution = new String[SOCKETS];
-    for (int socket = 0; socket < SOCKETS; socket++) {
-      attribution[socket] =
-        "socket " + (socket + 1) + " - "
-        + String.format("%.2f", energy[socket]) + "J";
-    }
-
-    String message = String.join(System.lineSeparator(), attribution);
-    return String.join(
-      System.lineSeparator(),
-      "attribution from " + start + " to " + end,
-      message);
   }
 }

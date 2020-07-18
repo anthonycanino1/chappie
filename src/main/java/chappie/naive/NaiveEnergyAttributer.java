@@ -3,13 +3,14 @@ package chappie.naive;
 import chappie.attribution.EnergyAttributer;
 import chappie.attribution.EnergyAttribution;
 import chappie.sampling.energy.EnergySample;
+import chappie.profiling.Profile;
 import chappie.profiling.Sample;
 import java.time.Instant;
 import java.util.ArrayList;
 
 final class NaiveEnergyAttributer implements EnergyAttributer {
   private Instant lastTimestamp;
-  private ArrayList<EnergyAttribution> attributions = new ArrayList<>();
+  private ArrayList<Profile> attributions = new ArrayList<>();
 
   public NaiveEnergyAttributer() {
     lastTimestamp = Instant.now();
@@ -28,12 +29,12 @@ final class NaiveEnergyAttributer implements EnergyAttributer {
   }
 
   @Override
-  public Iterable<EnergyAttribution> process() {
-    ArrayList<EnergyAttribution> attributions;
+  public Iterable<Profile> process() {
+    ArrayList<Profile> attributions;
     synchronized (this) {
-       attributions = this.attributions;
-       this.attributions = new ArrayList();
-     }
+      attributions = this.attributions;
+      this.attributions = new ArrayList();
+    }
     return attributions;
   }
 }

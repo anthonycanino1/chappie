@@ -4,9 +4,6 @@ import static java.util.logging.Level.WARNING;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import chappie.concurrent.SelfScheduledRunnable;
-import chappie.profiling.Profile;
-import chappie.profiling.Sampler;
-import chappie.profiling.SampleProcessor;
 import chappie.util.LoggerUtil;
 import java.time.Duration;
 import java.util.ArrayList;
