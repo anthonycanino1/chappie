@@ -43,7 +43,7 @@ java_library(
       ":core",
       ":dagger",
       ":sampling_rate",
-      "//src/main/java/chappie/concurrent",
-      "//src/main/java/chappie/util",
+      "//src/java/chappie/concurrent",
+      "//src/java/chappie/util",
     ],
 )

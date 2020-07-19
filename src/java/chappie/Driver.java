@@ -14,7 +14,7 @@ public class Driver {
 
     Chappie.start();
     // TODO(timur): need a real benchmark to work with
-    for (int i = 0; i < 1; i++) {
+    for (int i = 0; i < 2; i++) {
       long start = System.currentTimeMillis();
       try {
         Thread.sleep(500);

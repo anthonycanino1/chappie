@@ -4,14 +4,15 @@ load("@dagger//:workspace_defs.bzl", "dagger_rules")
 dagger_rules()
 
 java_library(
-  name = "chappie",
+  name = "naive",
   srcs = ["Chappie.java"],
   deps = [
     ":dagger",
-    "//src/main/java/chappie/attribution",
-    "//src/main/java/chappie/naive:module",
-    "//src/main/java/chappie/profiling:core",
-    "//src/main/java/chappie/profiling:profiler",
+    "//src/java/chappie/concurrent:module",
+    "//src/java/chappie/naive:module",
+    "//src/java/chappie/processing:attribution",
+    "//src/java/chappie/profiling:core",
+    "//src/java/chappie/profiling:profiler",
   ],
 )
 
@@ -20,8 +21,8 @@ java_binary(
   main_class = "chappie.Driver",
   srcs = ["Driver.java"],
   deps = [
-    ":chappie",
-    "//src/main/java/chappie/profiling:core",
+    ":naive",
+    "//src/java/chappie/profiling:core",
   ],
   data = ["@jRAPL//src/jrapl:libCPUScaler.so"],
   jvm_flags = ["-Djava.library.path=external/jRAPL/src/jrapl"],

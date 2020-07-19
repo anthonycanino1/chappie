@@ -1,19 +1,27 @@
 package chappie;
 
-import chappie.naive.NaiveAttributionModule;
+import chappie.concurrent.ConcurrentModule;
+import chappie.naive.NaiveEnergyModule;
+import chappie.processing.AttributionModule;
 import chappie.profiling.Profile;
 import chappie.profiling.Profiler;
 import dagger.Component;
-import java.io.FileWriter;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 
 // temporary driver; should be able to get rid of this in some way or another
-public final class Chappie {
-  @Component(modules = NaiveAttributionModule.class)
+// some reading indicates that we would use a template to define these modules
+// could look into an annotation for a profiler.
+public class Chappie {
+  @Component(modules = {
+    ConcurrentModule.class,
+    NaiveEnergyModule.class,
+    AttributionModule.class
+  })
   interface ProfilerFactory {
     Profiler newProfiler();
   }
+
+  private static final ProfilerFactory profilerFactory = DaggerChappie_ProfilerFactory.builder().build();
 
   private static Profiler profiler;
   private static Iterable<Profile> profiles = new ArrayList<Profile>();
@@ -22,7 +30,7 @@ public final class Chappie {
   public static void start() {
     if (profiler == null) {
       profiles = new ArrayList<Profile>();
-      profiler = DaggerChappie_ProfilerFactory.builder().build().newProfiler();
+      profiler = profilerFactory.newProfiler();
       profiler.start();
     }
   }
@@ -43,6 +51,4 @@ public final class Chappie {
     }
     return profiles;
   }
-
-  private Chappie() { }
 }

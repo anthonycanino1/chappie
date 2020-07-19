@@ -8,6 +8,7 @@ import chappie.profiling.Sample;
 import java.time.Instant;
 import java.util.ArrayList;
 
+/** Energy attributer that uses the original energy reading from jRAPL. */
 final class NaiveEnergyAttributer implements EnergyAttributer {
   private Instant lastTimestamp;
   private ArrayList<Profile> attributions = new ArrayList<>();
@@ -28,6 +29,7 @@ final class NaiveEnergyAttributer implements EnergyAttributer {
     }
   }
 
+  /** Grabs the data and then clears it with a new empty reference. */
   @Override
   public Iterable<Profile> process() {
     ArrayList<Profile> attributions;

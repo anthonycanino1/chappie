@@ -1,19 +1,16 @@
-load("@rules_java//java:defs.bzl", "java_library")
+load("@rules_java//java:defs.bzl", "java_binary", "java_library")
 load("@dagger//:workspace_defs.bzl", "dagger_rules")
 
 dagger_rules()
 
 java_library(
-  name = "module",
+  name = "attribution",
   visibility = ["//visibility:public"],
-  srcs = glob(["*.java"]),
+  srcs = ["AttributionModule.java"],
   deps = [
-    "@jRAPL",
     ":dagger",
     "//src/java/chappie/attribution",
     "//src/java/chappie/attribution:sampler",
     "//src/java/chappie/profiling:core",
-    "//src/java/chappie/profiling:sampling_rate",
-    "//src/java/chappie/sampling/energy",
-  ]
+  ],
 )

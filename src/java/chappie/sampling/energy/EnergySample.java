@@ -10,7 +10,7 @@ import java.time.Instant;
 import java.util.Arrays;
 import jrapl.EnergyStats;
 
-/** Collection of energy stats accessible by socket. */
+/** Energy values at some time accessible by socket. */
 public final class EnergySample implements MergableSample<EnergySample>, TimestampedSample {
   public static final EnergySample EMPTY = new EnergySample(new double[SOCKETS], Instant.MAX);
 

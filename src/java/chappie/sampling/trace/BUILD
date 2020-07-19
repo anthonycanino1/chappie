@@ -6,8 +6,8 @@ java_library(
     srcs = glob(["StackTrace*.java"]),
     deps = [
       "@async_profiler",
-      "//src/main/java/chappie/profiling:core",
-      "//src/main/java/chappie/profiling:samples",
-      "//src/main/java/chappie/util",
+      "//src/java/chappie/profiling:core",
+      "//src/java/chappie/profiling:samples",
+      "//src/java/chappie/util",
     ],
 )

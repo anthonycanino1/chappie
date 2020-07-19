@@ -7,11 +7,7 @@ import chappie.sampling.energy.EnergySample;
 import chappie.profiling.Profile;
 import java.time.Instant;
 
-/**
-* Representation of the application's power usage. Included is the total energy
-* consumed, the energy attributed to the application, and the amount of energy
-* each task in the attribution should be assigned.
-*/
+/** Power usage only using jRAPL. */
 public final class NaiveEnergyAttribution implements EnergyAttribution {
   private final Instant start;
   private final Instant end;

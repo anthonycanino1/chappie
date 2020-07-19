@@ -12,10 +12,7 @@ import java.util.logging.Logger;
 import java.util.concurrent.ExecutorService;
 import javax.inject.Inject;
 
-/**
-* Manages a system that computes an attribution profile; i.e., an estimate of
-* application energy consumption with varying degrees of abstraction.
-*/
+/** Manages a system that collects profiles. */
 public final class Profiler {
   private static final Logger logger = LoggerUtil.setup();
 
@@ -35,23 +32,32 @@ public final class Profiler {
     this.executor = executor;
   }
 
+  /**
+   * Starts running the profiler, which feeds {@link sample()} of all samplers
+   * into the processor. All samplers are scheduled to collect data at the same rate.
+   *
+   * NOTE: the profiler will ignore this call if it is already running.
+   *
+   * NOTE: all previously collected profiles are cleared and the processor is flushed
+   *       when this is called.
+   */
   public void start() {
     if (!isRunning) {
       logger.info("starting the profiler");
+      getProfiles();
+      profiles.clear();
       for (Sampler sampler: samplers) {
-        executor.execute(
-          new SelfScheduledRunnable(
-            () -> {
-              try {
-                logger.finest("collecting from " + sampler.getClass().getSimpleName());
-                processor.add(sampler.sample());
-              } catch (RuntimeException e) {
-                logger.log(WARNING, "unable to collect from " + sampler.getClass().getSimpleName(), e);
-                e.printStackTrace();
-              }
-            },
-            rate.toMillis())
-        );
+        // is there a reason to use a listenable future?
+        executor.execute(new SelfScheduledRunnable(() -> {
+          try {
+            logger.finest("collecting from " + sampler.getClass().getSimpleName());
+            processor.add(sampler.sample());
+          } catch (RuntimeException e) {
+            logger.log(WARNING, "unable to collect from " + sampler.getClass().getSimpleName(), e);
+            e.printStackTrace();
+          }
+        },
+        rate.toMillis()));
         logger.fine("started the " + sampler.getClass().getSimpleName());
       }
       isRunning = true;
@@ -61,12 +67,16 @@ public final class Profiler {
     }
   }
 
+  /**
+   * Starts running the profiler, which feeds {@link sample()} of all samplers
+   * into the processor. All samplers are scheduled to collect data at the same rate.
+   */
   public void stop() {
     if (isRunning) {
       logger.info("stopping the profiler");
       try {
         executor.shutdownNow();
-        while (!executor.awaitTermination(250, MILLISECONDS)) { }
+        while (!executor.awaitTermination(250, MILLISECONDS)) { logger.info("waiting for executor to terminate..."); }
         isRunning = false;
       } catch (Exception e) {
         logger.log(WARNING, "unable to terminate executor", e);

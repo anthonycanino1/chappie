@@ -10,10 +10,10 @@ java_library(
   deps = [
     "@jRAPL",
     ":dagger",
-    "//src/main/java/chappie/attribution",
-    "//src/main/java/chappie/profiling:core",
-    "//src/main/java/chappie/profiling:samples",
-    "//src/main/java/chappie/sampling/trace",
-    "//src/main/java/chappie/util",
+    "//src/java/chappie/attribution",
+    "//src/java/chappie/profiling:core",
+    "//src/java/chappie/profiling:samples",
+    "//src/java/chappie/sampling/trace",
+    "//src/java/chappie/util",
   ],
 )
