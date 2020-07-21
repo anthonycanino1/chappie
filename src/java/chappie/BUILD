@@ -10,7 +10,9 @@ java_library(
     ":dagger",
     "//src/java/chappie/concurrent:module",
     "//src/java/chappie/naive:module",
-    "//src/java/chappie/processing:attribution",
+    # "//src/java/chappie/processing:attribution",
+    "//src/java/chappie/processing:alignment",
+    "//src/java/chappie/processing/trace",
     "//src/java/chappie/profiling:core",
     "//src/java/chappie/profiling:profiler",
   ],
@@ -24,6 +26,6 @@ java_binary(
     ":naive",
     "//src/java/chappie/profiling:core",
   ],
-  data = ["@jRAPL//src/jrapl:libCPUScaler.so"],
-  jvm_flags = ["-Djava.library.path=external/jRAPL/src/jrapl"],
+  resources = ["@jRAPL//src/jrapl:libCPUScaler.so"],
+  jvm_flags = ["-Djava.library.path=/home/timur/projects/async-profiler/build"]
 )

@@ -16,6 +16,19 @@ java_library(
 )
 
 java_library(
+    name = "profile",
+    visibility = ["//visibility:public"],
+    srcs = [
+      "AttributionProfile.java"
+    ],
+    deps = [
+      ":attribution",
+      "//src/java/chappie/profiling:core",
+      "//src/java/chappie/processing/trace:ranking",
+    ],
+)
+
+java_library(
     name = "sampler",
     visibility = ["//visibility:public"],
     srcs = ["AttributionSampler.java"],

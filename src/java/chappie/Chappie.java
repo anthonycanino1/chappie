@@ -2,7 +2,8 @@ package chappie;
 
 import chappie.concurrent.ConcurrentModule;
 import chappie.naive.NaiveEnergyModule;
-import chappie.processing.AttributionModule;
+// import chappie.processing.AttributionModule;
+import chappie.processing.AlignmentModule;
 import chappie.profiling.Profile;
 import chappie.profiling.Profiler;
 import dagger.Component;
@@ -15,7 +16,8 @@ public class Chappie {
   @Component(modules = {
     ConcurrentModule.class,
     NaiveEnergyModule.class,
-    AttributionModule.class
+    AlignmentModule.class
+    // AttributionModule.class
   })
   interface ProfilerFactory {
     Profiler newProfiler();

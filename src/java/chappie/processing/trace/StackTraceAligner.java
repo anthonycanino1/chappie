@@ -5,7 +5,7 @@ import static java.util.stream.Collectors.toList;
 
 import java.util.stream.StreamSupport;
 
-// import chappie.attribution.AttributionProfile;
+import chappie.attribution.AttributionProfile;
 import chappie.attribution.EnergyAttributer;
 import chappie.attribution.EnergyAttribution;
 import chappie.sampling.trace.StackTraceSample;
@@ -53,49 +53,42 @@ public final class StackTraceAligner implements SampleProcessor<Iterable<Profile
   public Iterable<Profile> process() {
     ArrayList<Profile> profiles = new ArrayList<>();
 
-    for (EnergyAttribution attribution : attributer.process()) {
-      profiles.add(attribution);
+    Iterator<Entry<Instant, List<StackTraceSample>>> traceIt = traceData.process().iterator();
+    Entry<Instant, List<StackTraceSample>> traceEntry = null;
+    StackTraceRanking.Builder ranking = new StackTraceRanking.Builder();
+    for (Profile profile: attributer.process()) {
+      EnergyAttribution attr = (EnergyAttribution) profile;
+      for (;;) {
+        if (traceEntry == null && !traceIt.hasNext()) {
+          profiles.add(new AttributionProfile(attr, ranking.build()));
+          ranking = new StackTraceRanking.Builder();
+          break;
+        } else if (traceEntry == null) {
+          traceEntry = traceIt.next();
+        }
+
+        Instant timestamp = traceEntry.getKey();
+
+        if (TimeUtil.greaterThan(timestamp, attr.getEnd())) {
+          profiles.add(new AttributionProfile(attr, ranking.build()));
+          ranking = new StackTraceRanking.Builder();
+          break;
+        } else if (TimeUtil.atLeast(timestamp, attr.getStart())) {
+          List<StackTraceSample> traces = traceEntry.getValue();
+
+          // energy assignment; injection can go here
+          double energy = attr.getApplicationEnergy() / traces.size();
+          for (StackTraceSample sample: traces) {
+            ranking.add(sample.getStackTrace(), energy);
+          }
+
+          traceEntry = null;
+        } else {
+          traceEntry = null;
+        }
+      }
     }
 
     return profiles;
-
-    // return StreamSupport.stream(attributer.process().spliterator(), false).map(p -> (Profile) p).collect(toList());
-
-    // Iterator<Entry<Instant, List<StackTraceSample>>> traceIt = traceData.process().iterator();
-    // Entry<Instant, List<StackTraceSample>> traceEntry = null;
-    // StackTraceRanking.Builder ranking = new StackTraceRanking.Builder();
-    // for (EnergyAttribution attr: attributer.process()) {
-    //   for (;;) {
-    //     if (traceEntry == null && !traceIt.hasNext()) {
-    //       profiles.add(new AttributionProfile(attr, ranking.build()));
-    //       ranking = new StackTraceRanking.Builder();
-    //       break;
-    //     } else if (traceEntry == null) {
-    //       traceEntry = traceIt.next();
-    //     }
-    //
-    //     Instant timestamp = traceEntry.getKey();
-    //
-    //     if (TimeUtil.greaterThan(timestamp, attr.getEnd())) {
-    //       profiles.add(new AttributionProfile(attr, ranking.build()));
-    //       ranking = new StackTraceRanking.Builder();
-    //       break;
-    //     } else if (TimeUtil.atLeast(timestamp, attr.getStart())) {
-    //       List<StackTraceSample> traces = traceEntry.getValue();
-    //
-    //       // energy assignment; injection can go here
-    //       double energy = attr.getApplicationEnergy() / traces.size();
-    //       for (StackTraceSample sample: traces) {
-    //         ranking.add(sample.getStackTrace(), energy);
-    //       }
-    //
-    //       traceEntry = null;
-    //     } else {
-    //       traceEntry = null;
-    //     }
-    //   }
-    // }
-    //
-    // return profiles;
   }
 }

@@ -29,8 +29,7 @@ public final class StackTraceSampler implements Sampler<StackTraceSet> {
     try {
       // TODO(timur): this is pretty crappy; it only works if you ran from where chappie's jar is
       long rate = asyncRate.getNano(); // only supporting sub-second for the moment
-      String chappieRoot = System.getProperty("user.dir");
-      AsyncProfiler.getInstance(chappieRoot + "/build/libasyncProfiler.so").start(Events.CPU, asyncRate.getNano());
+      AsyncProfiler.getInstance().start(Events.CPU, asyncRate.getNano());
       logger.info("started async-profiler at " + asyncRate);
       return true;
     } catch (Exception e) {

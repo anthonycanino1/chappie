@@ -1,6 +1,6 @@
 package chappie.attribution;
 
-// import chappie.processing.trace.StackTraceRanking;
+import chappie.processing.trace.StackTraceRanking;
 import chappie.profiling.Profile;
 import java.lang.Math;
 import java.util.Arrays;
@@ -14,52 +14,27 @@ import java.util.List;
 public final class AttributionProfile implements Profile {
 
   private final EnergyAttribution attribution;
-  // private final StackTraceRanking ranking;
+  private final StackTraceRanking ranking;
 
-  // public AttributionProfile(EnergyAttribution attribution, StackTraceRanking ranking) {
-  public AttributionProfile(EnergyAttribution attribution) {
+  public AttributionProfile(EnergyAttribution attribution, StackTraceRanking ranking) {
     this.attribution = attribution;
-    // this.ranking = ranking;
-  }
-
-  /** Returns the total energy consumed by the application. */
-  @Override
-  public double evaluate() {
-    return attribution.getApplicationEnergy();
-  }
-
-  /** Returns the pcc with the other profile, assuming it's an
-   *  AttributionProfile or StackTraceRanking; otherwise, return NaN.
-   */
-  @Override
-  public double compare(Profile other) {
-    if (other instanceof AttributionProfile) {
-      return 0;
-      // return this.ranking.compare(((AttributionProfile) other).ranking);
-    } else {
-      return Double.NaN;
-    }
-  }
-
-  @Override
-  public String dump() {
-    return attribution.dump();
+    this.ranking = ranking;
   }
 
   @Override
   public String toString() {
     return String.join(System.lineSeparator(),
       "energy attribution:",
-      attribution.toString()); //,
-      // "stack trace ranking:",
-      // ranking.toString());
+      attribution.toString(),
+      "stack trace ranking:",
+      ranking.toString());
   }
 
   public EnergyAttribution getAttribution() {
     return attribution;
   }
 
-  // public StackTraceRanking getRanking() {
-  //   return ranking;
-  // }
+  public StackTraceRanking getRanking() {
+    return ranking;
+  }
 }

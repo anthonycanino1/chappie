@@ -1,4 +1,5 @@
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository", "new_git_repository")
+load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository", "new_git_repository")
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 RULES_JVM_EXTERNAL_TAG = "2.8"
@@ -33,15 +34,20 @@ git_repository(
     remote = "https://github.com/timurbey/jRAPL.git",
 )
 
-new_git_repository(
-    name = "async_profiler",
-    branch = "master",
-    remote = "https://github.com/timurbey/async-profiler.git",
-    build_file_content = """
-java_library(
+# new_git_repository(
+#     name = "async_profiler",
+#     branch = "master",
+#     remote = "https://github.com/timurbey/async-profiler.git",
+#     build_file_content = """
+# java_library(
+#   name = "async_profiler",
+#   srcs = glob(["src/java/one/profiler/*.java"]),
+#   visibility = ["//visibility:public"],
+# )
+#     """,
+# )
+
+local_repository(
   name = "async_profiler",
-  srcs = glob(["src/java/one/profiler/*.java"]),
-  visibility = ["//visibility:public"],
-)
-    """,
+  path = "/home/timur/projects/async-profiler"
 )

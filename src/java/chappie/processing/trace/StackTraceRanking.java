@@ -3,7 +3,6 @@ package chappie.processing.trace;
 import static java.util.Collections.unmodifiableMap;
 
 import chappie.sampling.trace.StackTrace;
-import chappie.profiling.Profile;
 import chappie.util.MathUtil;
 import java.util.ArrayList;
 import java.util.Comparator;

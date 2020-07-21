@@ -1,8 +1,9 @@
-package chappie.naive;
+package chappie.processing;
 
 import static java.util.Collections.unmodifiableSet;
 
 import chappie.attribution.AttributionSampler;
+import chappie.processing.trace.StackTraceAligner;
 import chappie.profiling.Profile;
 import chappie.profiling.SampleProcessor;
 import chappie.profiling.Sampler;

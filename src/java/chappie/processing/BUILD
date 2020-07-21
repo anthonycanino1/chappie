@@ -14,3 +14,17 @@ java_library(
     "//src/java/chappie/profiling:core",
   ],
 )
+
+java_library(
+  name = "alignment",
+  visibility = ["//visibility:public"],
+  srcs = ["AlignmentModule.java"],
+  deps = [
+    ":dagger",
+    "//src/java/chappie/attribution:sampler",
+    "//src/java/chappie/profiling:core",
+    "//src/java/chappie/processing/trace",
+    "//src/java/chappie/sampling/energy",
+    "//src/java/chappie/sampling/trace",
+  ],
+)
