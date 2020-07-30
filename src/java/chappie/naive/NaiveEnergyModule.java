@@ -21,7 +21,7 @@ public interface NaiveEnergyModule {
   @Provides
   @SamplingRate
   static Duration provideSamplingRate() {
-    return Duration.ofMillis(4);
+    return Duration.ofMillis(Long.parseLong(System.getProperty("chappie.rate", "4")));
   }
 
   @Provides

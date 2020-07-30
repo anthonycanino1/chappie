@@ -6,6 +6,7 @@ dagger_rules()
 java_library(
   name = "naive",
   srcs = ["Chappie.java"],
+  visibility = ["//visibility:public"],
   deps = [
     ":dagger",
     "//src/java/chappie/concurrent:module",
