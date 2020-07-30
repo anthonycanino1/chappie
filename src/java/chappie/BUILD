@@ -11,7 +11,6 @@ java_library(
     ":dagger",
     "//src/java/chappie/concurrent:module",
     "//src/java/chappie/naive:module",
-    # "//src/java/chappie/processing:attribution",
     "//src/java/chappie/processing:alignment",
     "//src/java/chappie/processing/trace",
     "//src/java/chappie/profiling:core",
