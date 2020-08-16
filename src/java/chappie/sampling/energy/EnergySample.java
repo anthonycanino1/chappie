@@ -23,7 +23,7 @@ public final class EnergySample implements MergableSample<EnergySample>, Timesta
     for (int socket = 0; socket < SOCKETS; socket++) {
       EnergyStats stats = second[socket].difference(first[socket]);
       energy[socket] = stats.getCpu() + stats.getPackage() + stats.getDram();
-      dram[socket] = stats.getCpu() + stats.getDram();
+      dram[socket] = stats.getDram();
     }
   }
 
