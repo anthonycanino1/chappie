@@ -12,7 +12,7 @@ import jrapl.EnergyStats;
 
 /** Energy values at some time accessible by socket. */
 public final class EnergySample implements MergableSample<EnergySample>, TimestampedSample {
-  public static final EnergySample EMPTY = new EnergySample(new double[SOCKETS], Instant.MAX);
+  public static final EnergySample EMPTY = new EnergySample(new double[SOCKETS], new double[SOCKETS], Instant.MAX);
 
   private final Instant timestamp;
   private final double[] energy = new double[SOCKETS];
