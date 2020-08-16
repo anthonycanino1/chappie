@@ -40,6 +40,7 @@ public final class EnergySample implements MergableSample<EnergySample>, Timesta
   @Override
   public EnergySample merge(EnergySample other) {
     double[] energy = new double[SOCKETS];
+    double[] dram = new double[SOCKETS];
     for (int socket = 0; socket < SOCKETS; socket++) {
       energy[socket] = this.energy[socket] + other.energy[socket];
       dram[socket] = this.dram[socket] + other.dram[socket];
