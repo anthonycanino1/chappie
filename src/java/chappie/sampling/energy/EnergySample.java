@@ -16,7 +16,6 @@ public final class EnergySample implements MergableSample<EnergySample>, Timesta
 
   private final Instant timestamp;
   private final double[] energy = new double[SOCKETS];
-  private final double[] package = new double[SOCKETS];
   private final double[] dram = new double[SOCKETS];
 
   EnergySample(EnergyStats[] first, EnergyStats[] second) {
@@ -24,7 +23,6 @@ public final class EnergySample implements MergableSample<EnergySample>, Timesta
     for (int socket = 0; socket < SOCKETS; socket++) {
       EnergyStats stats = second[socket].difference(first[socket]);
       energy[socket] = stats.getCpu() + stats.getPackage() + stats.getDram();
-      package[socket] = stats.getCpu() + stats.getPackage();
       dram[socket] = stats.getCpu() + stats.getDram();
     }
   }
@@ -66,10 +64,6 @@ public final class EnergySample implements MergableSample<EnergySample>, Timesta
 
   public double getEnergy(int socket) {
     return energy[socket];
-  }
-
-  public double getPackage(int socket) {
-    return package[socket];
   }
 
   public double getDram(int socket) {
