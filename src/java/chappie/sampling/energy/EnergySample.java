@@ -28,10 +28,11 @@ public final class EnergySample implements MergableSample<EnergySample>, Timesta
   }
 
   /** private constructor to prevent mutation during merges */
-  private EnergySample(double[] energy, Instant timestamp) {
+  private EnergySample(double[] energy, double[] dram, Instant timestamp) {
     this.timestamp = timestamp;
     for (int socket = 0; socket < SOCKETS; socket++) {
       this.energy[socket] = energy[socket];
+      this.dram[socket] = dram[socket];
     }
   }
 
@@ -41,9 +42,11 @@ public final class EnergySample implements MergableSample<EnergySample>, Timesta
     double[] energy = new double[SOCKETS];
     for (int socket = 0; socket < SOCKETS; socket++) {
       energy[socket] = this.energy[socket] + other.energy[socket];
+      dram[socket] = this.dram[socket] + other.dram[socket];
     }
     return new EnergySample(
       energy,
+      dram,
       TimeUtil.maxBelowUpper(this.timestamp, other.timestamp));
   }
 
