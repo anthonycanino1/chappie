@@ -1,56 +1,55 @@
 package chappie;
 
-import chappie.concurrent.ConcurrentModule;
-import chappie.naive.NaiveEnergyModule;
-// import chappie.processing.AttributionModule;
-import chappie.processing.AlignmentModule;
-import chappie.profiling.Profile;
-import chappie.profiling.Profiler;
-import dagger.Component;
-import java.util.ArrayList;
+import static java.util.Collections.emptyList;
 
-// temporary driver; should be able to get rid of this in some way or another
-// some reading indicates that we would use a template to define these modules
-// could look into an annotation for a profiler.
-public class Chappie {
-  @Component(modules = {
-    ConcurrentModule.class,
-    NaiveEnergyModule.class,
-    AlignmentModule.class
-    // AttributionModule.class
-  })
-  interface ProfilerFactory {
-    Profiler newProfiler();
+import clerk.Profiler;
+import clerk.Clerk;
+import clerk.concurrent.PeriodicSamplingModule;
+import dagger.Component;
+import java.io.File;
+
+/** A profiler that estimates the energy consumed by the current application. */
+public final class Chappie implements Profiler<Iterable<FrequencyHistogram>> {
+  @Component(modules = {CalmnessModule.class, PeriodicSamplingModule.class})
+  interface ClerkFactory {
+    Clerk<Iterable<FrequencyHistogram>> newClerk();
   }
 
-  private static final ProfilerFactory profilerFactory = DaggerChappie_ProfilerFactory.builder().build();
+  private static final ClerkFactory clerkFactory = DaggerChappie_ClerkFactory.builder().build();
 
-  private static Profiler profiler;
-  private static Iterable<Profile> profiles = new ArrayList<Profile>();
+  private Clerk<Iterable<FrequencyHistogram>> clerk;
 
-  // starts a profiler if there is not one already
-  public static void start() {
-    if (profiler == null) {
-      profiles = new ArrayList<Profile>();
-      profiler = profilerFactory.newProfiler();
-      profiler.start();
+  public Chappie() { }
+
+  // starts a profiler if there is not one
+  public void start() {
+    if (clerk == null) {
+      clerk = clerkFactory.newClerk();
+      clerk.start();
     }
   }
 
   // stops the profiler if there is one
-  public static void stop() {
-    if (profiler != null) {
-      profiler.stop();
-      profiles = profiler.getProfiles();
-      profiler = null;
-    }
-  }
-
-  // get all profiles stored
-  public static Iterable<Profile> getProfiles() {
-    if (profiler != null) {
-      profiles = profiler.getProfiles();
+  public Iterable<FrequencyHistogram> stop() {
+    Iterable<FrequencyHistogram> profiles = emptyList();
+    if (clerk != null) {
+      profiles = (Iterable<FrequencyHistogram>) clerk.stop();
+      clerk = null;
     }
     return profiles;
+  }
+
+  public static void main(String[] args) throws Exception {
+    String pid = args[0];
+    File procPid = new File("/proc", args[0]);
+
+    Chappie chappie = new Chappie();
+    chappie.start();
+    while (procPid.exists()) { }
+    System.out.println(String.join(" ",
+      "pid",
+      pid,
+      "consumed",
+      String.format("%s", chappie.stop())));
   }
 }

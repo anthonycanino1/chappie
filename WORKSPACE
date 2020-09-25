@@ -1,9 +1,9 @@
-load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository", "new_git_repository")
-load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository", "new_git_repository")
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
-RULES_JVM_EXTERNAL_TAG = "2.8"
-RULES_JVM_EXTERNAL_SHA = "79c9850690d7614ecdb72d68394f994fef7534b292c4867ce5e7dec0aa7bdfad"
+# dagger deps
+RULES_JVM_EXTERNAL_TAG = "3.3"
+RULES_JVM_EXTERNAL_SHA = "d85951a92c0908c80bd8551002d66cb23c3434409c814179c0ff026b53544dab"
+
 http_archive(
     name = "rules_jvm_external",
     strip_prefix = "rules_jvm_external-%s" % RULES_JVM_EXTERNAL_TAG,
@@ -13,6 +13,7 @@ http_archive(
 
 DAGGER_TAG = "2.28.1"
 DAGGER_SHA = "9e69ab2f9a47e0f74e71fe49098bea908c528aa02fa0c5995334447b310d0cdd"
+
 http_archive(
     name = "dagger",
     strip_prefix = "dagger-dagger-%s" % DAGGER_TAG,
@@ -28,26 +29,18 @@ maven_install(
     repositories = DAGGER_REPOSITORIES,
 )
 
+load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
+
 git_repository(
-    name = "jRAPL",
-    branch = "master",
-    remote = "https://github.com/timurbey/jRAPL.git",
+    name = "clerk",
+    commit = "6455cb51742f55a36be2c8d48205dd72053047dc",
+    shallow_since = "1600974126 -0600",
+    remote = "https://github.com/timurbey/clerk.git",
 )
 
-# new_git_repository(
-#     name = "async_profiler",
-#     branch = "master",
-#     remote = "https://github.com/timurbey/async-profiler.git",
-#     build_file_content = """
-# java_library(
-#   name = "async_profiler",
-#   srcs = glob(["src/java/one/profiler/*.java"]),
-#   visibility = ["//visibility:public"],
-# )
-#     """,
-# )
-
-local_repository(
-  name = "async_profiler",
-  path = "/home/timur/projects/async-profiler"
+git_repository(
+    name = "jRAPL",
+    commit = "8447264da36454bc4163935c4013280e165b0d49",
+    shallow_since = "1600653593 -0600",
+    remote = "https://github.com/timurbey/jRAPL.git",
 )
