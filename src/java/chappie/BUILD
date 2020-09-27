@@ -5,26 +5,65 @@ dagger_rules()
 
 java_library(
   name = "chappie",
+  visibility = ["//visibility:public"],
   srcs = [
-    "Chappie.java",
+    "StackTraceRanking.java",
+  ],
+)
+
+java_library(
+  name = "calmness",
+  srcs = [
     "CalmnessModule.java",
-    "FrequencyHistogram.java"
   ],
   visibility = ["//visibility:public"],
   deps = [
     "@clerk//clerk",
-    "@clerk//clerk:profiler",
-    "@clerk//clerk/concurrent",
-    "@clerk//clerk/concurrent:periodic_sampling",
     ":dagger",
   ],
 )
 
+java_library(
+  name = "alignment",
+  srcs = [
+    "AlignmentModule.java"
+  ],
+  visibility = ["//visibility:public"],
+  deps = [
+    "@clerk//clerk",
+    ":dagger",
+  ],
+)
+
+# java_library(
+#   name = "chappie",
+#   srcs = [
+#     "Chappie.java",
+#     "CalmnessModule.java",
+#     "FrequencyHistogram.java"
+#   ],
+#   visibility = ["//visibility:public"],
+#   deps = [
+#     "@clerk//clerk",
+#     "@clerk//clerk:profiler",
+#     "@clerk//clerk/concurrent",
+#     "@clerk//clerk/concurrent:periodic_sampling",
+#     ":dagger",
+#   ],
+# )
+
 java_binary(
   name = "calm_it",
   visibility = ["//visibility:public"],
-  main_class = "chappie.Chappie",
-  runtime_deps = [
-    ":chappie",
+  main_class = "chappie.CalmnessProfiler",
+  srcs = [
+    "CalmnessProfiler.java",
   ],
+  deps = [
+    ":calmness",
+    "@clerk//clerk:profiler",
+    "@clerk//clerk/concurrent:periodic_sampling",
+    ":dagger"
+  ],
+  jvm_flags = ['-Dclerk.sampling.rate=512']
 )
