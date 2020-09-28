@@ -89,6 +89,7 @@ java_binary(
   deps = [
     ":ranking_module",
     "@clerk//clerk:profiler",
+    "@clerk//clerk/concurrent",
     "@clerk//clerk/concurrent:periodic_sampling",
     ":dagger",
     "@eflect//profiler/eflect",
