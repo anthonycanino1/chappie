@@ -8,9 +8,6 @@ import clerk.concurrent.PeriodicSamplingModule;
 import dagger.Component;
 import java.io.File;
 
-import java.util.Arrays;
-import java.util.List;
-
 /** A profiler that estimates the energy consumed by the current application. */
 public final class CalmnessProfiler implements Profiler<Iterable<long[]>> {
   @Component(modules = {CalmnessModule.class, PeriodicSamplingModule.class})
@@ -49,11 +46,15 @@ public final class CalmnessProfiler implements Profiler<Iterable<long[]>> {
     CalmnessProfiler chappie = new CalmnessProfiler();
     chappie.start();
     while (procPid.exists()) { }
-    List<long[]> hists = (List) chappie.stop();
-    System.out.println(hists.size());
-    for (long[] hist: hists) {
-      System.out.println(Arrays.toString(hist));
+    for (long[] hist: chappie.stop()) {
+      for (long val: hist) {
+        System.out.print(val + " ");
+      }
+      System.out.println();
     }
+
+
+    // }
     // System.out.println(String.join(" ",
     //   "pid",
     //   pid,

@@ -24,6 +24,10 @@ public final class TimeUtil {
     return first.compareTo(second) < 0;
   }
 
+  public static boolean isEpoch(Instant timestamp) {
+    return equal(timestamp, Instant.EPOCH);
+  }
+
   // comparisons
   public static Instant max(Instant first, Instant second) {
     if (greaterThan(first, second)) {

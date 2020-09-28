@@ -11,12 +11,11 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.function.Supplier;
-
 /**
  * Module to provide calmness data, which is the current frequency values of the current linux system.
  *
  * <p> This currently only works for linux systems that provide the paths below. We need to look into
- *     extending this implementation across linux implementations
+ *     extending this implementation across linux implementations.
  */
 @Module
 abstract class CalmnessModule {
@@ -49,6 +48,7 @@ abstract class CalmnessModule {
     return CalmnessModule::getFreqs;
   }
 
+  // list storage
   @Provides
   static Processor<?, Iterable<long[]>> provideProcessor() {
     return new Processor<long[], Iterable<long[]>>() {

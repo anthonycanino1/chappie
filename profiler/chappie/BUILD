@@ -7,12 +7,20 @@ java_library(
   name = "chappie",
   visibility = ["//visibility:public"],
   srcs = [
-    "StackTraceRanking.java",
+    "StackTraceRanker.java",
+    # "StackTraceRanking.java",
   ],
+  deps = [
+    "//profiler/chappie/util",
+    "@clerk//clerk",
+    ":dagger",
+    "@eflect//profiler/eflect",
+    "@eflect//profiler/eflect/data",
+  ]
 )
 
 java_library(
-  name = "calmness",
+  name = "calmness_module",
   srcs = [
     "CalmnessModule.java",
   ],
@@ -24,14 +32,17 @@ java_library(
 )
 
 java_library(
-  name = "alignment",
+  name = "ranking_module",
   srcs = [
-    "AlignmentModule.java"
+    "StackTraceRankingModule.java",
   ],
   visibility = ["//visibility:public"],
   deps = [
+    ":chappie",
+    "@asyncProfiler",
     "@clerk//clerk",
     ":dagger",
+    "@eflect//profiler/eflect/data",
   ],
 )
 
@@ -60,10 +71,30 @@ java_binary(
     "CalmnessProfiler.java",
   ],
   deps = [
-    ":calmness",
+    ":calmness_module",
     "@clerk//clerk:profiler",
     "@clerk//clerk/concurrent:periodic_sampling",
     ":dagger"
   ],
   jvm_flags = ['-Dclerk.sampling.rate=512']
+)
+
+java_binary(
+  name = "rank_it",
+  visibility = ["//visibility:public"],
+  main_class = "chappie.ChappieProfiler",
+  srcs = [
+    "ChappieProfiler.java",
+  ],
+  deps = [
+    ":ranking_module",
+    "@clerk//clerk:profiler",
+    "@clerk//clerk/concurrent:periodic_sampling",
+    ":dagger",
+    "@eflect//profiler/eflect",
+  ],
+  resources = [
+    "@asyncProfiler//:async-profiler-lib",
+    "@jRAPL//src/jrapl:libCPUScaler.so",
+  ],
 )

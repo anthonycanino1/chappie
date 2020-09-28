@@ -29,7 +29,15 @@ maven_install(
     repositories = DAGGER_REPOSITORIES,
 )
 
-load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
+load("@bazel_tools//tools/build_defs/repo:maven_rules.bzl", "maven_jar")
+
+maven_jar(
+    name = "net_java_dev_jna_jna",
+    artifact = "net.java.dev.jna:jna:5.4.0",
+    repository = "https://repo1.maven.org/maven2",
+)
+
+load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository", "new_git_repository")
 
 git_repository(
     name = "clerk",
@@ -43,4 +51,34 @@ git_repository(
     commit = "8447264da36454bc4163935c4013280e165b0d49",
     shallow_since = "1600653593 -0600",
     remote = "https://github.com/timurbey/jRAPL.git",
+)
+
+git_repository(
+    name = "eflect",
+    commit = "a5b15e9d436ad8c6c7766f7d1262eae87d97b45b",
+    shallow_since = "1600975337 -0600",
+    remote = "https://github.com/timurbey/eflect.git",
+)
+
+new_local_repository(
+    name = "asyncProfiler",
+    path = "/home/timur/projects/async-profiler",
+    build_file_content = """
+load("@rules_java//java:defs.bzl", "java_import")
+
+genrule(
+  name = "async-profiler-lib",
+  visibility = ["//visibility:public"],
+  cmd = "cp /home/timur/projects/async-profiler/build/libasyncProfiler.so $@",
+  outs = ["libasyncProfiler.so"],
+)
+
+java_import(
+    name = "asyncProfiler",
+    visibility = ["//visibility:public"],
+    jars = [
+      "build/async-profiler.jar"
+    ],
+)
+"""
 )
