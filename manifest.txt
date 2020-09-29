@@ -1,5 +1,0 @@
-Main-Class: chappie.Driver
-Premain-Class: chappie.agent.ChappieAgent
-Can-Redefine-Classes: true
-Can-Retransform-Classes: true
-Can-Set-Native-Method-Prefix: true

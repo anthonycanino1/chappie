@@ -55,7 +55,7 @@ git_repository(
 
 git_repository(
     name = "eflect",
-    commit = "a5b15e9d436ad8c6c7766f7d1262eae87d97b45b",
+    commit = "311b2ed003e6c5ed31167bb37fb75834a566c88c",
     shallow_since = "1600975337 -0600",
     remote = "https://github.com/timurbey/eflect.git",
 )
@@ -81,4 +81,9 @@ java_import(
     ],
 )
 """
+)
+
+http_archive(
+    name = "dacapo",
+    urls = ["https://clerk-deps.s3.amazonaws.com/dacapo.zip"],
 )
