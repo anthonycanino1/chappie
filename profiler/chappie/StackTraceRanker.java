@@ -53,22 +53,27 @@ public final class StackTraceRanker implements Processor<Object, Map<String, Dou
     Iterator<Instant> timestamps = traces.keySet().iterator();
     Instant timestamp = Instant.EPOCH;
     for (EnergyFootprint footprint: eflect.get()) {
-      if (TimeUtil.isEpoch(timestamp)) {
-        if (timestamps.hasNext()) {
-          timestamp = timestamps.next();
-        } else {
-          break;
+      for (;;) {
+        if (TimeUtil.isEpoch(timestamp)) {
+          if (timestamps.hasNext()) {
+            timestamp = timestamps.next();
+          } else {
+            break;
+          }
         }
-      }
 
-      if (TimeUtil.atLeast(timestamp, footprint.getStart())
-          && TimeUtil.atMost(timestamp, footprint.getEnd())) {
-        ArrayList<String> methods = traces.get(timestamp);
-        double energy = footprint.getEnergy() / methods.size();
-        for (String method: methods) {
-          rankings.put(method, rankings.getOrDefault(method, 0.0) + energy);
+        if (TimeUtil.greaterThan(timestamp, footprint.getEnd())) {
+          break;
+        } else if (TimeUtil.atLeast(timestamp, footprint.getStart())) {
+          ArrayList<String> methods = traces.get(timestamp);
+          double energy = footprint.getEnergy() / methods.size();
+          for (String method: methods) {
+            rankings.put(method, rankings.getOrDefault(method, 0.0) + energy);
+          }
+          timestamp = Instant.EPOCH;
+        } else {
+          timestamp = Instant.EPOCH;
         }
-        timestamp = Instant.EPOCH;
       }
     }
 

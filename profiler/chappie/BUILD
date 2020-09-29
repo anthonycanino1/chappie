@@ -46,23 +46,6 @@ java_library(
   ],
 )
 
-# java_library(
-#   name = "chappie",
-#   srcs = [
-#     "Chappie.java",
-#     "CalmnessModule.java",
-#     "FrequencyHistogram.java"
-#   ],
-#   visibility = ["//visibility:public"],
-#   deps = [
-#     "@clerk//clerk",
-#     "@clerk//clerk:profiler",
-#     "@clerk//clerk/concurrent",
-#     "@clerk//clerk/concurrent:periodic_sampling",
-#     ":dagger",
-#   ],
-# )
-
 java_binary(
   name = "calm_it",
   visibility = ["//visibility:public"],
@@ -88,6 +71,7 @@ java_binary(
   ],
   deps = [
     ":ranking_module",
+    "@asyncProfiler",
     "@clerk//clerk:profiler",
     "@clerk//clerk/concurrent",
     "@clerk//clerk/concurrent:periodic_sampling",

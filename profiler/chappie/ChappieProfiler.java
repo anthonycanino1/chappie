@@ -2,6 +2,7 @@ package chappie;
 
 import static java.util.Collections.emptyMap;
 
+import one.profiler.AsyncProfiler;
 import clerk.Clerk;
 import clerk.Profiler;
 import clerk.concurrent.PeriodicSamplingModule;
@@ -48,17 +49,5 @@ public final class ChappieProfiler implements Profiler<Map<String, Double>> {
     chappie.start();
     while (procPid.exists()) { }
     System.out.println(chappie.stop());
-    // for (long[] hist: chappie.stop()) {
-    //   for (long val: hist) {
-    //     System.out.print(val + " ");
-    //   }
-    //   System.out.println();
-    // }
-    // }
-    // System.out.println(String.join(" ",
-    //   "pid",
-    //   pid,
-    //   "consumed",
-    //   String.format("%s", chappie.stop())));
   }
 }

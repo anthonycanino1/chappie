@@ -1,7 +1,5 @@
 package chappie;
 
-import one.profiler.AsyncProfiler;
-import one.profiler.Events;
 import clerk.DataSource;
 import clerk.Processor;
 import dagger.Binds;
@@ -11,6 +9,8 @@ import dagger.multibindings.IntoSet;
 import eflect.data.CpuSample;
 import eflect.data.RaplSample;
 import eflect.data.TaskSample;
+import one.profiler.AsyncProfiler;
+import one.profiler.Events;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -67,10 +67,12 @@ interface StackTraceRankingModule {
     // Logger logger = LoggerUtil.setup();
     try {
       long rate = asyncRate.getNano(); // only supporting sub-second for the moment
-      AsyncProfiler.getInstance(createLibraryFileFromJar("/one/profiler/libasyncProfiler.so").getPath()).start(Events.CPU, asyncRate.getNano());
+      AsyncProfiler.getInstance(createLibraryFileFromJar("/external/asyncProfiler/libasyncProfiler.so").getPath()).start(Events.CPU, asyncRate.getNano());
       // logger.info("started async-profiler at " + asyncRate);
       return true;
     } catch (Exception e) {
+      // System.out.println(e);
+      e.printStackTrace();
       // logger.log(WARNING, "unable to start async-profiler", e);
       return false;
     }
