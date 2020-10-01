@@ -19,8 +19,8 @@ public final class DaCapo extends Callback {
 
   public DaCapo(CommandLineArgs args) {
     super(args);
-    outputPath = System.getProperty("chappie.output", "rankings");
-    new File(outputPath).mkdir();
+    outputPath = System.getProperty("chappie.output");
+    new File(outputPath).mkdirs();
   }
 
   @Override
